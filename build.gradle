@@ -1,0 +1,31 @@
+group 'Viola-Jones'
+version '1.0-SNAPSHOT'
+
+apply plugin: 'java'
+apply plugin: 'application'
+
+mainClassName = "Main"
+
+sourceCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+}
+
+jar {
+    manifest {
+        attributes 'Main-Class': mainClassName
+    }
+    sourceSets {
+        main {
+            java {
+                srcDirs = ["src"]
+            }
+        }
+    }
+}
+
+dependencies {
+    testCompile group: 'junit', name: 'junit', version: '4.11'
+    compile fileTree(dir: 'libs' , include: '*.jar')
+}
