@@ -4,20 +4,24 @@ Based on the following paper: http://www.ipol.im/pub/art/2014/104/article.pdf
 
 
 
-## Specifications
+### Specifications
 
 Language: Java (JDK 8)
 
-## Compatibility
+### Compatibility
 
 Tested for:
 * Windows 10 X64
 * Ubuntu 14.04 X64
 
-## requirements
+### requirements
 
 * [CUDA Toolkit 7.5](https://developer.nvidia.com/cuda-toolkit)
 
+## Installation
+
+We provide .dll (for windows) and .so (for linux) CUDA 7.5 lib files in this repository.
+In order to let the program access to them, you must add their directory in your PATH environment variable.
 
 
 [travis-url]: https://travis-ci.org/INVASIS/Viola-Jones
