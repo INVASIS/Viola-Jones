@@ -1,7 +1,7 @@
+import GUI.Display;
 import jcuda.Pointer;
 import jcuda.Sizeof;
 import jcuda.jcublas.JCublas;
-
 import java.util.Random;
 
 /**
@@ -32,6 +32,8 @@ public class Main {
         cu = System.currentTimeMillis() - cu;
 
         System.out.println("Cuda time spent : " + cu);
+
+        Display.drawImage("image.png");
     }
 
     private static void sgemmJCublas(int n, float alpha, float A[], float B[],
