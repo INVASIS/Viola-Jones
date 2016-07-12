@@ -2,6 +2,13 @@ import GUI.Display;
 import jcuda.Pointer;
 import jcuda.Sizeof;
 import jcuda.jcublas.JCublas;
+import process.FeaturesExtractor;
+import process.Filters;
+
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
 import java.util.Random;
 
 /**
@@ -33,7 +40,13 @@ public class Main {
 
         System.out.println("Cuda time spent : " + cu);
 
-        Display.drawImage("image.png");
+        try {
+            BufferedImage bi = Filters.greyscale(ImageIO.read(new File("data/face.jpg")));
+            Display.drawImage(FeaturesExtractor.summedAreaTable(bi));
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     private static void sgemmJCublas(int n, float alpha, float A[], float B[],

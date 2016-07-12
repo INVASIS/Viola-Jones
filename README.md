@@ -21,7 +21,7 @@ Tested for:
 ## Installation
 
 We provide .dll (for windows) and .so (for linux) CUDA 7.5 lib files in this repository.
-In order to let the program access to them, you must add their directory in your PATH environment variable.
+In order to let the program access to these files, you must add their directory in your PATH environment variable.
 
 
 [travis-url]: https://travis-ci.org/INVASIS/Viola-Jones

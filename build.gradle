@@ -1,4 +1,4 @@
-group 'Viola-Jones'
+ group 'Viola-Jones'
 version '1.0-SNAPSHOT'
 
 apply plugin: 'java'

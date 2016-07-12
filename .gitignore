@@ -3,6 +3,7 @@
 build/
 gradle/
 out/
+classes/
 
 # Ignore Gradle GUI config
 gradle-app.setting

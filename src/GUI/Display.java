@@ -8,8 +8,7 @@ import java.io.IOException;
 
 public class Display {
 
-    public static void drawImage(String pathToImage) {
-
+    public static void drawImage(BufferedImage bi) {
 
         ImageIO.setUseCache(false);
         JFrame jframe = new JFrame("Image display");
@@ -18,14 +17,18 @@ public class Display {
         jframe.setContentPane(vidpanel);
         jframe.setSize(640, 480);
         jframe.setVisible(true);
+        vidpanel.setImage(bi);
+        vidpanel.repaint();
+    }
 
+    public static void drawImageFromFile(String pathToImage) {
         try {
             BufferedImage bi = ImageIO.read(new File(pathToImage));
-            vidpanel.setImage(bi);
-            vidpanel.repaint();
+            Display.drawImage(bi);
         } catch (IOException e) {
             e.printStackTrace();
         }
+
     }
 
 }
