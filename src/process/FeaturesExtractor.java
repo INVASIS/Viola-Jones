@@ -19,8 +19,8 @@ public class FeaturesExtractor {
         }
 
         for (int y = 1; y < image.getHeight(); y++) {
-            int i = image.getRGB(y, 0) + result.getRGB(y-1, 0);
-            result.setRGB(y, 0, i);
+            int i = image.getRGB(0, y) + result.getRGB(0, y-1);
+            result.setRGB(0, y, i);
         }
 
         for (int x = 1; x < image.getWidth(); x++) {
