@@ -1,7 +1,10 @@
 package GUI;
 
+import process.Converters;
+import process.FeaturesExtractor;
+import process.Filters;
+
 import javax.imageio.ImageIO;
-import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -11,16 +14,16 @@ public class ImageHandler {
     private BufferedImage bufferedImage;
     private int width;
     private int height;
-    private int[][] pixels;
+    private int[][] grayImage;
+    private int[][] integralImage;
 
     public ImageHandler(BufferedImage bufferedImage) {
         this.bufferedImage = bufferedImage;
         this.width = bufferedImage.getWidth();
         this.height = bufferedImage.getHeight();
 
-        this.pixels = new int[this.width][this.height];
-
-        setPixelsFromBufferedImage();
+        this.grayImage = Filters.grayscale(this.bufferedImage);
+        this.integralImage = FeaturesExtractor.summedAreaTable(this.grayImage, this.width, this.height);
     }
 
     public ImageHandler(String filePath) {
@@ -31,9 +34,8 @@ public class ImageHandler {
             this.width = bufferedImage.getWidth();
             this.height = bufferedImage.getHeight();
 
-            this.pixels = new int[this.width][this.height];
-
-            setPixelsFromBufferedImage();
+            this.grayImage = Filters.grayscale(this.bufferedImage);
+            this.integralImage = FeaturesExtractor.summedAreaTable(this.grayImage, this.width, this.height);
 
         } catch (IOException e) {
             System.err.println("ERROR ! Cannot open file : " + filePath);
@@ -41,8 +43,36 @@ public class ImageHandler {
         }
     }
 
+    public ImageHandler(int[][] grayImage, int width, int height) {
+        this.width = width;
+        this.height = height;
+
+        this.grayImage = new int[width][height];
+
+        for (int x = 0; x < width; x++) {
+            System.arraycopy(grayImage[x], 0, this.grayImage[x], 0, height);
+        }
+
+        this.integralImage = FeaturesExtractor.summedAreaTable(this.grayImage, this.width, this.height);
+
+        this.bufferedImage = Converters.intArrayToBufferedImage(this.grayImage, this.width, this.height);
+
+    }
+
+    public BufferedImage getGrayBufferedImage() {
+        return Converters.intArrayToBufferedImage(this.grayImage, this.width, this.height);
+    }
+
     public BufferedImage getBufferedImage() {
         return bufferedImage;
+    }
+
+    public int[][] getGrayImage() {
+        return grayImage;
+    }
+
+    public int[][] getIntegralImage() {
+        return integralImage;
     }
 
     public int getWidth() {
@@ -53,52 +83,7 @@ public class ImageHandler {
         return height;
     }
 
-    public void setBufferedImage(BufferedImage bufferedImage) {
-        this.bufferedImage = bufferedImage;
-    }
-
-    public void setPixels(int[][] pixels) {
-        this.pixels = pixels;
-    }
-
-    public void setWidth(int width) {
-        this.width = width;
-    }
-
-    public void setHeight(int height) {
-        this.height = height;
-    }
-
-    public int[][] getPixels() {
-        return pixels;
-    }
-
-    // Bof marche pas sur...
-    public void setBufferedImageFromPixels() {
-        for (int x = 0; x < this.width; x++) {
-            for (int y = 0; y < this.height; y++) {
-                int med = pixels[x][y];
-                Color c = new Color(med, med, med);
-                this.bufferedImage.setRGB(x, y, c.getRGB());
-            }
-        }
-    }
-
-    public void setPixelsFromBufferedImage() {
-        for (int x = 0; x < this.width; x++) {
-            for (int y = 0; y < this.height; y++) {
-                Color c = new Color(this.bufferedImage.getRGB(x, y));
-                int med = (c.getBlue() + c.getGreen() + c.getRed()) / 3; // Should already be grayscale, but just in case...
-                this.pixels[x][y] = med;
-            }
-        }
-    }
-
-    public void setPixelValue(int x, int y, int value) {
-        this.pixels[x][y] = value;
-    }
-
-    public int getPixelValue(int x, int y) {
-        return this.pixels[x][y];
+    public int getGrayValue(int x, int y) {
+        return this.grayImage[x][y];
     }
 }
