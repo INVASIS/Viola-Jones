@@ -22,6 +22,11 @@ jar {
                 srcDirs = ["src"]
             }
         }
+        test {
+            java {
+                srcDirs = ["test"]
+            }
+        }
     }
 }
 
