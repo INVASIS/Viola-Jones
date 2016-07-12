@@ -3,6 +3,7 @@ import GUI.ImageHandler;
 import jcuda.Pointer;
 import jcuda.Sizeof;
 import jcuda.jcublas.JCublas;
+import process.Converters;
 
 import java.util.Random;
 
@@ -39,6 +40,7 @@ public class Main {
         ImageHandler imageHandler = new ImageHandler("data/face.jpg");
         Display.drawImage(imageHandler.getBufferedImage());
         Display.drawImage(imageHandler.getGrayBufferedImage());
+        Converters.centerReduceImage(imageHandler);
 
     }
 
