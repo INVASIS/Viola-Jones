@@ -1,4 +1,5 @@
 import GUI.Display;
+import GUI.ImageHandler;
 import jcuda.Pointer;
 import jcuda.Sizeof;
 import jcuda.jcublas.JCublas;
@@ -40,19 +41,17 @@ public class Main {
 
         System.out.println("Cuda time spent : " + cu);
 
-        try {
-            int[][] grey_img = Filters.greyscale(ImageIO.read(new File("data/face.jpg")));
-//            Display.drawImage(bi);
-//            Display.drawImage(FeaturesExtractor.summedAreaTable(bi));
+        ImageHandler imageHandler = new ImageHandler("data/face.jpg");
+        Display.drawImage(imageHandler.getBufferedImage());
+        int[][] grey_img = Filters.greyscale(imageHandler.getBufferedImage());
+        imageHandler.setPixels(grey_img);
+        imageHandler.setBufferedImageFromPixels();
+        Display.drawImage(imageHandler.getBufferedImage());
 
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
     }
 
     private static void sgemmJCublas(int n, float alpha, float A[], float B[],
-                                     float beta, float C[])
-    {
+                                     float beta, float C[]) {
         int nn = n * n;
 
         // Initialize JCublas
@@ -88,12 +87,10 @@ public class Main {
         JCublas.cublasShutdown();
     }
 
-    private static float[] createRandomFloatData(int n)
-    {
+    private static float[] createRandomFloatData(int n) {
         Random random = new Random();
         float x[] = new float[n];
-        for (int i = 0; i < n; i++)
-        {
+        for (int i = 0; i < n; i++) {
             x[i] = random.nextFloat();
         }
         return x;

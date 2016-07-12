@@ -53,10 +53,27 @@ public class ImageHandler {
         return height;
     }
 
+    public void setBufferedImage(BufferedImage bufferedImage) {
+        this.bufferedImage = bufferedImage;
+    }
+
+    public void setPixels(int[][] pixels) {
+        this.pixels = pixels;
+    }
+
+    public void setWidth(int width) {
+        this.width = width;
+    }
+
+    public void setHeight(int height) {
+        this.height = height;
+    }
+
     public int[][] getPixels() {
         return pixels;
     }
 
+    // Bof marche pas sur...
     public void setBufferedImageFromPixels() {
         for (int x = 0; x < this.width; x++) {
             for (int y = 0; y < this.height; y++) {
@@ -75,5 +92,13 @@ public class ImageHandler {
                 this.pixels[x][y] = med;
             }
         }
+    }
+
+    public void setPixelValue(int x, int y, int value) {
+        this.pixels[x][y] = value;
+    }
+
+    public int getPixelValue(int x, int y) {
+        return this.pixels[x][y];
     }
 }
