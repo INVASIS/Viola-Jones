@@ -1,21 +1,25 @@
 package process;
 
-import GUI.Display;
-
-import javax.imageio.ImageIO;
-import java.awt.color.ColorSpace;
 import java.awt.image.BufferedImage;
-import java.awt.image.ColorConvertOp;
-import java.io.File;
 
 /**
  * Created by Dubrzr on 12/07/2016.
  */
 public class Filters {
-    public static BufferedImage greyscale(BufferedImage bi) {
-        ColorSpace cs = ColorSpace.getInstance(ColorSpace.CS_GRAY);
-        ColorConvertOp op = new ColorConvertOp(cs, null);
-        BufferedImage result = op.filter(bi, null);
+    public static int[][] greyscale(BufferedImage bi) {
+        int[][] result = new int[bi.getWidth()][bi.getHeight()];
+
+        for (int x = 0; x < bi.getWidth(); x++) {
+            for (int y = 0; y < bi.getHeight(); y++) {
+                int v = bi.getRGB(x, y);
+
+                int r = (int) (((v>>16)&0xFF) * 0.299);
+                int g = (int) (((v>>8)&0xFF) * 0.587);
+                int b = (int) (((v>>0)&0xFF) * 0.114);
+
+                result[x][y] = (r + g + b) / 3;
+            }
+        }
         return result;
     }
 }

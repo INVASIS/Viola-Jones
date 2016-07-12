@@ -41,9 +41,9 @@ public class Main {
         System.out.println("Cuda time spent : " + cu);
 
         try {
-            BufferedImage bi = Filters.greyscale(ImageIO.read(new File("data/face.jpg")));
-            Display.drawImage(bi);
-            Display.drawImage(FeaturesExtractor.summedAreaTable(bi));
+            int[][] grey_img = Filters.greyscale(ImageIO.read(new File("data/face.jpg")));
+//            Display.drawImage(bi);
+//            Display.drawImage(FeaturesExtractor.summedAreaTable(bi));
 
         } catch (IOException e) {
             e.printStackTrace();
