@@ -39,4 +39,5 @@ public class FeaturesExtractor {
         int D = x + width > 0 && y + height > 0 ? summedAeraTable.getRGB(x+width-1, y+height-1) : 0;
         return A + D - B - C;
     }
+
 }

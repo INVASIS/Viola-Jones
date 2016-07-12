@@ -36,28 +36,29 @@ public class TestFeaturesExtractor {
     public void summedAreaTableTest() {
         BufferedImage bi = getBIExample();
         BufferedImage sat = FeaturesExtractor.summedAreaTable(bi);
-        assertEquals(sat.getRGB(0, 0), 5);
-        assertEquals(sat.getRGB(0, 1), 8);
-        assertEquals(sat.getRGB(0, 2), 13);
-        assertEquals(sat.getRGB(0, 3), 16);
-        assertEquals(sat.getRGB(1, 0), 7);
-        assertEquals(sat.getRGB(1, 1), 16);
-        assertEquals(sat.getRGB(1, 2), 23);
-        assertEquals(sat.getRGB(1, 3), 32);
-        assertEquals(sat.getRGB(2, 0), 12);
-        assertEquals(sat.getRGB(2, 1), 24);
-        assertEquals(sat.getRGB(2, 2), 36);
-        assertEquals(sat.getRGB(2, 3), 48);
-        assertEquals(sat.getRGB(3, 0), 14);
-        assertEquals(sat.getRGB(3, 1), 32);
-        assertEquals(sat.getRGB(3, 2), 46);
-        assertEquals(sat.getRGB(3, 3), 64);
+        assertEquals(5, sat.getRGB(0, 0));
+        assertEquals(8, sat.getRGB(0, 1));
+        assertEquals(13, sat.getRGB(0, 2));
+        assertEquals(16, sat.getRGB(0, 3));
+        assertEquals(7, sat.getRGB(1, 0));
+        assertEquals(16, sat.getRGB(1, 1));
+        assertEquals(23, sat.getRGB(1, 2));
+        assertEquals(32, sat.getRGB(1, 3));
+        assertEquals(12, sat.getRGB(2, 0));
+        assertEquals(24, sat.getRGB(2, 1));
+        assertEquals(36, sat.getRGB(2, 2));
+        assertEquals(48, sat.getRGB(2, 3));
+        assertEquals(14, sat.getRGB(3, 0));
+        assertEquals(32, sat.getRGB(3, 1));
+        assertEquals(46, sat.getRGB(3, 2));
+        assertEquals(64, sat.getRGB(3, 3));
         assertTrue(false);
     }
 
     @Test
     public void rectangleMeanTest() {
         BufferedImage bi = new BufferedImage(4, 4, BufferedImage.TYPE_BYTE_GRAY);
-
+        int res = FeaturesExtractor.rectangleMean(bi, 2, 2, 2, 2);
+        assertEquals(16, res);
     }
 }
