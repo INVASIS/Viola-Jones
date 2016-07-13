@@ -110,4 +110,21 @@ public class DecisionStump {
         }
     }
 
+    public static DecisionStump bestStump(ArrayList<ArrayList<Pair<Integer, Boolean>>> features, ArrayList<Double> w) {
+
+        DecisionStump best = new DecisionStump(features.get(0), w);
+        best.compute();
+
+        for (int i = 1; i < features.size(); i++) {
+            DecisionStump decisionStump = new DecisionStump(features.get(i), w);
+            decisionStump.compute();
+
+            if (decisionStump.error < best.error || decisionStump.error == best.error && decisionStump.margin > best.margin) {
+                best = decisionStump;
+            }
+        }
+
+        return best;
+    }
+
 }
