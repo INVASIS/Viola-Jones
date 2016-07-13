@@ -2,19 +2,25 @@ package process.features;
 
 import java.util.ArrayList;
 
-/**
- * Created by Dubrzr on 13/07/2016.
- */
-public class FeatureCompute {
-    int[][] integralImage;
-    ArrayList<Feature> featuresTypeA = new ArrayList<>();
-    ArrayList<Feature> featuresTypeB = new ArrayList<>();
-    ArrayList<Feature> featuresTypeC = new ArrayList<>();
-    ArrayList<Feature> featuresTypeD = new ArrayList<>();
-    ArrayList<Feature> featuresTypeE = new ArrayList<>();
+import static process.FeaturesExtractor.rectangleSum;
 
-    public FeatureCompute(int[][] integralImage) {
+
+public class FeatureCompute {
+    private final int width;
+    private final int height;
+    private final int[][] integralImage;
+
+    private ArrayList<Feature> featuresTypeA = new ArrayList<>();
+    private ArrayList<Feature> featuresTypeB = new ArrayList<>();
+    private ArrayList<Feature> featuresTypeC = new ArrayList<>();
+    private ArrayList<Feature> featuresTypeD = new ArrayList<>();
+    private ArrayList<Feature> featuresTypeE = new ArrayList<>();
+
+    public FeatureCompute(int[][] integralImage, int width, int height) {
+        this.width = width;
+        this.height = height;
         this.integralImage = integralImage;
+
         // Compute all
         this.computeTypeA();
         this.computeTypeB();
@@ -34,31 +40,54 @@ public class FeatureCompute {
     }
 
     private void computeTypeA() {
+        final int type = 1;
+        final int width = 2;
+        final int height = 1;
         /**
          * a ------- b ------- c
          * -         -         -
          * -   R1    -    R2   -
          * -         -         -
          * d ------- e ------- f
-         * S(R1) = e - (b + d) + a
-         * S(R2) = f - (c + e) + b
          */
+
+        for (Rectangle r: listFeaturePositions(width, height)) {
+            int w = r.getWidth() / 2; // TODO: is it correct? -> What if r.getWidth() is odd?
+            int h = r.getHeight();
+            int r1 = rectangleSum(this.integralImage, r.getX(), r.getY(), w, h);
+            int r2 = rectangleSum(this.integralImage, r.getX() + w, r.getY(), w, h);
+
+            this.featuresTypeA.add(new Feature(r, type, r1 - r2));
+        }
     }
 
     private void computeTypeB() {
+        final int type = 2;
+        final int width = 3;
+        final int height = 1;
         /**
          * a ------- b ------- c ------- d
          * -         -         -         -
          * -   R1    -    R2   -    R3   -
          * -         -         -         -
          * e ------- f ------- g ------- h
-         * S(R1) = f - (b + e) + a
-         * S(R2) = g - (c + f) + b
-         * S(R3) = h - (d + g) + c
          */
+
+        for (Rectangle r: listFeaturePositions(width, height)) {
+            int w = r.getWidth() / 3;
+            int h = r.getHeight();
+            int r1 = rectangleSum(this.integralImage, r.getX(), r.getY(), w, h);
+            int r2 = rectangleSum(this.integralImage, r.getX() + w, r.getY(), w, h);
+            int r3 = rectangleSum(this.integralImage, r.getX() + w + w, r.getY(), w, h);
+
+            this.featuresTypeB.add(new Feature(r, type, r1 - r2 + r3));
+        }
     }
 
     private void computeTypeC() {
+        final int type = 3;
+        final int width = 1;
+        final int height = 2;
         /**
          * a ------- b
          * -         -
@@ -69,12 +98,22 @@ public class FeatureCompute {
          * -   R2    -
          * -         -
          * e ------- f
-         * S(R1) = d - (b + c) + a
-         * S(R2) = f - (d + e) + c
          */
+
+        for (Rectangle r: listFeaturePositions(width, height)) {
+            int w = r.getWidth();
+            int h = r.getHeight() / 2;
+            int r1 = rectangleSum(this.integralImage, r.getX(), r.getY(), w, h);
+            int r2 = rectangleSum(this.integralImage, r.getX(), r.getY() + h, w, h);
+
+            this.featuresTypeC.add(new Feature(r, type, r2 - r1));
+        }
     }
 
     private void computeTypeD() {
+        final int type = 4;
+        final int width = 1;
+        final int height = 3;
         /**
          * a ------- b
          * -         -
@@ -89,13 +128,23 @@ public class FeatureCompute {
          * -   R3    -
          * -         -
          * g ------- h
-         * S(R1) = d - (b + c) + a
-         * S(R2) = f - (d + e) + c
-         * S(R3) = h - (f + g) + e
          */
+
+        for (Rectangle r: listFeaturePositions(width, height)) {
+            int w = r.getWidth();
+            int h = r.getHeight() / 3;
+            int r1 = rectangleSum(this.integralImage, r.getX(), r.getY(), w, h);
+            int r2 = rectangleSum(this.integralImage, r.getX(), r.getY() + h, w, h);
+            int r3 = rectangleSum(this.integralImage, r.getX(), r.getY() + h + h, w, h);
+
+            this.featuresTypeD.add(new Feature(r, type, r1 - r2 + r3));
+        }
     }
 
     private void computeTypeE() {
+        final int type = 5;
+        final int width = 2;
+        final int height = 2;
         /**
          * a ------- b ------- c
          * -         -         -
@@ -106,10 +155,37 @@ public class FeatureCompute {
          * -   R3    -    R4   -
          * -         -         -
          * g ------- h ------- i
-         * S(R1) = e - (b + d) + a
-         * S(R2) = f - (c + e) + b
-         * S(R3) = h - (e + g) + d
-         * S(R4) = i - (f + h) + e
          */
+
+        for (Rectangle r: listFeaturePositions(width, height)) {
+            int w = r.getWidth() / 2;
+            int h = r.getHeight() / 2;
+            int r1 = rectangleSum(this.integralImage, r.getX(), r.getY(), w, h);
+            int r2 = rectangleSum(this.integralImage, r.getX() + w, r.getY(), w, h);
+            int r3 = rectangleSum(this.integralImage, r.getX(), r.getY() + h, w, h);
+            int r4 = rectangleSum(this.integralImage, r.getX() + w, r.getY() + h, w, h);
+
+            this.featuresTypeE.add(new Feature(r, type, r1 - r2 - r3 + r4));
+        }
+    }
+
+    private ArrayList<Rectangle> listFeaturePositions(int minWidth, int minHeight) {
+        ArrayList<Rectangle> rectangles = new ArrayList<>();
+
+        int maxX = this.width - minWidth;
+        int maxY = this.height - minHeight;
+        for (int x = 0; x <= maxX; x++) {
+            for (int y = 0; y <= maxY; y++) {
+                int maxWidth = this.width - x;
+                for (int w = minWidth; w < maxWidth; w += minWidth) {
+                    int maxHeight = this.height - y;
+                    for (int h = minHeight; h < maxHeight; h += minHeight) {
+                        rectangles.add(new Rectangle(x, y, w, h));
+                    }
+                }
+            }
+        }
+
+        return rectangles;
     }
 }
