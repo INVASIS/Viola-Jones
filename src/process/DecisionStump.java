@@ -1,0 +1,113 @@
+package process;
+
+import javafx.util.Pair;
+
+import java.util.ArrayList;
+
+// Pour chaque feature (ce que j'ai compris...)
+public class DecisionStump {
+
+    private double threshold;
+    private int dim;
+    private boolean toggle;
+    private double error;
+    private double margin;
+
+    private double W1plus;
+    private double W0plus;
+    private double W1min;
+    private double W0min;
+
+    private ArrayList<Pair<Integer, Boolean>> features;
+    private ArrayList<Double> w;
+
+
+    // Initialisation
+    public DecisionStump(ArrayList<Pair<Integer, Boolean>> features, ArrayList<Double> w) {
+        this.margin = 0;
+        this.error = 2;
+
+        this.W1plus = 0;
+        this.W1min = 0;
+        this.W1min = 0;
+        this.W0min = 0;
+
+        // Should be arranged in ascending order
+        this.features = (ArrayList<Pair<Integer, Boolean>>) features.clone();
+        this.w = (ArrayList<Double>) w.clone();
+
+        this.threshold = this.features.get(0).getKey();
+        for (int i = 0; i < this.features.size(); i++) {
+            if (this.features.get(i).getKey() < this.threshold)
+                this.threshold = this.features.get(i).getKey();
+
+            // Pas sur...
+            if (this.w.get(i) == 1)
+                this.W1plus += this.w.get(i);
+            else
+                this.W0plus += this.w.get(i);
+        }
+        this.threshold--;
+
+
+    }
+
+    public void compute() {
+
+        int n = this.features.size() - 1;
+        int j = 0;
+        double tmp_threshold = this.threshold;
+        double tmp_margin = this.margin;
+        double tmp_error = 0;
+        boolean tmp_togle = false;
+
+        while (true) {
+            double errorPlus = W1plus + W0plus;
+            double errorMin = W1min + W0min;
+
+            if (errorPlus < errorMin) {
+                tmp_error = errorPlus;
+                tmp_togle = true;
+            } else {
+                tmp_error = errorMin;
+                tmp_togle = false;
+            }
+
+            if (tmp_error < this.error || tmp_error == this.error && tmp_margin > this.margin) {
+                this.error = tmp_error;
+                this.threshold = tmp_threshold;
+                this.margin = tmp_margin;
+                this.toggle = tmp_togle;
+            }
+
+            if (j == n)
+                break;
+
+            j++;
+
+            while (true) {
+                if (!this.features.get(j).getValue()) {
+                    this.W0min += this.w.get(j);
+                    this.W0plus -= this.w.get(j);
+                } else {
+                    this.W1min += this.w.get(j);
+                    this.W1plus -= this.w.get(j);
+                }
+
+                if (j == n || this.features.get(j).getKey() == this.features.get(j + 1).getKey())
+                    break;
+
+                j++;
+            }
+
+            if (j == n) {
+                tmp_threshold = this.features.get(j).getKey();
+                tmp_margin = 0;
+            } else {
+                tmp_threshold = (this.features.get(j).getKey() + this.features.get(j + 1).getKey()) / 2;
+                tmp_margin = this.features.get(j + 1).getKey() + this.features.get(j).getKey();
+            }
+        }
+    }
+
+}

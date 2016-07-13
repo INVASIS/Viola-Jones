@@ -12,7 +12,7 @@ Language: Java (JDK 8)
 
 Tested for:
 * Windows 10 X64
-* Ubuntu 14.04 X64
+* Ubuntu 16.04 X64
 
 ### requirements
 
