@@ -38,7 +38,7 @@ public class FeaturesExtractor {
         return A + D - B - C;
     }
 
-//    public static haarFeatures(int[][]) {
-//
-//    }
+    public static haarFeatures(int[][]) {
+
+    }
 }

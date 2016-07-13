@@ -21,6 +21,8 @@ public class Filters {
 
     public static int[][] crGrayscale(BufferedImage bi) {
         int[][] result = Filters.grayscale(bi);
+
+        /*
         double nb_pixels = bi.getWidth() * bi.getHeight();
 
         // Center in 0
@@ -56,6 +58,7 @@ public class Filters {
             for (int y = 0; y < bi.getHeight(); y++)
                 result[x][y] = (int) (((result[x][y] - mean) / sd) + 128);
 
+        */
         return result;
     }
 }

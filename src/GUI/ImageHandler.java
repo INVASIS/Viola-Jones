@@ -17,13 +17,17 @@ public class ImageHandler {
     private int[][] crGrayImage;// Centered & reduced gray image
     private int[][] integralImage;
 
+    private void init() {
+        this.crGrayImage = Filters.crGrayscale(this.bufferedImage);
+        this.integralImage = FeaturesExtractor.summedAreaTable(this.crGrayImage, this.width, this.height);
+    }
+
     public ImageHandler(BufferedImage bufferedImage) {
         this.bufferedImage = bufferedImage;
         this.width = bufferedImage.getWidth();
         this.height = bufferedImage.getHeight();
 
-        this.crGrayImage = Filters.crGrayscale(this.bufferedImage);
-        this.integralImage = FeaturesExtractor.summedAreaTable(this.crGrayImage, this.width, this.height);
+        this.init();
     }
 
     public ImageHandler(String filePath) {
@@ -34,8 +38,7 @@ public class ImageHandler {
             this.width = bufferedImage.getWidth();
             this.height = bufferedImage.getHeight();
 
-            this.crGrayImage = Filters.crGrayscale(this.bufferedImage);
-            this.integralImage = FeaturesExtractor.summedAreaTable(this.crGrayImage, this.width, this.height);
+            this.init();
 
         } catch (IOException e) {
             System.err.println("ERROR ! Cannot open file : " + filePath);
@@ -52,8 +55,7 @@ public class ImageHandler {
         for (int x = 0; x < width; x++)
             System.arraycopy(grayImage[x], 0, this.crGrayImage[x], 0, height);
 
-        this.integralImage = FeaturesExtractor.summedAreaTable(this.crGrayImage, this.width, this.height);
-        this.bufferedImage = Converters.intArrayToBufferedImage(this.crGrayImage, this.width, this.height);
+        this.init();
 
     }
 
