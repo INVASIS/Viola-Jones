@@ -2,7 +2,7 @@
 
 Based on the following paper: http://www.ipol.im/pub/art/2014/104/article.pdf
 
-
+[![Build Status][travis-image]][travis-url] [![License][license-image]][license-url]
 
 ### Specifications
 
@@ -26,3 +26,5 @@ In order to let the program access to these files, you must add their directory 
 
 [travis-url]: https://travis-ci.org/INVASIS/Viola-Jones
 [travis-image]: http://img.shields.io/travis/INVASIS/Viola-Jones.svg?style=flat-square
+[license-image]: http://img.shields.io/badge/license-MIT-green.svg?style=flat-square
+[license-url]: LICENSE
