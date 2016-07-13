@@ -39,11 +39,21 @@ public class TestFeaturesExtractor {
     }
 
     @Test
-    public void rectangleMeanTest() {
+    public void rectangleSumTest() {
 
         ImageHandler imageHandler = getBIExample();
 
-        int res = FeaturesExtractor.rectangleMean(imageHandler.getIntegralImage(), 2, 2, 2, 2);
+        int res = FeaturesExtractor.rectangleSum(imageHandler.getIntegralImage(), 2, 2, 2, 2);
         assertEquals(16, res);
+    }
+
+    @Test
+    public void imageMeanTest() {
+
+        // Compute the full mean of the image
+        ImageHandler imageHandler = getBIExample();
+
+        int res = FeaturesExtractor.rectangleSum(imageHandler.getIntegralImage(), 0, 0, 4, 4);
+        assertEquals(4, res / 16);
     }
 }
