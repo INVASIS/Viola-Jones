@@ -55,8 +55,8 @@ public class ImageHandler {
         for (int x = 0; x < width; x++)
             System.arraycopy(grayImage[x], 0, this.crGrayImage[x], 0, height);
 
-        this.init();
-
+        this.integralImage = FeaturesExtractor.summedAreaTable(this.crGrayImage, this.width, this.height);
+        this.bufferedImage = Converters.intArrayToBufferedImage(this.crGrayImage, this.width, this.height);
     }
 
     public BufferedImage getBufferedImage() {
