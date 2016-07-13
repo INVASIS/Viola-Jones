@@ -14,7 +14,7 @@ Tested for:
 * Windows 10 X64
 * Ubuntu 16.04 X64
 
-### requirements
+### Optional requirements
 
 * [CUDA Toolkit 7.5](https://developer.nvidia.com/cuda-toolkit)
 
