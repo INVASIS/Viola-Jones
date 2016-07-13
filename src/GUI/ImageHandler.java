@@ -14,7 +14,7 @@ public class ImageHandler {
     private BufferedImage bufferedImage;
     private int width;
     private int height;
-    private int[][] grayImage;
+    private int[][] crGrayImage;// Centered & reduced gray image
     private int[][] integralImage;
 
     public ImageHandler(BufferedImage bufferedImage) {
@@ -22,8 +22,8 @@ public class ImageHandler {
         this.width = bufferedImage.getWidth();
         this.height = bufferedImage.getHeight();
 
-        this.grayImage = Filters.grayscale(this.bufferedImage);
-        this.integralImage = FeaturesExtractor.summedAreaTable(this.grayImage, this.width, this.height);
+        this.crGrayImage = Filters.crGrayscale(this.bufferedImage);
+        this.integralImage = FeaturesExtractor.summedAreaTable(this.crGrayImage, this.width, this.height);
     }
 
     public ImageHandler(String filePath) {
@@ -34,8 +34,8 @@ public class ImageHandler {
             this.width = bufferedImage.getWidth();
             this.height = bufferedImage.getHeight();
 
-            this.grayImage = Filters.grayscale(this.bufferedImage);
-            this.integralImage = FeaturesExtractor.summedAreaTable(this.grayImage, this.width, this.height);
+            this.crGrayImage = Filters.crGrayscale(this.bufferedImage);
+            this.integralImage = FeaturesExtractor.summedAreaTable(this.crGrayImage, this.width, this.height);
 
         } catch (IOException e) {
             System.err.println("ERROR ! Cannot open file : " + filePath);
@@ -47,43 +47,37 @@ public class ImageHandler {
         this.width = width;
         this.height = height;
 
-        this.grayImage = new int[width][height];
+        this.crGrayImage = new int[width][height];
 
-        for (int x = 0; x < width; x++) {
-            System.arraycopy(grayImage[x], 0, this.grayImage[x], 0, height);
-        }
+        for (int x = 0; x < width; x++)
+            System.arraycopy(grayImage[x], 0, this.crGrayImage[x], 0, height);
 
-        this.integralImage = FeaturesExtractor.summedAreaTable(this.grayImage, this.width, this.height);
+        this.integralImage = FeaturesExtractor.summedAreaTable(this.crGrayImage, this.width, this.height);
+        this.bufferedImage = Converters.intArrayToBufferedImage(this.crGrayImage, this.width, this.height);
 
-        this.bufferedImage = Converters.intArrayToBufferedImage(this.grayImage, this.width, this.height);
-
-    }
-
-    public BufferedImage getGrayBufferedImage() {
-        return Converters.intArrayToBufferedImage(this.grayImage, this.width, this.height);
     }
 
     public BufferedImage getBufferedImage() {
-        return bufferedImage;
+        return this.bufferedImage;
     }
 
     public int[][] getGrayImage() {
-        return grayImage;
+        return this.crGrayImage;
+    }
+
+    public BufferedImage getGrayBufferedImage() {
+        return Converters.intArrayToBufferedImage(this.crGrayImage, this.width, this.height);
     }
 
     public int[][] getIntegralImage() {
-        return integralImage;
+        return this.integralImage;
     }
 
     public int getWidth() {
-        return width;
+        return this.width;
     }
 
     public int getHeight() {
-        return height;
-    }
-
-    public int getGrayValue(int x, int y) {
-        return this.grayImage[x][y];
+        return this.height;
     }
 }

@@ -5,28 +5,23 @@ public class FeaturesExtractor {
     public static int[][] summedAreaTable(int[][] image, int width, int height) {
         int[][] result = new int[width][height];
 
-        for (int x = 0; x < width; x++) {
+        // Array copy
+        for (int x = 0; x < width; x++)
             System.arraycopy(image[x], 0, result[x], 0, height);
-        }
 
-        for (int x = 1; x < width; x++) {
 
-            int i = result[x][0] + result[x - 1][0];
-            result[x][0] = i;
-        }
+        // Top border
+        for (int x = 1; x < width; x++)
+            result[x][0] = result[x][0] + result[x - 1][0];
 
-        for (int y = 1; y < height; y++) {
+        // Left border
+        for (int y = 1; y < height; y++)
+            result[0][y]  = result[0][y] + result[0][y - 1];
 
-            int i = result[0][y] + result[0][y - 1];
-            result[0][y]  = i;
-        }
-
-        for (int x = 1; x < width; x++) {
-            for (int y = 1; y < height; y++) {
-                int i = result[x][y] + result[x - 1][y] + result[x][y - 1] - result[x - 1][y - 1];
-                result[x][y] = i;
-            }
-        }
+        // Remaining pixels
+        for (int x = 1; x < width; x++)
+            for (int y = 1; y < height; y++)
+                result[x][y] = result[x][y] + result[x - 1][y] + result[x][y - 1] - result[x - 1][y - 1];
 
         return result;
     }
@@ -43,4 +38,7 @@ public class FeaturesExtractor {
         return A + D - B - C;
     }
 
+//    public static haarFeatures(int[][]) {
+//
+//    }
 }
