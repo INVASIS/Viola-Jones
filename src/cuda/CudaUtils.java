@@ -1,9 +1,16 @@
 package cuda;
 
+import jcuda.driver.CUcontext;
+import jcuda.driver.CUdevice;
+import jcuda.driver.CUmodule;
+import jcuda.driver.JCudaDriver;
+
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+
+import static jcuda.driver.JCudaDriver.*;
 
 public class CudaUtils {
 
@@ -12,8 +19,7 @@ public class CudaUtils {
 
     // Return the name of ptx file compiled
     // Arg cudaFilename should have no extension
-    public static String compileCuda(String fileName) throws IOException
-    {
+    public static String compileCuda(String fileName) throws IOException {
         String ptxFileName = PATH_TO_PTX + fileName + ".ptx";
         String cudaFileName = PATH_TO_SRC + fileName + ".cu";
         File ptxFile = new File(ptxFileName);
@@ -43,18 +49,14 @@ public class CudaUtils {
         String outputMessage = new String(toByteArray(process.getInputStream()));
         int exitValue = 0;
 
-        try
-        {
+        try {
             exitValue = process.waitFor();
-        }
-        catch (InterruptedException e)
-        {
+        } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new IOException("Interrupted while waiting for nvcc output", e);
         }
 
-        if (exitValue != 0)
-        {
+        if (exitValue != 0) {
             System.err.println("nvcc process exitValue : " + exitValue);
             System.err.println("errorMessage : " + System.lineSeparator() + errorMessage);
             System.err.println("outputMessage : " + System.lineSeparator() + outputMessage);
@@ -66,12 +68,10 @@ public class CudaUtils {
     }
 
     // To read the execution of a the Cuda compiler
-    private static byte[] toByteArray(InputStream inputStream) throws IOException
-    {
+    private static byte[] toByteArray(InputStream inputStream) throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         byte buffer[] = new byte[8192];
-        while (true)
-        {
+        while (true) {
             int read = inputStream.read(buffer);
             if (read == -1)
                 break;
@@ -79,4 +79,32 @@ public class CudaUtils {
         }
         return baos.toByteArray();
     }
+
+    public static CUmodule initCuda() {
+
+        JCudaDriver.setExceptionsEnabled(true);
+
+        // Create the PTX file by calling the NVCC
+        String ptxFileName;
+        try {
+            ptxFileName = CudaUtils.compileCuda(AnyFilter.CUDA_FILENAME);
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
+
+        // Initialize the driver and create a context for the first device.
+        cuInit(0);
+        CUcontext pctx = new CUcontext();
+        CUdevice dev = new CUdevice();
+        cuDeviceGet(dev, 0);
+        cuCtxCreate(pctx, 0, dev);
+
+        // Load the file containing the kernels
+        CUmodule module = new CUmodule();
+        cuModuleLoad(module, ptxFileName);
+
+        return module;
+    }
+
 }
