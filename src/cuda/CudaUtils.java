@@ -80,14 +80,14 @@ public class CudaUtils {
         return baos.toByteArray();
     }
 
-    public static CUmodule initCuda() {
+    public static CUmodule initCuda(String cudaFilename) {
 
         JCudaDriver.setExceptionsEnabled(true);
 
         // Create the PTX file by calling the NVCC
         String ptxFileName;
         try {
-            ptxFileName = CudaUtils.compileCuda(AnyFilter.CUDA_FILENAME);
+            ptxFileName = CudaUtils.compileCuda(cudaFilename);
         } catch (IOException e) {
             e.printStackTrace();
             return null;

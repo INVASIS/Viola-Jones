@@ -28,21 +28,22 @@ public class AnyFilter {
     private float[][] filter = {{0, 0, 0},
                                 {0, 1, 0},
                                 {0, 0, 0}};
-                                */
+    */
+
     // Blur Filter
     /*
     private float coeff = 1f/9f;
     private float[][] filter = {{coeff, coeff, coeff},
             {coeff, coeff, coeff},
             {coeff, coeff, coeff}};
-            */
+    */
 
     public AnyFilter(int width, int height, int[][] image) {
         this.width = width;
         this.height = height;
         this.data = image;
 
-        this.module = CudaUtils.initCuda();
+        this.module = CudaUtils.initCuda(CUDA_FILENAME);
     }
 
     public AnyFilter(int width, int height, int[][] image, float[][] filter) {
