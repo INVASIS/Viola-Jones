@@ -5,13 +5,13 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 
-public class TestFeaturesExtractor {
+public class TestIntegralImage {
 
     private ImageHandler getBIExample() {
         int[][] tmp = {{5, 3, 5, 3},
-                       {2, 6, 2, 6},
-                       {5, 3, 5, 3},
-                       {2, 6, 2, 6}};
+                {2, 6, 2, 6},
+                {5, 3, 5, 3},
+                {2, 6, 2, 6}};
 
         return new ImageHandler(tmp, 4, 4);
     }
@@ -20,11 +20,11 @@ public class TestFeaturesExtractor {
     public void summedAreaTableTest() {
         ImageHandler imageHandler = getBIExample();
         int[][] sat = imageHandler.getIntegralImage();
-        assertEquals(5, sat[0][0]);
-        assertEquals(8, sat[0][1]);
+        assertEquals(5,  sat[0][0]);
+        assertEquals(8,  sat[0][1]);
         assertEquals(13, sat[0][2]);
         assertEquals(16, sat[0][3]);
-        assertEquals(7, sat[1][0]);
+        assertEquals(7,  sat[1][0]);
         assertEquals(16, sat[1][1]);
         assertEquals(23, sat[1][2]);
         assertEquals(32, sat[1][3]);
@@ -40,20 +40,17 @@ public class TestFeaturesExtractor {
 
     @Test
     public void rectangleSumTest() {
-
         ImageHandler imageHandler = getBIExample();
 
-        int res = FeaturesExtractor.rectangleSum(imageHandler.getIntegralImage(), 2, 2, 2, 2);
+        int res = IntegralImage.rectangleSum(imageHandler.getIntegralImage(), 2, 2, 2, 2);
         assertEquals(16, res);
     }
 
     @Test
-    public void imageMeanTest() {
-
-        // Compute the full mean of the image
+    public void rectangleMeanTest() {
         ImageHandler imageHandler = getBIExample();
 
-        int res = FeaturesExtractor.rectangleSum(imageHandler.getIntegralImage(), 0, 0, 4, 4);
-        assertEquals(4, res / 16);
+        int res = IntegralImage.rectangleMean(imageHandler.getIntegralImage(), 0, 0, 4, 4);
+        assertEquals(4, res);
     }
 }

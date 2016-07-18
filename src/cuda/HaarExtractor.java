@@ -100,7 +100,7 @@ public class HaarExtractor {
         cuMemFree(deviceOutput);
     }
 
-    public void conpute() {
+    public void compute() {
 
         // Initialisation of the input data that will be passed to Cuda
         // The image is larger to compute the filter without bounds checking

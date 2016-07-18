@@ -1,14 +1,17 @@
 package process.features;
 
+import GUI.ImageHandler;
+import process.Conf;
+
 import java.util.ArrayList;
 
-import static process.FeaturesExtractor.rectangleSum;
+import static process.IntegralImage.rectangleSum;
 
 
-public class FeatureCompute {
-    private final int width;
-    private final int height;
-    private final int[][] integralImage;
+public class FeatureExtractor {
+    private int frameWidth;
+    private int frameHeight;
+    private int[][] integralImage;
 
     private ArrayList<Feature> featuresTypeA = new ArrayList<>();
     private ArrayList<Feature> featuresTypeB = new ArrayList<>();
@@ -16,17 +19,30 @@ public class FeatureCompute {
     private ArrayList<Feature> featuresTypeD = new ArrayList<>();
     private ArrayList<Feature> featuresTypeE = new ArrayList<>();
 
-    public FeatureCompute(int[][] integralImage, int width, int height) {
-        this.width = width;
-        this.height = height;
+    public FeatureExtractor(int[][] integralImage, int width, int height) {
+        init(integralImage, width, height);
+    }
+
+    public FeatureExtractor(ImageHandler ih) {
+        init(ih.getIntegralImage(), ih.getWidth(), ih.getHeight());
+    }
+
+    private void init(int[][] integralImage, int width, int height) {
+        this.frameWidth = width;
+        this.frameHeight = height;
         this.integralImage = integralImage;
 
         // Compute all
         this.computeTypeA();
+        System.out.println("Found " + this.featuresTypeA.size() + " features of type A.");
         this.computeTypeB();
+        System.out.println("Found " + this.featuresTypeB.size() + " features of type B.");
         this.computeTypeC();
+        System.out.println("Found " + this.featuresTypeC.size() + " features of type C.");
         this.computeTypeD();
+        System.out.println("Found " + this.featuresTypeD.size() + " features of type D.");
         this.computeTypeE();
+        System.out.println("Found " + this.featuresTypeE.size() + " features of type E.");
     }
 
     public ArrayList<Feature> getAllFeatures() {
@@ -52,7 +68,7 @@ public class FeatureCompute {
          */
 
         for (Rectangle r: listFeaturePositions(width, height)) {
-            int w = r.getWidth() / 2; // TODO: is it correct? -> What if r.getWidth() is odd?
+            int w = r.getWidth() / width;
             int h = r.getHeight();
             int r1 = rectangleSum(this.integralImage, r.getX(), r.getY(), w, h);
             int r2 = rectangleSum(this.integralImage, r.getX() + w, r.getY(), w, h);
@@ -74,7 +90,7 @@ public class FeatureCompute {
          */
 
         for (Rectangle r: listFeaturePositions(width, height)) {
-            int w = r.getWidth() / 3;
+            int w = r.getWidth() / width;
             int h = r.getHeight();
             int r1 = rectangleSum(this.integralImage, r.getX(), r.getY(), w, h);
             int r2 = rectangleSum(this.integralImage, r.getX() + w, r.getY(), w, h);
@@ -102,7 +118,7 @@ public class FeatureCompute {
 
         for (Rectangle r: listFeaturePositions(width, height)) {
             int w = r.getWidth();
-            int h = r.getHeight() / 2;
+            int h = r.getHeight() / height;
             int r1 = rectangleSum(this.integralImage, r.getX(), r.getY(), w, h);
             int r2 = rectangleSum(this.integralImage, r.getX(), r.getY() + h, w, h);
 
@@ -132,7 +148,7 @@ public class FeatureCompute {
 
         for (Rectangle r: listFeaturePositions(width, height)) {
             int w = r.getWidth();
-            int h = r.getHeight() / 3;
+            int h = r.getHeight() / height;
             int r1 = rectangleSum(this.integralImage, r.getX(), r.getY(), w, h);
             int r2 = rectangleSum(this.integralImage, r.getX(), r.getY() + h, w, h);
             int r3 = rectangleSum(this.integralImage, r.getX(), r.getY() + h + h, w, h);
@@ -156,36 +172,62 @@ public class FeatureCompute {
          * -         -         -
          * g ------- h ------- i
          */
-
+        int lol = 0;
         for (Rectangle r: listFeaturePositions(width, height)) {
-            int w = r.getWidth() / 2;
-            int h = r.getHeight() / 2;
+            int w = r.getWidth() / width;
+            int h = r.getHeight() / height;
             int r1 = rectangleSum(this.integralImage, r.getX(), r.getY(), w, h);
             int r2 = rectangleSum(this.integralImage, r.getX() + w, r.getY(), w, h);
             int r3 = rectangleSum(this.integralImage, r.getX(), r.getY() + h, w, h);
             int r4 = rectangleSum(this.integralImage, r.getX() + w, r.getY() + h, w, h);
-
+            lol += 1;
             this.featuresTypeE.add(new Feature(r, type, r1 - r2 - r3 + r4));
         }
     }
 
-    private ArrayList<Rectangle> listFeaturePositions(int minWidth, int minHeight) {
+    private ArrayList<Rectangle> listFeaturePositions(int sizeX, int sizeY) {
+        long startTime = System.currentTimeMillis();
+
         ArrayList<Rectangle> rectangles = new ArrayList<>();
 
-        int maxX = this.width - minWidth;
-        int maxY = this.height - minHeight;
-        for (int x = 0; x <= maxX; x++) {
-            for (int y = 0; y <= maxY; y++) {
-                int maxWidth = this.width - x;
-                for (int w = minWidth; w < maxWidth; w += minWidth) {
-                    int maxHeight = this.height - y;
-                    for (int h = minHeight; h < maxHeight; h += minHeight) {
-                        rectangles.add(new Rectangle(x, y, w, h));
+//        if (Conf.USE_CUDA) {
+//
+//        }
+//        else {
+            for (int w = sizeX; w <= this.frameWidth; w += sizeX) {
+                for (int h = sizeY; h <= this.frameHeight; h += sizeY) {
+                    for (int x = 0; x <= this.frameWidth - w; x++) {
+                        for (int y = 0; y <= this.frameHeight - h; y++) {
+                            rectangles.add(new Rectangle(x, y, w, h));
+                        }
                     }
                 }
             }
-        }
+//        }
 
+
+        long estimatedTime = System.currentTimeMillis() - startTime;
+        System.out.println("Computing rectangle positions: found " + rectangles.size() + " in " + estimatedTime + "ms");
         return rectangles;
+    }
+
+    public ArrayList<Feature> getFeaturesTypeA() {
+        return featuresTypeA;
+    }
+
+    public ArrayList<Feature> getFeaturesTypeB() {
+        return featuresTypeB;
+    }
+
+    public ArrayList<Feature> getFeaturesTypeC() {
+        return featuresTypeC;
+    }
+
+    public ArrayList<Feature> getFeaturesTypeD() {
+        return featuresTypeD;
+    }
+
+    public ArrayList<Feature> getFeaturesTypeE() {
+        return featuresTypeE;
     }
 }

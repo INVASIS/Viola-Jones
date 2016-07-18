@@ -1,11 +1,6 @@
 package process;
 
-import process.features.Feature;
-
-import java.util.ArrayList;
-
-public class FeaturesExtractor {
-
+public class IntegralImage {
     public static int[][] summedAreaTable(int[][] image, int width, int height) {
         int[][] result = new int[width][height];
 
@@ -42,8 +37,9 @@ public class FeaturesExtractor {
         return A + D - B - C;
     }
 
-    public static ArrayList<Feature> computeHaarFeatures(int[][] grayImage) {
-        ArrayList<Feature> features = new ArrayList<>();
-        return features;
+    public static int rectangleMean(int[][] summedAeraTable, int x, int y, int width, int height) {
+        int sum = rectangleSum(summedAeraTable, x, y, width, height);
+        int size = (width - x) * (height - y);
+        return sum / size;
     }
 }

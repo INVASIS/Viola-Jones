@@ -1,8 +1,8 @@
 package GUI;
 
 import process.Converters;
-import process.FeaturesExtractor;
 import process.Filters;
+import process.IntegralImage;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -19,7 +19,7 @@ public class ImageHandler {
 
     private void init() {
         this.crGrayImage = Filters.crGrayscale(this.bufferedImage);
-        this.integralImage = FeaturesExtractor.summedAreaTable(this.crGrayImage, this.width, this.height);
+        this.integralImage = IntegralImage.summedAreaTable(this.crGrayImage, this.width, this.height);
     }
 
     public ImageHandler(BufferedImage bufferedImage) {
@@ -55,7 +55,7 @@ public class ImageHandler {
         for (int x = 0; x < width; x++)
             System.arraycopy(grayImage[x], 0, this.crGrayImage[x], 0, height);
 
-        this.integralImage = FeaturesExtractor.summedAreaTable(this.crGrayImage, this.width, this.height);
+        this.integralImage = IntegralImage.summedAreaTable(this.crGrayImage, this.width, this.height);
         this.bufferedImage = Converters.intArrayToBufferedImage(this.crGrayImage, this.width, this.height);
     }
 

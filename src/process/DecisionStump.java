@@ -3,6 +3,7 @@ package process;
 import javafx.util.Pair;
 
 import java.util.ArrayList;
+import java.util.Objects;
 
 // Pour chaque feature (ce que j'ai compris...)
 public class DecisionStump {
@@ -94,7 +95,7 @@ public class DecisionStump {
                     this.W1plus -= this.w.get(j);
                 }
 
-                if (j == n || this.features.get(j).getKey() == this.features.get(j + 1).getKey())
+                if (j == n || Objects.equals(this.features.get(j).getKey(), this.features.get(j + 1).getKey()))
                     break;
 
                 j++;
