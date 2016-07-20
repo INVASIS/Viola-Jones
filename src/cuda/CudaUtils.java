@@ -1,9 +1,8 @@
 package cuda;
 
-import jcuda.driver.CUcontext;
-import jcuda.driver.CUdevice;
-import jcuda.driver.CUmodule;
-import jcuda.driver.JCudaDriver;
+import jcuda.Pointer;
+import jcuda.Sizeof;
+import jcuda.driver.*;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -107,4 +106,39 @@ public class CudaUtils {
         return module;
     }
 
+    public static void newArray2D(int[][] src, int width, int height, CUdeviceptr tmpArrayDst[], CUdeviceptr dstPtr) {
+        // [CUdeviceptr, CUdeviceptr, CUdeviceptr, ...] -> Array of pointers to columns
+        for (int x = 0; x < width; x++) { // For each column of the image
+            tmpArrayDst[x] = new CUdeviceptr();
+            cuMemAlloc(tmpArrayDst[x], height * Sizeof.INT); // Alloc the size of the column
+            cuMemcpyHtoD(tmpArrayDst[x], Pointer.to(src[x]), height * Sizeof.INT); // Copy column' pixels from data in that allocated CUDA memory
+        }
+        // Pointer to array of pointers to columns
+        cuMemAlloc(dstPtr, width * Sizeof.POINTER);
+        cuMemcpyHtoD(dstPtr, Pointer.to(tmpArrayDst), width * Sizeof.POINTER);
+    }
+
+    public static int[][] memCpyArray2D(CUdeviceptr dataPtr, int width, int height) {
+        CUdeviceptr[] tmpDataPtr = new CUdeviceptr[width];
+        for (int x = 0; x < width; x++) { // For each column of the image
+            tmpDataPtr[x] = new CUdeviceptr();
+            cuMemAlloc(tmpDataPtr[x], height * Sizeof.INT); // Alloc the size of the column
+        }
+
+        cuMemcpyDtoH(Pointer.to(tmpDataPtr), dataPtr, width * Sizeof.POINTER);
+
+        int[][] result = new int[width][height];
+        for (int x = 0; x < width; x++) {
+            cuMemcpyDtoH(Pointer.to(result[x]), tmpDataPtr[x], height * Sizeof.INT);
+        }
+
+        return result;
+    }
+
+    public static void freeArray2D(CUdeviceptr tmpArrayDst[], CUdeviceptr ptr, int width) {
+        for (int i = 0; i < width; i++) {
+            cuMemFree(tmpArrayDst[i]);
+        }
+        cuMemFree(ptr);
+    }
 }

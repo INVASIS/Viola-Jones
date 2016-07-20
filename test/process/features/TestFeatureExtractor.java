@@ -12,10 +12,10 @@ public class TestFeatureExtractor {
                 {0, 0, 0, 0},
                 {0, 0, 0, 0}};
         FeatureExtractor fe = new FeatureExtractor(tmp, 4, 4);
-        assertEquals(40, fe.getFeaturesTypeA().size()); // 2*1 -> 40
-        assertEquals(20, fe.getFeaturesTypeB().size()); // 3*1 -> 20
-        assertEquals(40, fe.getFeaturesTypeC().size()); // 1*2 -> 40
-        assertEquals(20, fe.getFeaturesTypeD().size()); // 1*3 -> 20
-        assertEquals(16, fe.getFeaturesTypeE().size()); // 2*2 -> 16
+        assertEquals(40, fe.computeAllTypeA().size()); // 2*1 -> 40
+        assertEquals(20, fe.computeAllTypeB().size()); // 3*1 -> 20
+        assertEquals(40, fe.computeAllTypeC().size()); // 1*2 -> 40
+        assertEquals(20, fe.computeAllTypeD().size()); // 1*3 -> 20
+        assertEquals(16, fe.computeAllTypeE().size()); // 2*2 -> 16
     }
 }

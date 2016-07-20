@@ -2,8 +2,10 @@ package process.features;
 
 import GUI.ImageHandler;
 import process.Conf;
+import utils.yield.Yielderable;
 
 import java.util.ArrayList;
+import java.util.stream.Collectors;
 
 import static process.IntegralImage.rectangleSum;
 
@@ -12,12 +14,6 @@ public class FeatureExtractor {
     private int frameWidth;
     private int frameHeight;
     private int[][] integralImage;
-
-    private ArrayList<Feature> featuresTypeA = new ArrayList<>();
-    private ArrayList<Feature> featuresTypeB = new ArrayList<>();
-    private ArrayList<Feature> featuresTypeC = new ArrayList<>();
-    private ArrayList<Feature> featuresTypeD = new ArrayList<>();
-    private ArrayList<Feature> featuresTypeE = new ArrayList<>();
 
     public FeatureExtractor(int[][] integralImage, int width, int height) {
         init(integralImage, width, height);
@@ -31,34 +27,12 @@ public class FeatureExtractor {
         this.frameWidth = width;
         this.frameHeight = height;
         this.integralImage = integralImage;
-
-        // Compute all
-        this.computeTypeA();
-        System.out.println("Found " + this.featuresTypeA.size() + " features of type A.");
-        this.computeTypeB();
-        System.out.println("Found " + this.featuresTypeB.size() + " features of type B.");
-        this.computeTypeC();
-        System.out.println("Found " + this.featuresTypeC.size() + " features of type C.");
-        this.computeTypeD();
-        System.out.println("Found " + this.featuresTypeD.size() + " features of type D.");
-        this.computeTypeE();
-        System.out.println("Found " + this.featuresTypeE.size() + " features of type E.");
     }
 
-    public ArrayList<Feature> getAllFeatures() {
-        ArrayList<Feature> result = new ArrayList<>();
-        result.addAll(this.featuresTypeA);
-        result.addAll(this.featuresTypeB);
-        result.addAll(this.featuresTypeC);
-        result.addAll(this.featuresTypeD);
-        result.addAll(this.featuresTypeE);
-        return result;
-    }
-
-    private void computeTypeA() {
+    private final int widthTypeA = 2;
+    private final int heightTypeA = 1;
+    public Feature computeTypeA(Rectangle r) {
         final int type = 1;
-        final int width = 2;
-        final int height = 1;
         /**
          * a ------- b ------- c
          * -         -         -
@@ -67,20 +41,22 @@ public class FeatureExtractor {
          * d ------- e ------- f
          */
 
-        for (Rectangle r: listFeaturePositions(width, height)) {
-            int w = r.getWidth() / width;
-            int h = r.getHeight();
-            int r1 = rectangleSum(this.integralImage, r.getX(), r.getY(), w, h);
-            int r2 = rectangleSum(this.integralImage, r.getX() + w, r.getY(), w, h);
+        int w = r.getWidth() / widthTypeA;
+        int h = r.getHeight();
+        int r1 = rectangleSum(this.integralImage, r.getX(), r.getY(), w, h);
+        int r2 = rectangleSum(this.integralImage, r.getX() + w, r.getY(), w, h);
 
-            this.featuresTypeA.add(new Feature(r, type, r1 - r2));
-        }
+        return new Feature(r, type, r1 - r2);
     }
 
-    private void computeTypeB() {
+    public ArrayList<Feature> computeAllTypeA() {
+        return listFeaturePositions(widthTypeA, heightTypeA).stream().map(this::computeTypeA).collect(Collectors.toCollection(ArrayList::new));
+    }
+
+    private final int widthTypeB = 3;
+    private final int heightTypeB = 1;
+    public Feature computeTypeB(Rectangle r) {
         final int type = 2;
-        final int width = 3;
-        final int height = 1;
         /**
          * a ------- b ------- c ------- d
          * -         -         -         -
@@ -89,21 +65,23 @@ public class FeatureExtractor {
          * e ------- f ------- g ------- h
          */
 
-        for (Rectangle r: listFeaturePositions(width, height)) {
-            int w = r.getWidth() / width;
-            int h = r.getHeight();
-            int r1 = rectangleSum(this.integralImage, r.getX(), r.getY(), w, h);
-            int r2 = rectangleSum(this.integralImage, r.getX() + w, r.getY(), w, h);
-            int r3 = rectangleSum(this.integralImage, r.getX() + w + w, r.getY(), w, h);
+        int w = r.getWidth() / widthTypeA;
+        int h = r.getHeight();
+        int r1 = rectangleSum(this.integralImage, r.getX(), r.getY(), w, h);
+        int r2 = rectangleSum(this.integralImage, r.getX() + w, r.getY(), w, h);
+        int r3 = rectangleSum(this.integralImage, r.getX() + w + w, r.getY(), w, h);
 
-            this.featuresTypeB.add(new Feature(r, type, r1 - r2 + r3));
-        }
+        return new Feature(r, type, r1 - r2 + r3);
     }
 
-    private void computeTypeC() {
+    public ArrayList<Feature> computeAllTypeB() {
+        return listFeaturePositions(widthTypeB, heightTypeB).stream().map(this::computeTypeA).collect(Collectors.toCollection(ArrayList::new));
+    }
+
+    private final int widthTypeC = 1;
+    private final int heightTypeC = 2;
+    public Feature computeTypeC(Rectangle r) {
         final int type = 3;
-        final int width = 1;
-        final int height = 2;
         /**
          * a ------- b
          * -         -
@@ -116,20 +94,22 @@ public class FeatureExtractor {
          * e ------- f
          */
 
-        for (Rectangle r: listFeaturePositions(width, height)) {
-            int w = r.getWidth();
-            int h = r.getHeight() / height;
-            int r1 = rectangleSum(this.integralImage, r.getX(), r.getY(), w, h);
-            int r2 = rectangleSum(this.integralImage, r.getX(), r.getY() + h, w, h);
+        int w = r.getWidth();
+        int h = r.getHeight() / heightTypeC;
+        int r1 = rectangleSum(this.integralImage, r.getX(), r.getY(), w, h);
+        int r2 = rectangleSum(this.integralImage, r.getX(), r.getY() + h, w, h);
 
-            this.featuresTypeC.add(new Feature(r, type, r2 - r1));
-        }
+        return new Feature(r, type, r2 - r1);
     }
 
-    private void computeTypeD() {
+    public ArrayList<Feature> computeAllTypeC() {
+        return listFeaturePositions(widthTypeC, heightTypeC).stream().map(this::computeTypeA).collect(Collectors.toCollection(ArrayList::new));
+    }
+
+    private final int widthTypeD = 1;
+    private final int heightTypeD = 3;
+    public Feature computeTypeD(Rectangle r) {
         final int type = 4;
-        final int width = 1;
-        final int height = 3;
         /**
          * a ------- b
          * -         -
@@ -146,21 +126,23 @@ public class FeatureExtractor {
          * g ------- h
          */
 
-        for (Rectangle r: listFeaturePositions(width, height)) {
-            int w = r.getWidth();
-            int h = r.getHeight() / height;
-            int r1 = rectangleSum(this.integralImage, r.getX(), r.getY(), w, h);
-            int r2 = rectangleSum(this.integralImage, r.getX(), r.getY() + h, w, h);
-            int r3 = rectangleSum(this.integralImage, r.getX(), r.getY() + h + h, w, h);
+        int w = r.getWidth();
+        int h = r.getHeight() / heightTypeD;
+        int r1 = rectangleSum(this.integralImage, r.getX(), r.getY(), w, h);
+        int r2 = rectangleSum(this.integralImage, r.getX(), r.getY() + h, w, h);
+        int r3 = rectangleSum(this.integralImage, r.getX(), r.getY() + h + h, w, h);
 
-            this.featuresTypeD.add(new Feature(r, type, r1 - r2 + r3));
-        }
+        return new Feature(r, type, r1 - r2 + r3);
     }
 
-    private void computeTypeE() {
+    public ArrayList<Feature> computeAllTypeD() {
+        return listFeaturePositions(widthTypeD, heightTypeD).stream().map(this::computeTypeA).collect(Collectors.toCollection(ArrayList::new));
+    }
+
+    private final int widthTypeE = 2;
+    private final int heightTypeE = 2;
+    public Feature computeTypeE(Rectangle r) {
         final int type = 5;
-        final int width = 2;
-        final int height = 2;
         /**
          * a ------- b ------- c
          * -         -         -
@@ -172,62 +154,39 @@ public class FeatureExtractor {
          * -         -         -
          * g ------- h ------- i
          */
-        int lol = 0;
-        for (Rectangle r: listFeaturePositions(width, height)) {
-            int w = r.getWidth() / width;
-            int h = r.getHeight() / height;
-            int r1 = rectangleSum(this.integralImage, r.getX(), r.getY(), w, h);
-            int r2 = rectangleSum(this.integralImage, r.getX() + w, r.getY(), w, h);
-            int r3 = rectangleSum(this.integralImage, r.getX(), r.getY() + h, w, h);
-            int r4 = rectangleSum(this.integralImage, r.getX() + w, r.getY() + h, w, h);
-            lol += 1;
-            this.featuresTypeE.add(new Feature(r, type, r1 - r2 - r3 + r4));
-        }
+
+        int w = r.getWidth() / widthTypeE;
+        int h = r.getHeight() / heightTypeE;
+        int r1 = rectangleSum(this.integralImage, r.getX(), r.getY(), w, h);
+        int r2 = rectangleSum(this.integralImage, r.getX() + w, r.getY(), w, h);
+        int r3 = rectangleSum(this.integralImage, r.getX(), r.getY() + h, w, h);
+        int r4 = rectangleSum(this.integralImage, r.getX() + w, r.getY() + h, w, h);
+
+        return new Feature(r, type, r1 - r2 - r3 + r4);
     }
 
-    private ArrayList<Rectangle> listFeaturePositions(int sizeX, int sizeY) {
-        long startTime = System.currentTimeMillis();
+    public ArrayList<Feature> computeAllTypeE() {
+        return listFeaturePositions(widthTypeE, heightTypeE).stream().map(this::computeTypeA).collect(Collectors.toCollection(ArrayList::new));
+    }
 
-        ArrayList<Rectangle> rectangles = new ArrayList<>();
-
-//        if (Conf.USE_CUDA) {
-//
-//        }
-//        else {
+    public Yielderable<Rectangle> streamFeaturePositions(int sizeX, int sizeY) {
+        return yield -> {
             for (int w = sizeX; w <= this.frameWidth; w += sizeX) {
                 for (int h = sizeY; h <= this.frameHeight; h += sizeY) {
                     for (int x = 0; x <= this.frameWidth - w; x++) {
                         for (int y = 0; y <= this.frameHeight - h; y++) {
-                            rectangles.add(new Rectangle(x, y, w, h));
+                            yield.returning(new Rectangle(x, y, w, h));
                         }
                     }
                 }
             }
-//        }
+        };
+    }
 
-
-        long estimatedTime = System.currentTimeMillis() - startTime;
-        System.out.println("Computing rectangle positions: found " + rectangles.size() + " in " + estimatedTime + "ms");
+    private ArrayList<Rectangle> listFeaturePositions(int sizeX, int sizeY) {
+        ArrayList<Rectangle> rectangles = new ArrayList<>();
+        for (Rectangle r : streamFeaturePositions(sizeX, sizeY))
+            rectangles.add(r);
         return rectangles;
-    }
-
-    public ArrayList<Feature> getFeaturesTypeA() {
-        return featuresTypeA;
-    }
-
-    public ArrayList<Feature> getFeaturesTypeB() {
-        return featuresTypeB;
-    }
-
-    public ArrayList<Feature> getFeaturesTypeC() {
-        return featuresTypeC;
-    }
-
-    public ArrayList<Feature> getFeaturesTypeD() {
-        return featuresTypeD;
-    }
-
-    public ArrayList<Feature> getFeaturesTypeE() {
-        return featuresTypeE;
     }
 }

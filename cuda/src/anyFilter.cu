@@ -1,7 +1,7 @@
 extern "C"
 __global__ void any_filter(float** globalInputData, int width, int height, float** filter, float* globalOutputData)
 {
-    // Get an "unique id" of the thread that correcpond to one pixel
+    // Get an "unique id" of the thread that correspond to one pixel
     const unsigned int tidX = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (tidX < width * height - 1)

@@ -35,9 +35,9 @@ public class HaarExtractor {
 
     private CUmodule module;
 
-    private CUdeviceptr deviceInput;
-    private CUdeviceptr hostDevicePtr[];
-    private CUdeviceptr deviceOutput;
+    private CUdeviceptr srcPtr;
+    private CUdeviceptr dstPtr;
+    private CUdeviceptr tmpDataPtr[];
 
     // La haar feature A : |0 1| taille 2w * 1h (width et height) scalable : de 0 à w = 0 de w à 2w = 1
 
@@ -46,6 +46,8 @@ public class HaarExtractor {
         this.integral = integral;
         this.width = width;
         this.height = height;
+
+        this.tmpDataPtr = new CUdeviceptr[width];
 
         this.featuresA = new ArrayList<>();
     }
@@ -62,34 +64,38 @@ public class HaarExtractor {
         cuModuleGetFunction(function, module, KERNEL_NAME + "A");
 
         // Allocate device output memory
-        this.deviceOutput = new CUdeviceptr();
-        cuMemAlloc(deviceOutput, nb_features * Sizeof.INT);
+        // dstPtr will contain the results
+        this.dstPtr = new CUdeviceptr();
+        cuMemAlloc(dstPtr, nb_features * Sizeof.INT);
 
         // Set up the kernel parameters
         Pointer kernelParams = Pointer.to(
-                Pointer.to(deviceInput),
+                Pointer.to(srcPtr),
                 Pointer.to(new int[]{posx}),
                 Pointer.to(new int[]{posy}),
                 Pointer.to(new int[]{sizex}),
                 Pointer.to(new int[]{sizey}),
-                Pointer.to(deviceOutput)
+                Pointer.to(dstPtr)
         );
 
         int nb_blocks = nb_features / THREADS_IN_BLOCK + ((nb_features % THREADS_IN_BLOCK) == 0 ? 0 : 1);
 
         // Call the kernel function.
-        cuLaunchKernel(function,
-                nb_blocks, 1, 1,
-                THREADS_IN_BLOCK, 1, 1,
-                0, null,
-                kernelParams, null
+        cuLaunchKernel(
+                function, // CUDA function to be called
+                nb_blocks, 1, 1, // 3D (x, y, z) grid of block
+                THREADS_IN_BLOCK, 1, 1, // 3D (x, y, z) grid of threads
+                0, // sharedMemBytes sets the amount of dynamic shared memory that will be available to each thread block.
+                null, // can optionally be associated to a stream by passing a non-zero hStream argument.
+                kernelParams, // Array of params to be passed to the function
+                null // extra parameters
         );
         cuCtxSynchronize();
 
         // Allocate host output memory and copy the device output
         // to the host.
         int hostOutput[] = new int[nb_features];
-        cuMemcpyDtoH(Pointer.to(hostOutput), deviceOutput, nb_features * Sizeof.INT);
+        cuMemcpyDtoH(Pointer.to(hostOutput), dstPtr, nb_features * Sizeof.INT);
 
         // TODO : Need to do better
         for (int index = 0; index < nb_features; index++) {
@@ -97,7 +103,7 @@ public class HaarExtractor {
         }
 
         // Free output that will chang for each haar feature
-        cuMemFree(deviceOutput);
+        cuMemFree(dstPtr);
     }
 
     public void compute() {
@@ -105,17 +111,9 @@ public class HaarExtractor {
         // Initialisation of the input data that will be passed to Cuda
         // The image is larger to compute the filter without bounds checking
 
-        // Allocate input data memory
-        this.hostDevicePtr = new CUdeviceptr[width];
-        for (int i = 0; i < width; i++) {
-            hostDevicePtr[i] = new CUdeviceptr();
-            cuMemAlloc(hostDevicePtr[i], height * Sizeof.INT);
-            cuMemcpyHtoD(hostDevicePtr[i], Pointer.to(data[i]), height * Sizeof.INT);
-        }
 
-        this.deviceInput = new CUdeviceptr();
-        cuMemAlloc(deviceInput, width * Sizeof.POINTER);
-        cuMemcpyHtoD(deviceInput, Pointer.to(hostDevicePtr), width * Sizeof.POINTER);
+        // Allocate input data to CUDA memory
+        CudaUtils.newArray2D(data, width, height, tmpDataPtr, srcPtr);
 
         // Need to compute it on all boxes of 24 * 24 in the image
          typeA(0, 0, 2, 1);
@@ -126,14 +124,7 @@ public class HaarExtractor {
         //typeD();
         //typeE();
 
-        cleanUp();
+        CudaUtils.freeArray2D(tmpDataPtr, srcPtr, width);
 
-    }
-
-    private void cleanUp() {
-        for (int i = 0; i < width; i++) {
-            cuMemFree(hostDevicePtr[i]);
-        }
-        cuMemFree(deviceInput);
     }
 }

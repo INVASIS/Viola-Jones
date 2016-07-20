@@ -5,6 +5,7 @@ import cuda.HaarExtractor;
 import jcuda.jcublas.JCublas;
 import process.features.Feature;
 import process.features.FeatureExtractor;
+import process.training.Classifier;
 
 import java.util.ArrayList;
 
@@ -25,7 +26,8 @@ public class Main {
 //        HaarExtractor haarExtractor = new HaarExtractor(imageHandler.getGrayImage(), imageHandler.getIntegralImage(), imageHandler.getWidth(), imageHandler.getHeight());
 //        haarExtractor.compute();
 
-        FeatureExtractor fc = new FeatureExtractor(imageHandler);
-        ArrayList<Feature> features = fc.getAllFeatures();
+//        FeatureExtractor fc = new FeatureExtractor(imageHandler);
+//        ArrayList<Feature> features = fc.getAllFeatures();
+        Classifier.run();
     }
 }
