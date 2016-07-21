@@ -1,7 +1,5 @@
 package process.features;
 
-import GUI.ImageHandler;
-import process.Conf;
 import utils.yield.Yielderable;
 
 import java.util.ArrayList;
@@ -11,28 +9,10 @@ import static process.IntegralImage.rectangleSum;
 
 
 public class FeatureExtractor {
-    private int frameWidth;
-    private int frameHeight;
-    private int[][] integralImage;
-
-    public FeatureExtractor(int[][] integralImage, int width, int height) {
-        init(integralImage, width, height);
-    }
-
-    public FeatureExtractor(ImageHandler ih) {
-        init(ih.getIntegralImage(), ih.getWidth(), ih.getHeight());
-    }
-
-    private void init(int[][] integralImage, int width, int height) {
-        this.frameWidth = width;
-        this.frameHeight = height;
-        this.integralImage = integralImage;
-    }
-
-    private final int widthTypeA = 2;
-    private final int heightTypeA = 1;
-    public Feature computeTypeA(Rectangle r) {
-        final int type = 1;
+    public static final int typeA = 1;
+    public static final int widthTypeA = 2;
+    public static final int heightTypeA = 1;
+    public static int computeTypeA(int[][] integralImage, Rectangle r) {
         /**
          * a ------- b ------- c
          * -         -         -
@@ -43,20 +23,23 @@ public class FeatureExtractor {
 
         int w = r.getWidth() / widthTypeA;
         int h = r.getHeight();
-        int r1 = rectangleSum(this.integralImage, r.getX(), r.getY(), w, h);
-        int r2 = rectangleSum(this.integralImage, r.getX() + w, r.getY(), w, h);
+        int r1 = rectangleSum(integralImage, r.getX(), r.getY(), w, h);
+        int r2 = rectangleSum(integralImage, r.getX() + w, r.getY(), w, h);
 
-        return new Feature(r, type, r1 - r2);
+        return r1 - r2;
     }
 
-    public ArrayList<Feature> computeAllTypeA() {
-        return listFeaturePositions(widthTypeA, heightTypeA).stream().map(this::computeTypeA).collect(Collectors.toCollection(ArrayList::new));
+    public ArrayList<Feature> getAllTypeA(int[][] integralImage, int frameWidth, int frameHeight) {
+        return listFeaturePositions(widthTypeA, heightTypeA, frameWidth, frameHeight)
+                .stream()
+                .map(r -> new Feature(r, typeA, integralImage, 0, 1))
+                .collect(Collectors.toCollection(ArrayList::new));
     }
 
-    private final int widthTypeB = 3;
-    private final int heightTypeB = 1;
-    public Feature computeTypeB(Rectangle r) {
-        final int type = 2;
+    public static final int typeB = 2;
+    public static final int widthTypeB = 3;
+    public static final int heightTypeB = 1;
+    public static int computeTypeB(int[][] integralImage, Rectangle r) {
         /**
          * a ------- b ------- c ------- d
          * -         -         -         -
@@ -67,21 +50,24 @@ public class FeatureExtractor {
 
         int w = r.getWidth() / widthTypeA;
         int h = r.getHeight();
-        int r1 = rectangleSum(this.integralImage, r.getX(), r.getY(), w, h);
-        int r2 = rectangleSum(this.integralImage, r.getX() + w, r.getY(), w, h);
-        int r3 = rectangleSum(this.integralImage, r.getX() + w + w, r.getY(), w, h);
+        int r1 = rectangleSum(integralImage, r.getX(), r.getY(), w, h);
+        int r2 = rectangleSum(integralImage, r.getX() + w, r.getY(), w, h);
+        int r3 = rectangleSum(integralImage, r.getX() + w + w, r.getY(), w, h);
 
-        return new Feature(r, type, r1 - r2 + r3);
+        return r1 - r2 + r3;
     }
 
-    public ArrayList<Feature> computeAllTypeB() {
-        return listFeaturePositions(widthTypeB, heightTypeB).stream().map(this::computeTypeA).collect(Collectors.toCollection(ArrayList::new));
+    public ArrayList<Feature> getAllTypeB(int[][] integralImage, int frameWidth, int frameHeight) {
+        return listFeaturePositions(widthTypeB, heightTypeB, frameWidth, frameHeight)
+                .stream()
+                .map(r -> new Feature(r, typeB, integralImage, 0, 1))
+                .collect(Collectors.toCollection(ArrayList::new));
     }
 
-    private final int widthTypeC = 1;
-    private final int heightTypeC = 2;
-    public Feature computeTypeC(Rectangle r) {
-        final int type = 3;
+    public static final int typeC = 3;
+    public static final int widthTypeC = 1;
+    public static final int heightTypeC = 2;
+    public static int computeTypeC(int[][] integralImage, Rectangle r) {
         /**
          * a ------- b
          * -         -
@@ -96,20 +82,23 @@ public class FeatureExtractor {
 
         int w = r.getWidth();
         int h = r.getHeight() / heightTypeC;
-        int r1 = rectangleSum(this.integralImage, r.getX(), r.getY(), w, h);
-        int r2 = rectangleSum(this.integralImage, r.getX(), r.getY() + h, w, h);
+        int r1 = rectangleSum(integralImage, r.getX(), r.getY(), w, h);
+        int r2 = rectangleSum(integralImage, r.getX(), r.getY() + h, w, h);
 
-        return new Feature(r, type, r2 - r1);
+        return r2 - r1;
     }
 
-    public ArrayList<Feature> computeAllTypeC() {
-        return listFeaturePositions(widthTypeC, heightTypeC).stream().map(this::computeTypeA).collect(Collectors.toCollection(ArrayList::new));
+    public ArrayList<Feature> getAllTypeC(int[][] integralImage, int frameWidth, int frameHeight) {
+        return listFeaturePositions(widthTypeC, heightTypeC, frameWidth, frameHeight)
+                .stream()
+                .map(r -> new Feature(r, typeC, integralImage, 0, 1))
+                .collect(Collectors.toCollection(ArrayList::new));
     }
 
-    private final int widthTypeD = 1;
-    private final int heightTypeD = 3;
-    public Feature computeTypeD(Rectangle r) {
-        final int type = 4;
+    public static final int typeD = 4;
+    public static final int widthTypeD = 1;
+    public static final int heightTypeD = 3;
+    public static int computeTypeD(int[][] integralImage, Rectangle r) {
         /**
          * a ------- b
          * -         -
@@ -128,21 +117,24 @@ public class FeatureExtractor {
 
         int w = r.getWidth();
         int h = r.getHeight() / heightTypeD;
-        int r1 = rectangleSum(this.integralImage, r.getX(), r.getY(), w, h);
-        int r2 = rectangleSum(this.integralImage, r.getX(), r.getY() + h, w, h);
-        int r3 = rectangleSum(this.integralImage, r.getX(), r.getY() + h + h, w, h);
+        int r1 = rectangleSum(integralImage, r.getX(), r.getY(), w, h);
+        int r2 = rectangleSum(integralImage, r.getX(), r.getY() + h, w, h);
+        int r3 = rectangleSum(integralImage, r.getX(), r.getY() + h + h, w, h);
 
-        return new Feature(r, type, r1 - r2 + r3);
+        return r1 - r2 + r3;
     }
 
-    public ArrayList<Feature> computeAllTypeD() {
-        return listFeaturePositions(widthTypeD, heightTypeD).stream().map(this::computeTypeA).collect(Collectors.toCollection(ArrayList::new));
+    public ArrayList<Feature> getAllTypeD(int[][] integralImage, int frameWidth, int frameHeight) {
+        return listFeaturePositions(widthTypeD, heightTypeD, frameWidth, frameHeight)
+                .stream()
+                .map(r -> new Feature(r, typeD, integralImage, 0, 1))
+                .collect(Collectors.toCollection(ArrayList::new));
     }
 
-    private final int widthTypeE = 2;
-    private final int heightTypeE = 2;
-    public Feature computeTypeE(Rectangle r) {
-        final int type = 5;
+    public static final int typeE = 5;
+    public static final int widthTypeE = 2;
+    public static final int heightTypeE = 2;
+    public static int computeTypeE(int[][] integralImage, Rectangle r) {
         /**
          * a ------- b ------- c
          * -         -         -
@@ -157,24 +149,27 @@ public class FeatureExtractor {
 
         int w = r.getWidth() / widthTypeE;
         int h = r.getHeight() / heightTypeE;
-        int r1 = rectangleSum(this.integralImage, r.getX(), r.getY(), w, h);
-        int r2 = rectangleSum(this.integralImage, r.getX() + w, r.getY(), w, h);
-        int r3 = rectangleSum(this.integralImage, r.getX(), r.getY() + h, w, h);
-        int r4 = rectangleSum(this.integralImage, r.getX() + w, r.getY() + h, w, h);
+        int r1 = rectangleSum(integralImage, r.getX(), r.getY(), w, h);
+        int r2 = rectangleSum(integralImage, r.getX() + w, r.getY(), w, h);
+        int r3 = rectangleSum(integralImage, r.getX(), r.getY() + h, w, h);
+        int r4 = rectangleSum(integralImage, r.getX() + w, r.getY() + h, w, h);
 
-        return new Feature(r, type, r1 - r2 - r3 + r4);
+        return r1 - r2 - r3 + r4;
     }
 
-    public ArrayList<Feature> computeAllTypeE() {
-        return listFeaturePositions(widthTypeE, heightTypeE).stream().map(this::computeTypeA).collect(Collectors.toCollection(ArrayList::new));
+    public ArrayList<Feature> getAllTypeE(int[][] integralImage, int frameWidth, int frameHeight) {
+        return listFeaturePositions(widthTypeE, heightTypeE, frameWidth, frameHeight)
+                .stream()
+                .map(r -> new Feature(r, typeE, integralImage, 0, 1))
+                .collect(Collectors.toCollection(ArrayList::new));
     }
 
-    public Yielderable<Rectangle> streamFeaturePositions(int sizeX, int sizeY) {
+    public Yielderable<Rectangle> streamFeaturePositions(int sizeX, int sizeY, int frameWidth, int frameHeight) {
         return yield -> {
-            for (int w = sizeX; w <= this.frameWidth; w += sizeX) {
-                for (int h = sizeY; h <= this.frameHeight; h += sizeY) {
-                    for (int x = 0; x <= this.frameWidth - w; x++) {
-                        for (int y = 0; y <= this.frameHeight - h; y++) {
+            for (int w = sizeX; w <= frameWidth; w += sizeX) {
+                for (int h = sizeY; h <= frameHeight; h += sizeY) {
+                    for (int x = 0; x <= frameWidth - w; x++) {
+                        for (int y = 0; y <= frameHeight - h; y++) {
                             yield.returning(new Rectangle(x, y, w, h));
                         }
                     }
@@ -183,9 +178,9 @@ public class FeatureExtractor {
         };
     }
 
-    private ArrayList<Rectangle> listFeaturePositions(int sizeX, int sizeY) {
+    private ArrayList<Rectangle> listFeaturePositions(int sizeX, int sizeY, int frameWidth, int frameHeight) {
         ArrayList<Rectangle> rectangles = new ArrayList<>();
-        for (Rectangle r : streamFeaturePositions(sizeX, sizeY))
+        for (Rectangle r : streamFeaturePositions(sizeX, sizeY, frameWidth, frameHeight))
             rectangles.add(r);
         return rectangles;
     }

@@ -43,7 +43,10 @@ public class Classifier {
         System.out.println("Expecting: " + 0.1550774641519198 + " - Got : " + p.getClassScores()[0]);
     }
 
-    public static void adaboost(Iterable<BufferedImage> faces, Iterable<BufferedImage> nonfaces) {
+    public static void adaboost(Iterable<BufferedImage> faces, Iterable<BufferedImage> nonfaces, int T) {
+        // T is the number of rounds the adaboost have to run
+        for (int t = 0; t < T; t++) {
 
+        }
     }
 }
