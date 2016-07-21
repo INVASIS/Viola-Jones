@@ -30,15 +30,15 @@ public class FeatureExtractor {
         return r1 - r2;
     }
 
-    public static Yielderable<Feature> streamAllTypeA(ImageHandler image, int frameWidth, int frameHeight) {
+    public static Yielderable<Feature> streamAllTypeA(ImageHandler image) {
         return yield -> {
-            for (Rectangle r : listFeaturePositions(widthTypeA, heightTypeA, frameWidth, frameHeight))
+            for (Rectangle r : listFeaturePositions(widthTypeA, heightTypeA, image.getWidth(), image.getHeight()))
                 yield.returning(new Feature(r, typeA, image));
         };
     }
 
-    public static ArrayList<Feature> listAllTypeA(ImageHandler image, int frameWidth, int frameHeight) {
-        return listFeaturePositions(widthTypeA, heightTypeA, frameWidth, frameHeight)
+    public static ArrayList<Feature> listAllTypeA(ImageHandler image) {
+        return listFeaturePositions(widthTypeA, heightTypeA, image.getWidth(), image.getHeight())
                 .stream()
                 .map(r -> new Feature(r, typeA, image))
                 .collect(Collectors.toCollection(ArrayList::new));
@@ -65,15 +65,15 @@ public class FeatureExtractor {
         return r1 - r2 + r3;
     }
 
-    public static Yielderable<Feature> streamAllTypeB(ImageHandler image, int frameWidth, int frameHeight) {
+    public static Yielderable<Feature> streamAllTypeB(ImageHandler image) {
         return yield -> {
-            for (Rectangle r : listFeaturePositions(widthTypeB, heightTypeB, frameWidth, frameHeight))
+            for (Rectangle r : listFeaturePositions(widthTypeB, heightTypeB, image.getWidth(), image.getHeight()))
                 yield.returning(new Feature(r, typeB, image));
         };
     }
 
-    public static ArrayList<Feature> listAllTypeB(ImageHandler image, int frameWidth, int frameHeight) {
-        return listFeaturePositions(widthTypeB, heightTypeB, frameWidth, frameHeight)
+    public static ArrayList<Feature> listAllTypeB(ImageHandler image) {
+        return listFeaturePositions(widthTypeB, heightTypeB, image.getWidth(), image.getHeight())
                 .stream()
                 .map(r -> new Feature(r, typeB, image))
                 .collect(Collectors.toCollection(ArrayList::new));
@@ -103,15 +103,15 @@ public class FeatureExtractor {
         return r2 - r1;
     }
 
-    public static Yielderable<Feature> streamAllTypeC(ImageHandler image, int frameWidth, int frameHeight) {
+    public static Yielderable<Feature> streamAllTypeC(ImageHandler image) {
         return yield -> {
-            for (Rectangle r : listFeaturePositions(widthTypeC, heightTypeC, frameWidth, frameHeight))
+            for (Rectangle r : listFeaturePositions(widthTypeC, heightTypeC, image.getWidth(), image.getHeight()))
                 yield.returning(new Feature(r, typeC, image));
         };
     }
 
-    public static ArrayList<Feature> listAllTypeC(ImageHandler image, int frameWidth, int frameHeight) {
-        return listFeaturePositions(widthTypeC, heightTypeC, frameWidth, frameHeight)
+    public static ArrayList<Feature> listAllTypeC(ImageHandler image) {
+        return listFeaturePositions(widthTypeC, heightTypeC, image.getWidth(), image.getHeight())
                 .stream()
                 .map(r -> new Feature(r, typeC, image))
                 .collect(Collectors.toCollection(ArrayList::new));
@@ -146,15 +146,15 @@ public class FeatureExtractor {
         return r1 - r2 + r3;
     }
 
-    public static Yielderable<Feature> streamAllTypeD(ImageHandler image, int frameWidth, int frameHeight) {
+    public static Yielderable<Feature> streamAllTypeD(ImageHandler image) {
         return yield -> {
-            for (Rectangle r : listFeaturePositions(widthTypeD, heightTypeD, frameWidth, frameHeight))
+            for (Rectangle r : listFeaturePositions(widthTypeD, heightTypeD, image.getWidth(), image.getHeight()))
                 yield.returning(new Feature(r, typeD, image));
         };
     }
 
-    public static ArrayList<Feature> listAllTypeD(ImageHandler image, int frameWidth, int frameHeight) {
-        return listFeaturePositions(widthTypeD, heightTypeD, frameWidth, frameHeight)
+    public static ArrayList<Feature> listAllTypeD(ImageHandler image) {
+        return listFeaturePositions(widthTypeD, heightTypeD, image.getWidth(), image.getHeight())
                 .stream()
                 .map(r -> new Feature(r, typeD, image))
                 .collect(Collectors.toCollection(ArrayList::new));
@@ -186,15 +186,15 @@ public class FeatureExtractor {
         return r1 - r2 - r3 + r4;
     }
 
-    public static Yielderable<Feature> streamAllTypeE(ImageHandler image, int frameWidth, int frameHeight) {
+    public static Yielderable<Feature> streamAllTypeE(ImageHandler image) {
         return yield -> {
-            for (Rectangle r : listFeaturePositions(widthTypeE, heightTypeE, frameWidth, frameHeight))
+            for (Rectangle r : listFeaturePositions(widthTypeE, heightTypeE, image.getWidth(), image.getHeight()))
                 yield.returning(new Feature(r, typeE, image));
         };
     }
 
-    public static ArrayList<Feature> listAllTypeE(ImageHandler image, int frameWidth, int frameHeight) {
-        return listFeaturePositions(widthTypeE, heightTypeE, frameWidth, frameHeight)
+    public static ArrayList<Feature> listAllTypeE(ImageHandler image) {
+        return listFeaturePositions(widthTypeE, heightTypeE, image.getWidth(), image.getHeight())
                 .stream()
                 .map(r -> new Feature(r, typeE, image))
                 .collect(Collectors.toCollection(ArrayList::new));
@@ -221,24 +221,24 @@ public class FeatureExtractor {
         return rectangles;
     }
 
-    public static Yielderable<Feature> streamFeatures(ImageHandler image, int frameWidth, int frameHeight) {
+    public static Yielderable<Feature> streamFeatures(ImageHandler image) {
         return yield -> {
-            for (Feature f : streamAllTypeA(image, frameWidth, frameHeight))
+            for (Feature f : streamAllTypeA(image))
                 yield.returning(f);
-            for (Feature f : streamAllTypeB(image, frameWidth, frameHeight))
+            for (Feature f : streamAllTypeB(image))
                 yield.returning(f);
-            for (Feature f : streamAllTypeC(image, frameWidth, frameHeight))
+            for (Feature f : streamAllTypeC(image))
                 yield.returning(f);
-            for (Feature f : streamAllTypeD(image, frameWidth, frameHeight))
+            for (Feature f : streamAllTypeD(image))
                 yield.returning(f);
-            for (Feature f : streamAllTypeE(image, frameWidth, frameHeight))
+            for (Feature f : streamAllTypeE(image))
                 yield.returning(f);
         };
     }
 
-    public static int countFeatures(int featureWidth, int featureHeight, int frameWidth, int frameHeight) {
+    public static long countFeatures(int featureWidth, int featureHeight, int frameWidth, int frameHeight) {
         // TODO: Use CUDA?
-        int count = 0;
+        long count = 0;
         for (int w = featureWidth; w <= frameWidth; w += featureWidth) {
             for (int h = featureHeight; h <= frameHeight; h += featureHeight) {
                 for (int x = 0; x <= frameWidth - w; x++) {
@@ -250,8 +250,8 @@ public class FeatureExtractor {
         }
         return count;
     }
-    public static int countAllFeatures(int width, int height) {
-        int count = 0;
+    public static long countAllFeatures(int width, int height) {
+        long count = 0;
 
         // FIXME: find a less CPU & time consuming way of computing this
 
