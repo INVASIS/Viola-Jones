@@ -1,5 +1,6 @@
 package process.features;
 
+import GUI.ImageHandler;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -13,36 +14,37 @@ public class TestFeatureExtractor {
                 {0, 0, 0, 0},
                 {0, 0, 0, 0},
                 {0, 0, 0, 0}};
-        FeatureExtractor fe = new FeatureExtractor();
-        assertEquals(40, fe.listAllTypeA(tmp, 4, 4).size()); // 2*1 -> 40
-        assertEquals(20, fe.listAllTypeB(tmp, 4, 4).size()); // 3*1 -> 20
-        assertEquals(40, fe.listAllTypeC(tmp, 4, 4).size()); // 1*2 -> 40
-        assertEquals(20, fe.listAllTypeD(tmp, 4, 4).size()); // 1*3 -> 20
-        assertEquals(16, fe.listAllTypeE(tmp, 4, 4).size()); // 2*2 -> 16
+        ImageHandler image = new ImageHandler(tmp, 4, 4);
+
+        assertEquals(40, FeatureExtractor.listAllTypeA(image, 4, 4).size()); // 2*1 -> 40
+        assertEquals(20, FeatureExtractor.listAllTypeB(image, 4, 4).size()); // 3*1 -> 20
+        assertEquals(40, FeatureExtractor.listAllTypeC(image, 4, 4).size()); // 1*2 -> 40
+        assertEquals(20, FeatureExtractor.listAllTypeD(image, 4, 4).size()); // 1*3 -> 20
+        assertEquals(16, FeatureExtractor.listAllTypeE(image, 4, 4).size()); // 2*2 -> 16
 
         ArrayList<Feature> tmp_lf = new ArrayList<>();
 
-        fe.streamAllTypeA(tmp, 4, 4).iterator().forEachRemaining(tmp_lf::add);
+        FeatureExtractor.streamAllTypeA(image, 4, 4).iterator().forEachRemaining(tmp_lf::add);
         assertEquals(40, tmp_lf.size()); // 2*1 -> 40
 
         tmp_lf.clear();
 
-        fe.streamAllTypeB(tmp, 4, 4).iterator().forEachRemaining(tmp_lf::add);
-        assertEquals(20, fe.listAllTypeB(tmp, 4, 4).size()); // 3*1 -> 20
+        FeatureExtractor.streamAllTypeB(image, 4, 4).iterator().forEachRemaining(tmp_lf::add);
+        assertEquals(20, tmp_lf.size()); // 3*1 -> 20
 
         tmp_lf.clear();
 
-        fe.streamAllTypeC(tmp, 4, 4).iterator().forEachRemaining(tmp_lf::add);
-        assertEquals(40, fe.listAllTypeC(tmp, 4, 4).size()); // 1*2 -> 40
+        FeatureExtractor.streamAllTypeC(image, 4, 4).iterator().forEachRemaining(tmp_lf::add);
+        assertEquals(40, tmp_lf.size()); // 1*2 -> 40
 
         tmp_lf.clear();
 
-        fe.streamAllTypeD(tmp, 4, 4).iterator().forEachRemaining(tmp_lf::add);
-        assertEquals(20, fe.listAllTypeD(tmp, 4, 4).size()); // 1*3 -> 20
+        FeatureExtractor.streamAllTypeD(image, 4, 4).iterator().forEachRemaining(tmp_lf::add);
+        assertEquals(20, tmp_lf.size()); // 1*3 -> 20
 
         tmp_lf.clear();
 
-        fe.streamAllTypeE(tmp, 4, 4).iterator().forEachRemaining(tmp_lf::add);
-        assertEquals(16, fe.listAllTypeE(tmp, 4, 4).size()); // 2*2 -> 16
+        FeatureExtractor.streamAllTypeE(image, 4, 4).iterator().forEachRemaining(tmp_lf::add);
+        assertEquals(16, tmp_lf.size()); // 2*2 -> 16
     }
 }

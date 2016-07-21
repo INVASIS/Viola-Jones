@@ -8,6 +8,7 @@ import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.util.UUID;
 
 public class ImageHandler {
 
@@ -16,6 +17,8 @@ public class ImageHandler {
     private int height;
     private int[][] crGrayImage;// Centered & reduced gray image
     private int[][] integralImage;
+    private final UUID uid = UUID.randomUUID();
+    private final String filePath;
 
     private void init() {
         this.crGrayImage = Filters.crGrayscale(this.bufferedImage);
@@ -27,28 +30,35 @@ public class ImageHandler {
         this.width = bufferedImage.getWidth();
         this.height = bufferedImage.getHeight();
 
+        this.filePath = null;
+
         this.init();
     }
 
     public ImageHandler(String filePath) {
+        BufferedImage bufferedImage = null;
         try {
-            BufferedImage bufferedImage = ImageIO.read(new File(filePath));
-
-            this.bufferedImage = bufferedImage;
-            this.width = bufferedImage.getWidth();
-            this.height = bufferedImage.getHeight();
-
-            this.init();
-
+            bufferedImage = ImageIO.read(new File(filePath));
         } catch (IOException e) {
-            System.err.println("ERROR ! Cannot open file : " + filePath);
             e.printStackTrace();
         }
+
+        assert bufferedImage != null;
+
+        this.bufferedImage = bufferedImage;
+        this.width = bufferedImage.getWidth();
+        this.height = bufferedImage.getHeight();
+
+        this.filePath = filePath;
+
+        this.init();
     }
 
     public ImageHandler(int[][] grayImage, int width, int height) {
         this.width = width;
         this.height = height;
+
+        this.filePath = null;
 
         this.crGrayImage = new int[width][height];
 
@@ -81,5 +91,13 @@ public class ImageHandler {
 
     public int getHeight() {
         return this.height;
+    }
+
+    public String getFilePath() {
+        return filePath;
+    }
+
+    public UUID getUid() {
+        return uid;
     }
 }

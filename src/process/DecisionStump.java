@@ -5,14 +5,14 @@ import javafx.util.Pair;
 import java.util.ArrayList;
 import java.util.Objects;
 
-// Pour chaque feature (ce que j'ai compris...)
 public class DecisionStump {
 
+    // Values that will be used to find the best DecisionStump
     private double threshold;
-    private int dim;
     private boolean toggle;
     private double error;
     private double margin;
+
 
     private double W1plus;
     private double W0plus;
@@ -128,4 +128,19 @@ public class DecisionStump {
         return best;
     }
 
+    public double getMargin() {
+        return margin;
+    }
+
+    public double getThreshold() {
+        return threshold;
+    }
+
+    public boolean isToggle() {
+        return toggle;
+    }
+
+    public double getError() {
+        return error;
+    }
 }

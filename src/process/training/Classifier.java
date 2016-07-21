@@ -1,18 +1,18 @@
 package process.training;
 
+import GUI.ImageHandler;
 import jboost.booster.AdaBoost;
 import jboost.booster.bag.AdaBoostBinaryBag;
 import jboost.booster.prediction.BinaryPrediction;
 import jboost.examples.attributes.Label;
+import process.features.Feature;
 
 import java.awt.image.BufferedImage;
 import java.util.*;
 
+import static process.features.FeatureExtractor.streamFeatures;
 import static utils.Utils.listImages;
 
-/**
- * Created by Dubrzr on 20/07/2016.
- */
 public class Classifier {
     public void train(String faces_dir, String nonfaces_dir) {
         HashMap<BufferedImage, Boolean> images = new HashMap<>();
@@ -43,10 +43,14 @@ public class Classifier {
         System.out.println("Expecting: " + 0.1550774641519198 + " - Got : " + p.getClassScores()[0]);
     }
 
-    public static void adaboost(Iterable<BufferedImage> faces, Iterable<BufferedImage> nonfaces, int T) {
+    public static void adaboost(Iterable<ImageHandler> faces, Iterable<ImageHandler> nonfaces, int T) {
         // T is the number of rounds the adaboost have to run
 
+        for (ImageHandler face : faces) {
 
+        }
+
+//        for (Feature f : streamFeatures())
 
 
         for (int t = 0; t < T; t++) {

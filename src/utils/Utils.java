@@ -1,5 +1,6 @@
 package utils;
 
+import GUI.ImageHandler;
 import process.features.Rectangle;
 import utils.yield.Yielderable;
 
@@ -46,6 +47,14 @@ public class Utils {
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
+            }
+        };
+    }
+
+    public static Yielderable<ImageHandler> streamImageHandler(String dir) {
+        return yield -> {
+            for (String p : scanDir(dir)) {
+                yield.returning(new ImageHandler(p));
             }
         };
     }

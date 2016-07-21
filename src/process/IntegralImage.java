@@ -1,5 +1,6 @@
 package process;
 
+import GUI.ImageHandler;
 import cuda.CudaUtils;
 import jcuda.Pointer;
 import jcuda.Sizeof;
@@ -98,6 +99,10 @@ public class IntegralImage {
         int D = x + width > 0 && y + height > 0 ? summedAeraTable[x + width - 1][y + height - 1] : 0;
 
         return A + D - B - C;
+    }
+
+    public static int rectangleSum(ImageHandler image, int x, int y, int width, int height) {
+        return rectangleSum(image.getIntegralImage(), x, y, width, height);
     }
 
     public static int rectangleMean(int[][] summedAeraTable, int x, int y, int width, int height) {
