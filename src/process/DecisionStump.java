@@ -4,6 +4,7 @@ import javafx.util.Pair;
 
 import java.util.ArrayList;
 import java.util.Objects;
+import java.util.UUID;
 
 public class DecisionStump {
 
@@ -12,6 +13,7 @@ public class DecisionStump {
     private boolean toggle;
     private double error;
     private double margin;
+    private UUID featureId;
 
 
     private double W1plus;
@@ -24,9 +26,10 @@ public class DecisionStump {
 
 
     // Initialisation
-    public DecisionStump(ArrayList<Pair<Integer, Boolean>> features, ArrayList<Double> w) {
+    public DecisionStump(ArrayList<Pair<Integer, Boolean>> features, ArrayList<Double> w, UUID featureId) {
         this.margin = 0;
         this.error = 2;
+        this.featureId = featureId;
 
         this.W1plus = 0;
         this.W1min = 0;
@@ -112,20 +115,21 @@ public class DecisionStump {
     }
 
     public static DecisionStump bestStump(ArrayList<ArrayList<Pair<Integer, Boolean>>> features, ArrayList<Double> w) {
-
-        DecisionStump best = new DecisionStump(features.get(0), w);
-        best.compute();
-
-        for (int i = 1; i < features.size(); i++) {
-            DecisionStump decisionStump = new DecisionStump(features.get(i), w);
-            decisionStump.compute();
-
-            if (decisionStump.error < best.error || decisionStump.error == best.error && decisionStump.margin > best.margin) {
-                best = decisionStump;
-            }
-        }
-
-        return best;
+        // FIXME
+//        DecisionStump best = new DecisionStump(features.get(0), w);
+//        best.compute();
+//
+//        for (int i = 1; i < features.size(); i++) {
+//            DecisionStump decisionStump = new DecisionStump(features.get(i), w);
+//            decisionStump.compute();
+//
+//            if (decisionStump.error < best.error || decisionStump.error == best.error && decisionStump.margin > best.margin) {
+//                best = decisionStump;
+//            }
+//        }
+//
+//        return best;
+        return new DecisionStump(features.get(0), w, UUID.fromString("temporary"));
     }
 
     public double getMargin() {
@@ -136,11 +140,15 @@ public class DecisionStump {
         return threshold;
     }
 
-    public boolean isToggle() {
+    public boolean getToggle() {
         return toggle;
     }
 
     public double getError() {
         return error;
+    }
+
+    public UUID getFeatureId() {
+        return featureId;
     }
 }

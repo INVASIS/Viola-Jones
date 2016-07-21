@@ -1,6 +1,6 @@
 package GUI;
 
-import process.Converters;
+import utils.Converters;
 import process.Filters;
 import process.IntegralImage;
 
@@ -9,6 +9,8 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.UUID;
+
+import static javafx.application.Platform.exit;
 
 public class ImageHandler {
 
@@ -94,8 +96,14 @@ public class ImageHandler {
     }
 
     public String getFilePath() {
+        if (this.filePath == null) {
+            System.err.println("Requesting filePath of an ImageHandler which has not been initialized from an image file.");
+            exit();
+        }
         return filePath;
     }
+
+
 
     public UUID getUid() {
         return uid;

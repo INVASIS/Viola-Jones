@@ -1,60 +1,96 @@
 package process.training;
 
 import GUI.ImageHandler;
-import jboost.booster.AdaBoost;
-import jboost.booster.bag.AdaBoostBinaryBag;
-import jboost.booster.prediction.BinaryPrediction;
-import jboost.examples.attributes.Label;
-import process.features.Feature;
+import jeigen.DenseMatrix;
+import process.DecisionStump;
 
-import java.awt.image.BufferedImage;
 import java.util.*;
 
-import static process.features.FeatureExtractor.streamFeatures;
-import static utils.Utils.listImages;
+import static java.lang.Math.log;
+import static javafx.application.Platform.exit;
+import static utils.Utils.countFiles;
+import static utils.Utils.streamImageHandler;
 
 public class Classifier {
-    public void train(String faces_dir, String nonfaces_dir) {
-        HashMap<BufferedImage, Boolean> images = new HashMap<>();
-        for (BufferedImage i : listImages(faces_dir))
-            images.put(i, true);
-        for (BufferedImage i : listImages(nonfaces_dir))
-            images.put(i, false);
+    /**
+     * A Classifier maps an observation to a label valued in a finite set.
+     * f(HaarFeaturesOfTheImage) = -1 or 1
+     *
+     * Caution: the training only works on same-sized images!
+      */
 
-        // Shuffle all images before using them
-        ArrayList<BufferedImage> keys = new ArrayList(images.keySet());
-        Collections.shuffle(keys);
-        for (BufferedImage bi : keys) {
-            images.get(bi);
-        }
-    }
+    private static final int ROUNDS = 20;
 
-    public static void run() {
-        AdaBoost ab = new AdaBoost();
-        ab.addExample(0, new Label(1));
-        ab.setM_epsilon(0.041666666666666664);
-        ab.setM_totalWeight(12.0);
+    private DenseMatrix predictLabel(ArrayList<DecisionStump> committee, int n) {
+        /**
+         * prediction = Vector (Matrix< 1,n >)
+         */
+        int committeeSize = committee.size();
+        DenseMatrix memberVerdict = new DenseMatrix(committeeSize, n);
+        DenseMatrix memberWeight = new DenseMatrix(1, committeeSize);
 
-        AdaBoostBinaryBag bag = new AdaBoostBinaryBag(ab);
-        bag.setM_w0(7.0);
-        bag.setM_w1(5.0);
-        BinaryPrediction p = (BinaryPrediction) ab.getPrediction(bag);
-        System.out.println("Expecting: " + -0.1550774641519198 + " - Got : " + p.getClassScores()[1]);
-        System.out.println("Expecting: " + 0.1550774641519198 + " - Got : " + p.getClassScores()[0]);
-    }
+        for (int member = committeeSize - 1; member < committeeSize; member++) {
+            if (committee.get(member).getError() == 0 && member != 0) {
+                System.err.println("Boosting Error Occurred!");
+                exit();
+            }
 
-    public static void adaboost(Iterable<ImageHandler> faces, Iterable<ImageHandler> nonfaces, int T) {
-        // T is the number of rounds the adaboost have to run
-
-        for (ImageHandler face : faces) {
-
+            // 0.5 does not count here
+            // if member's weightedError is zero, member weight is nan, but it won't be used anyway
+            memberWeight.set(member, log((1.0/committee.get(member).getError()) - 1));
+            UUID featureId = committee.get(member).getFeatureId();
+            for (int i = 0; i < n; i++) {
+                // TODO
+//                int exampleIndex = getExampleIndex(featureId, i);
+//                memberVerdict.set(member, exampleIndex, (getExampleFeature(featureId, i) > committee.get(member).getThreshold() ? 1 : -1) * committee.get(member).getToggle());
+            }
         }
 
-//        for (Feature f : streamFeatures())
+        DenseMatrix prediction = new DenseMatrix(1, n);
+        DenseMatrix finalVerdict = memberWeight.mmul(memberVerdict);
+        for(int exampleIndex = 0; exampleIndex < n; exampleIndex++)
+            prediction.set(1, exampleIndex, finalVerdict.get(1, exampleIndex) > 0 ? 1 : -1);
 
+        return prediction;
+    }
+
+    private ArrayList<DecisionStump> adaboost(int n, int T) {
+        ArrayList<DecisionStump> committee = new ArrayList<>();
+        ArrayList<Long> weights = new ArrayList<>();
 
         for (int t = 0; t < T; t++) {
+            // TODO
+//            DecisionStump bestDS = DecisionStump.bestStump();
+//            committee.add(bestDS);
+
+
+            DenseMatrix prediction = predictLabel(committee, n);
+
+
+            boolean werror = false;
+
+
+            if (werror) {
+                // Update weights
+
+            } else {
+                // Training ends, just return
+
+            }
 
         }
+        return committee;
+    }
+
+    public void train(String faces_dir, String nonfaces_dir) {
+        Iterable<ImageHandler> faces = streamImageHandler(faces_dir);
+        Iterable<ImageHandler> nonFaces = streamImageHandler(nonfaces_dir);
+
+        int countFaces = countFiles(faces_dir);
+        int countNonFaces = countFiles(nonfaces_dir);
+
+        int n = countFaces + countNonFaces;
+
+        adaboost(n, ROUNDS);
     }
 }

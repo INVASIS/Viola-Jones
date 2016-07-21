@@ -1,3 +1,5 @@
+/!\ WORK IN PROGRESS /!\
+
 # Viola Jones implementation
 
 Based on the following paper: http://www.ipol.im/pub/art/2014/104/article.pdf

@@ -74,10 +74,8 @@ public class IntegralImage {
 
         int[][] result = CudaUtils.memCpyArray2D(dstPtr, width, height);
 
-        // Free output that will chang for each haar feature
         CudaUtils.freeArray2D(tmpDataPtrSrc, srcPtr, width);
         CudaUtils.freeArray2D(tmpDataPtrDst, dstPtr, width);
-//        cuMemFree(dstPtr);
 
         return result;
     }
