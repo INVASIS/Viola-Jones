@@ -45,6 +45,10 @@ public class Classifier {
 
     public static void adaboost(Iterable<BufferedImage> faces, Iterable<BufferedImage> nonfaces, int T) {
         // T is the number of rounds the adaboost have to run
+
+
+
+
         for (int t = 0; t < T; t++) {
 
         }
