@@ -200,10 +200,10 @@ public class FeatureExtractor {
                 .collect(Collectors.toCollection(ArrayList::new));
     }
 
-    public static Yielderable<Rectangle> streamFeaturePositions(int sizeX, int sizeY, int frameWidth, int frameHeight) {
+    public static Yielderable<Rectangle> streamFeaturePositions(int featureWidth, int featureHeight, int frameWidth, int frameHeight) {
         return yield -> {
-            for (int w = sizeX; w <= frameWidth; w += sizeX) {
-                for (int h = sizeY; h <= frameHeight; h += sizeY) {
+            for (int w = featureWidth; w <= frameWidth; w += featureWidth) {
+                for (int h = featureHeight; h <= frameHeight; h += featureHeight) {
                     for (int x = 0; x <= frameWidth - w; x++) {
                         for (int y = 0; y <= frameHeight - h; y++) {
                             yield.returning(new Rectangle(x, y, w, h));
@@ -214,9 +214,9 @@ public class FeatureExtractor {
         };
     }
 
-    private static ArrayList<Rectangle> listFeaturePositions(int sizeX, int sizeY, int frameWidth, int frameHeight) {
+    private static ArrayList<Rectangle> listFeaturePositions(int featureWidth, int featureHeight, int frameWidth, int frameHeight) {
         ArrayList<Rectangle> rectangles = new ArrayList<>();
-        for (Rectangle r : streamFeaturePositions(sizeX, sizeY, frameWidth, frameHeight))
+        for (Rectangle r : streamFeaturePositions(featureWidth, featureHeight, frameWidth, frameHeight))
             rectangles.add(r);
         return rectangles;
     }
@@ -234,5 +234,33 @@ public class FeatureExtractor {
             for (Feature f : streamAllTypeE(image, frameWidth, frameHeight))
                 yield.returning(f);
         };
+    }
+
+    public static int countFeatures(int featureWidth, int featureHeight, int frameWidth, int frameHeight) {
+        // TODO: Use CUDA?
+        int count = 0;
+        for (int w = featureWidth; w <= frameWidth; w += featureWidth) {
+            for (int h = featureHeight; h <= frameHeight; h += featureHeight) {
+                for (int x = 0; x <= frameWidth - w; x++) {
+                    for (int y = 0; y <= frameHeight - h; y++) {
+                        count++;
+                    }
+                }
+            }
+        }
+        return count;
+    }
+    public static int countAllFeatures(int width, int height) {
+        int count = 0;
+
+        // FIXME: find a less CPU & time consuming way of computing this
+
+        count += countFeatures(widthTypeA, heightTypeA, width, height);
+        count += countFeatures(widthTypeB, heightTypeB, width, height);
+        count += countFeatures(widthTypeC, heightTypeC, width, height);
+        count += countFeatures(widthTypeD, heightTypeD, width, height);
+        count += countFeatures(widthTypeE, heightTypeE, width, height);
+
+        return count;
     }
 }

@@ -47,4 +47,12 @@ public class TestFeatureExtractor {
         FeatureExtractor.streamAllTypeE(image, 4, 4).iterator().forEachRemaining(tmp_lf::add);
         assertEquals(16, tmp_lf.size()); // 2*2 -> 16
     }
+
+    @Test
+    public void countFeaturesTest() {
+        assertEquals(136L, FeatureExtractor.countAllFeatures(4, 4));
+        assertEquals(162336L, FeatureExtractor.countAllFeatures(24, 24));
+        assertEquals(29979041500L, FeatureExtractor.countAllFeatures(500, 500));
+        assertEquals(8+6+4+2 + 9+3+6+2+3+1 + 4+3+2+1 + 6+4+2 + 6+2, FeatureExtractor.countAllFeatures(4, 3));
+    }
 }

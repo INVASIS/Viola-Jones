@@ -28,6 +28,6 @@ public class Main {
 
 //        FeatureExtractor fc = new FeatureExtractor(imageHandler);
 //        ArrayList<Feature> features = fc.getAllFeatures();
-        Classifier.run();
+
     }
 }

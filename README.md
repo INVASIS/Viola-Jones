@@ -16,9 +16,14 @@ Tested for:
 * Windows 10 X64
 * Ubuntu 16.04 X64
 
+### Included dependencies
+
+* [JCuda](http://www.jcuda.org/): Java bindings for CUDA (only used if available)
+* [Jeigen](https://github.com/hughperkins/jeigen): Java wrapper for Eigen C++ fast matrix library
+
 ### Optional requirements
 
-* [CUDA Toolkit 7.5](https://developer.nvidia.com/cuda-toolkit)
+* [CUDA Toolkit 7.5](https://developer.nvidia.com/cuda-toolkit) 
 
 ## Installation
 
