@@ -19,7 +19,7 @@ public class Main {
         AnyFilter filter = new AnyFilter(imageHandler.getWidth(), imageHandler.getHeight(), imageHandler.getGrayImage());
         filter.compute();
 
-        HaarExtractor haarExtractor = new HaarExtractor(imageHandler.getGrayImage(), imageHandler.getIntegralImage(), imageHandler.getWidth(), imageHandler.getHeight());
+        HaarExtractor haarExtractor = new HaarExtractor(imageHandler);
         haarExtractor.compute();
 
 //        FeatureExtractor fc = new FeatureExtractor(imageHandler);

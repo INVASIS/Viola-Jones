@@ -8,7 +8,7 @@ public class Conf {
     public final static String TRAIN_DIR = TMP_DIR + "/training";
     public final static String TRAIN_FEATURES = TRAIN_DIR + "/featuresValues.data";
     public final static int TRAIN_MAX_CONCURENT_PROCESSES = 20;
-    public final static int TRAIN_MAX_ROUNDS = 1;
+    public final static int TRAIN_MAX_ROUNDS = 20;
 
     public static boolean isCUDAAvailable() {
         try {
