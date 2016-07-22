@@ -5,6 +5,9 @@ import process.Conf;
 import utils.yield.Yielderable;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 import static process.IntegralImage.rectangleSum;
@@ -280,11 +283,32 @@ public class FeatureExtractor {
         return result;
     }
 
-
     public static ArrayList<Integer> computeFeatures(ImageHandler image) {
         if (Conf.USE_CUDA)
             return computeFeaturesGPU(image);
         else
             return computeFeaturesCPU(image);
+    }
+
+    public static HashMap<String, ArrayList<Integer>> computeFeaturesImages(Iterable<ImageHandler> images, int width, int height) {
+        // Compute Haar-features of all images
+        HashMap<String, ArrayList<Integer>> result = new HashMap<>();
+
+        { // Parallel execution
+            System.out.println("Computing all positives images features... ");
+            ExecutorService executor = Executors.newFixedThreadPool(Conf.TRAIN_MAX_CONCURENT_PROCESSES);
+            for (ImageHandler image : images) {
+                if (image.getWidth() == width && image.getHeight() == height) {
+                    Runnable worker = new ImageFeaturesCompute(image, result);
+                    executor.execute(worker);
+                }
+                else
+                    System.err.println("Image " + image.getFilePath() + " has a wrong size! (Expecting " + width + "x" + height + ", got " + image.getWidth() + "x" + image.getHeight() + ")");
+            }
+            executor.shutdown();
+            while (!executor.isTerminated()) {/*ignore*/}
+            System.out.println("Done!");
+        }
+        return result;
     }
 }
