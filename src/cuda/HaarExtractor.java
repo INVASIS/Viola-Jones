@@ -51,7 +51,6 @@ public class HaarExtractor {
     private CUdeviceptr allRectanglesD;
     private CUdeviceptr allRectanglesE;
 
-    // La haar feature A : |0 1| taille 2w * 1h (width et height) scalable : de 0 à w = 0 de w à 2w = 1
 
     public HaarExtractor(ImageHandler image) {
         this.data = data = image.getGrayImage();
@@ -67,86 +66,108 @@ public class HaarExtractor {
 
         this.tmpDataPtr = new CUdeviceptr[width];
 
+        this.allRectanglesA = new CUdeviceptr();
+        this.allRectanglesB = new CUdeviceptr();
+        this.allRectanglesC = new CUdeviceptr();
+        this.allRectanglesD = new CUdeviceptr();
+        this.allRectanglesE = new CUdeviceptr();
+
         this.featuresA = new ArrayList<>();
         this.featuresB = new ArrayList<>();
 
-        listAllTypeA();
-        listAllTypeB();
+        listAllTypeN(this.NUM_FEATURES_A, FeatureExtractor.widthTypeA, FeatureExtractor.heightTypeA, 'A');
+        listAllTypeN(this.NUM_FEATURES_B, FeatureExtractor.widthTypeB, FeatureExtractor.heightTypeB, 'B');
     }
 
-    // Pas oublier de free en CUDA !
-    private void listAllTypeA() {
+    // Free Cuda !
+    private void listAllTypeN(long numFeatures, int width, int height, char type) {
 
-        long size_output = 4 * this.NUM_FEATURES_A;
+        long size_output = 4 * numFeatures;
 
-        ArrayList<Rectangle> typeA = FeatureExtractor.listFeaturePositions(FeatureExtractor.widthTypeA, FeatureExtractor.heightTypeA, 19, 19);
+        ArrayList<Rectangle> typeN = FeatureExtractor.listFeaturePositions(width, height, 19, 19);
 
-        int[] arrayTypeA = new int[(int) size_output];
+        int[] arrayTypeN = new int[(int) size_output];
 
         int j = 0;
-        for (int i = 0; i < NUM_FEATURES_A; i++) {
-            arrayTypeA[j] = typeA.get(i).getX();
-            arrayTypeA[j + 1] = typeA.get(i).getY();
-            arrayTypeA[j + 2] = typeA.get(i).getWidth();
-            arrayTypeA[j + 3] = typeA.get(i).getHeight();
+        for (int i = 0; i < numFeatures; i++) {
+            arrayTypeN[j] = typeN.get(i).getX();
+            arrayTypeN[j + 1] = typeN.get(i).getY();
+            arrayTypeN[j + 2] = typeN.get(i).getWidth();
+            arrayTypeN[j + 3] = typeN.get(i).getHeight();
 
             j += 4;
         }
 
-        this.allRectanglesA = new CUdeviceptr();
-        cuMemAlloc(allRectanglesA, size_output * Sizeof.INT);
-
-        cuMemcpyHtoD(allRectanglesA, Pointer.to(arrayTypeA), size_output * Sizeof.INT);
-
-    }
-
-    // Pas oublier de free en CUDA !
-    private void listAllTypeB() {
-
-        long size_output = 4 * this.NUM_FEATURES_B;
-
-        ArrayList<Rectangle> typeB = FeatureExtractor.listFeaturePositions(FeatureExtractor.widthTypeB, FeatureExtractor.heightTypeB, 19, 19);
-
-        int[] arrayTypeB = new int[(int) size_output];
-
-        int j = 0;
-        for (int i = 0; i < NUM_FEATURES_B; i++) {
-            arrayTypeB[j] = typeB.get(i).getX();
-            arrayTypeB[j + 1] = typeB.get(i).getY();
-            arrayTypeB[j + 2] = typeB.get(i).getWidth();
-            arrayTypeB[j + 3] = typeB.get(i).getHeight();
-
-            j += 4;
+        CUdeviceptr tmp_ptr = null;
+        switch (type) {
+            case 'A':
+                tmp_ptr = this.allRectanglesA;
+                break;
+            case 'B':
+                tmp_ptr = this.allRectanglesB;
+                break;
+            case 'C':
+                tmp_ptr = this.allRectanglesC;
+                break;
+            case 'D':
+                tmp_ptr = this.allRectanglesD;
+                break;
+            case 'E':
+                tmp_ptr = this.allRectanglesE;
+                break;
         }
 
-        this.allRectanglesB = new CUdeviceptr();
-        cuMemAlloc(allRectanglesB, size_output * Sizeof.INT);
-
-        cuMemcpyHtoD(allRectanglesB, Pointer.to(arrayTypeB), size_output * Sizeof.INT);
+        cuMemAlloc(tmp_ptr, size_output * Sizeof.INT);
+        cuMemcpyHtoD(tmp_ptr, Pointer.to(arrayTypeN), size_output * Sizeof.INT);
 
     }
 
-    private void computeTypeA() {
+    private void computeTypeN(long numFeatures, char type) {
 
-        this.module = CudaUtils.initCuda(CUDA_FILENAME + "A");
+        this.module = CudaUtils.initCuda(CUDA_FILENAME + type);
 
         CUfunction function = new CUfunction();
-        cuModuleGetFunction(function, module, KERNEL_NAME + "A");
+        cuModuleGetFunction(function, module, KERNEL_NAME + type);
 
         // Allocate device output memory
         // dstPtr will contain the results
         this.dstPtr = new CUdeviceptr();
-        cuMemAlloc(dstPtr, NUM_FEATURES_A * Sizeof.INT);
+        cuMemAlloc(dstPtr, numFeatures * Sizeof.INT);
+
+        CUdeviceptr tmp_ptr = null;
+        ArrayList<Integer> tmp_list = null;
+        switch (type) {
+            case 'A':
+                tmp_ptr = this.allRectanglesA;
+                tmp_list = this.featuresA;
+                break;
+            case 'B':
+                tmp_ptr = this.allRectanglesB;
+                tmp_list = this.featuresB;
+                break;
+            case 'C':
+                tmp_ptr = this.allRectanglesC;
+                tmp_list = this.featuresC;
+                break;
+            case 'D':
+                tmp_ptr = this.allRectanglesD;
+                tmp_list = this.featuresD;
+                break;
+            case 'E':
+                tmp_ptr = this.allRectanglesE;
+                tmp_list = this.featuresE;
+                break;
+        }
 
         // Set up the kernel parameters
         Pointer kernelParams = Pointer.to(
                 Pointer.to(srcPtr),
-                Pointer.to(allRectanglesA),
-                Pointer.to(new int[]{(int) NUM_FEATURES_A}),
+                Pointer.to(tmp_ptr),
+                Pointer.to(new int[]{(int) numFeatures}),
                 Pointer.to(dstPtr)
         );
 
-        int nb_blocks = (int) (NUM_FEATURES_A / THREADS_IN_BLOCK + ((NUM_FEATURES_A % THREADS_IN_BLOCK) == 0 ? 0 : 1));
+        int nb_blocks = (int) (numFeatures / THREADS_IN_BLOCK + ((numFeatures % THREADS_IN_BLOCK) == 0 ? 0 : 1));
 
         // Call the kernel function.
         cuLaunchKernel(
@@ -160,57 +181,12 @@ public class HaarExtractor {
         );
         cuCtxSynchronize();
 
-        int hostOutput[] = new int[(int) NUM_FEATURES_A];
-        cuMemcpyDtoH(Pointer.to(hostOutput), dstPtr, NUM_FEATURES_A * Sizeof.INT);
+        int hostOutput[] = new int[(int) numFeatures];
+        cuMemcpyDtoH(Pointer.to(hostOutput), dstPtr, numFeatures * Sizeof.INT);
 
         // TODO : Need to do better - Opti by returning only an int[]
-        for (int index = 0; index < NUM_FEATURES_A; index++) {
-            featuresA.add(hostOutput[index]);
-        }
-
-        cuMemFree(dstPtr);
-    }
-
-    private void computeTypeB() {
-
-        this.module = CudaUtils.initCuda(CUDA_FILENAME + "B");
-
-        CUfunction function = new CUfunction();
-        cuModuleGetFunction(function, module, KERNEL_NAME + "B");
-
-        // Allocate device output memory
-        // dstPtr will contain the results
-        this.dstPtr = new CUdeviceptr();
-        cuMemAlloc(dstPtr, NUM_FEATURES_B * Sizeof.INT);
-
-        // Set up the kernel parameters
-        Pointer kernelParams = Pointer.to(
-                Pointer.to(srcPtr),
-                Pointer.to(allRectanglesB),
-                Pointer.to(new int[]{(int) NUM_FEATURES_B}),
-                Pointer.to(dstPtr)
-        );
-
-        int nb_blocks = (int) (NUM_FEATURES_B / THREADS_IN_BLOCK + ((NUM_FEATURES_B % THREADS_IN_BLOCK) == 0 ? 0 : 1));
-
-        // Call the kernel function.
-        cuLaunchKernel(
-                function, // CUDA function to be called
-                nb_blocks, 1, 1, // 3D (x, y, z) grid of block
-                THREADS_IN_BLOCK, 1, 1, // 3D (x, y, z) grid of threads
-                0, // sharedMemBytes sets the amount of dynamic shared memory that will be available to each thread block.
-                null, // can optionally be associated to a stream by passing a non-zero hStream argument.
-                kernelParams, // Array of params to be passed to the function
-                null // extra parameters
-        );
-        cuCtxSynchronize();
-
-        int hostOutput[] = new int[(int) NUM_FEATURES_B];
-        cuMemcpyDtoH(Pointer.to(hostOutput), dstPtr, NUM_FEATURES_B * Sizeof.INT);
-
-        // TODO : Need to do better - Opti by returning only an int[]
-        for (int index = 0; index < NUM_FEATURES_B; index++) {
-            featuresB.add(hostOutput[index]);
+        for (int index = 0; index < numFeatures; index++) {
+            tmp_list.add(hostOutput[index]);
         }
 
         cuMemFree(dstPtr);
@@ -226,13 +202,16 @@ public class HaarExtractor {
         srcPtr = new CUdeviceptr();
         CudaUtils.newArray2D(integral, width, height, tmpDataPtr, srcPtr);
 
-        computeTypeA();
-        computeTypeB();
+        computeTypeN(this.NUM_FEATURES_A, 'A');
+        computeTypeN(this.NUM_FEATURES_B, 'B');
 
         // Free intergralImg and typeABCDE
 
         cuMemFree(allRectanglesA);
         cuMemFree(allRectanglesB);
+        cuMemFree(allRectanglesC);
+        cuMemFree(allRectanglesD);
+        cuMemFree(allRectanglesE);
 
         CudaUtils.freeArray2D(tmpDataPtr, srcPtr, width);
 
