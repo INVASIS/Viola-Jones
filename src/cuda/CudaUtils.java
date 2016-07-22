@@ -9,6 +9,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 
+import static javafx.application.Platform.exit;
 import static jcuda.driver.JCudaDriver.*;
 
 public class CudaUtils {
@@ -108,38 +109,59 @@ public class CudaUtils {
     }
 
     public static void newArray2D(int[][] src, int width, int height, CUdeviceptr tmpArrayDst[], CUdeviceptr dstPtr) {
+        int error = 0;
+
         // [CUdeviceptr, CUdeviceptr, CUdeviceptr, ...] -> Array of pointers to columns
         for (int x = 0; x < width; x++) { // For each column of the image
             tmpArrayDst[x] = new CUdeviceptr();
-            cuMemAlloc(tmpArrayDst[x], height * Sizeof.INT); // Alloc the size of the column
-            cuMemcpyHtoD(tmpArrayDst[x], Pointer.to(src[x]), height * Sizeof.INT); // Copy column' pixels from data in that allocated CUDA memory
+            error += cuMemAlloc(tmpArrayDst[x], height * Sizeof.INT); // Alloc the size of the column
+            error += cuMemcpyHtoD(tmpArrayDst[x], Pointer.to(src[x]), height * Sizeof.INT); // Copy column' pixels from data in that allocated CUDA memory
         }
         // Pointer to array of pointers to columns
-        cuMemAlloc(dstPtr, width * Sizeof.POINTER);
-        cuMemcpyHtoD(dstPtr, Pointer.to(tmpArrayDst), width * Sizeof.POINTER);
+        error += cuMemAlloc(dstPtr, width * Sizeof.POINTER);
+        error += cuMemcpyHtoD(dstPtr, Pointer.to(tmpArrayDst), width * Sizeof.POINTER);
+
+        if (error != 0) {
+            System.err.println("Failed to create a new CUDA 2D array.");
+            exit();
+        }
     }
 
     public static int[][] memCpyArray2D(CUdeviceptr dataPtr, int width, int height) {
+        int error = 0;
+
         CUdeviceptr[] tmpDataPtr = new CUdeviceptr[width];
         for (int x = 0; x < width; x++) { // For each column of the image
             tmpDataPtr[x] = new CUdeviceptr();
-            cuMemAlloc(tmpDataPtr[x], height * Sizeof.INT); // Alloc the size of the column
+            error += cuMemAlloc(tmpDataPtr[x], height * Sizeof.INT); // Alloc the size of the column
         }
 
         cuMemcpyDtoH(Pointer.to(tmpDataPtr), dataPtr, width * Sizeof.POINTER);
 
         int[][] result = new int[width][height];
         for (int x = 0; x < width; x++) {
-            cuMemcpyDtoH(Pointer.to(result[x]), tmpDataPtr[x], height * Sizeof.INT);
+            error += cuMemcpyDtoH(Pointer.to(result[x]), tmpDataPtr[x], height * Sizeof.INT);
+        }
+
+        if (error != 0) {
+            System.err.println("Failed to memCpy to a new CUDA 2D array.");
+            exit();
         }
 
         return result;
     }
 
     public static void freeArray2D(CUdeviceptr tmpArrayDst[], CUdeviceptr ptr, int width) {
+        int error = 0;
+
         for (int i = 0; i < width; i++) {
-            cuMemFree(tmpArrayDst[i]);
+            error += cuMemFree(tmpArrayDst[i]);
         }
-        cuMemFree(ptr);
+        error += cuMemFree(ptr);
+
+        if (error != 0) {
+            System.err.println("Failed to free a CUDA 2D array.");
+            exit();
+        }
     }
 }

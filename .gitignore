@@ -4,6 +4,7 @@ build/
 out/
 classes/
 cuda/ptx/
+tmp/
 
 # Ignore Gradle GUI config
 gradle-app.setting

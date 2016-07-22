@@ -104,7 +104,7 @@ public class AnyFilter {
 
         // Set up the kernel parameters
         Pointer kernelParams = Pointer.to(
-                Pointer.to(deviceInput),
+                Pointer.to(deviceInput), // globalInputData = 2D array =
                 Pointer.to(new int[]{width}), // int width
                 Pointer.to(new int[]{height}), // int height
                 Pointer.to(filterInput),
