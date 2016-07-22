@@ -60,7 +60,7 @@ public class FeatureExtractor {
          * e ------- f ------- g ------- h
          */
 
-        int w = r.getWidth() / widthTypeA;
+        int w = r.getWidth() / widthTypeB;
         int h = r.getHeight();
         int r1 = rectangleSum(image, r.getX(), r.getY(), w, h);
         int r2 = rectangleSum(image, r.getX() + w, r.getY(), w, h);

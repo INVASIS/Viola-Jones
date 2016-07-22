@@ -1,6 +1,7 @@
 import GUI.Display;
 import GUI.ImageHandler;
 import cuda.AnyFilter;
+import cuda.HaarExtractor;
 import process.training.Classifier;
 
 
