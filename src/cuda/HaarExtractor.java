@@ -53,7 +53,7 @@ public class HaarExtractor {
 
 
     public HaarExtractor(ImageHandler image) {
-        this.data = data = image.getGrayImage();
+        this.data = image.getGrayImage();
         this.integral = image.getIntegralImage();
         this.width = image.getWidth();
         this.height = image.getHeight();
@@ -84,7 +84,7 @@ public class HaarExtractor {
 
         long size_output = 4 * numFeatures;
 
-        ArrayList<Rectangle> typeN = FeatureExtractor.listFeaturePositions(width, height, 19, 19);
+        ArrayList<Rectangle> typeN = FeatureExtractor.listFeaturePositions(width, height, this.width, this.height);
 
         int[] arrayTypeN = new int[(int) size_output];
 
