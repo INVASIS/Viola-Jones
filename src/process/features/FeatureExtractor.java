@@ -1,6 +1,7 @@
 package process.features;
 
 import GUI.ImageHandler;
+import process.Conf;
 import utils.yield.Yielderable;
 
 import java.util.ArrayList;
@@ -262,5 +263,28 @@ public class FeatureExtractor {
         count += countFeatures(widthTypeE, heightTypeE, width, height);
 
         return count;
+    }
+
+    public static ArrayList<Integer> computeFeaturesGPU(ImageHandler image) {
+        ArrayList<Integer> result = new ArrayList<>();
+        return result;
+    }
+
+    public static ArrayList<Integer> computeFeaturesCPU(ImageHandler image) {
+        ArrayList<Integer> result = new ArrayList<>();
+        int count = 0;
+        for (Feature f : FeatureExtractor.streamFeatures(image)) {
+            result.set(count, f.getValue());
+            count++;
+        }
+        return result;
+    }
+
+
+    public static ArrayList<Integer> computeFeatures(ImageHandler image) {
+        if (Conf.USE_CUDA)
+            return computeFeaturesGPU(image);
+        else
+            return computeFeaturesCPU(image);
     }
 }
