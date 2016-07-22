@@ -16,8 +16,6 @@ import static process.IntegralImage.rectangleSum;
 
 public class FeatureExtractor {
 
-    public static HaarExtractor haarExtractor = null;
-
     public static final int typeA = 1;
     public static final int widthTypeA = 2;
     public static final int heightTypeA = 1;
@@ -309,7 +307,7 @@ public class FeatureExtractor {
     // Warning : Need to train and evaluate on the same features : only on GPU or only on CPU
     public static ArrayList<Integer> computeFeatures(ImageHandler image) {
         if (Conf.USE_CUDA) {
-            return computeFeaturesGPU(image, haarExtractor);
+            return computeFeaturesGPU(image, Conf.haarExtractor);
         } else
             return computeFeaturesCPU(image);
     }
@@ -321,10 +319,6 @@ public class FeatureExtractor {
             System.out.println("Computing all positives images features... ");
             ExecutorService executor = Executors.newFixedThreadPool(Conf.TRAIN_MAX_CONCURENT_PROCESSES);
 
-            if (Conf.USE_CUDA) {
-                haarExtractor = new HaarExtractor(width, height);
-            }
-
             for (ImageHandler image : images) {
                 if (image.getWidth() == width && image.getHeight() == height) {
                     if (result.get(image.getFilePath()) == null) { // Only compute the image if it's not already done
@@ -334,8 +328,6 @@ public class FeatureExtractor {
                 } else
                     System.err.println("Image " + image.getFilePath() + " has a wrong size! (Expecting " + width + "x" + height + ", got " + image.getWidth() + "x" + image.getHeight() + ")");
             }
-            if (haarExtractor != null)
-                haarExtractor.freeCuda();
 
             executor.shutdown();
             while (!executor.isTerminated()) {/*ignore*/}

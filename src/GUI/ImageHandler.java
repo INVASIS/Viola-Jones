@@ -1,14 +1,19 @@
 package GUI;
 
+import cuda.HaarExtractor;
+import process.Conf;
 import utils.Converters;
 import process.Filters;
 import process.IntegralImage;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
-import java.util.UUID;
+import java.io.*;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.*;
 
 import static javafx.application.Platform.exit;
 
@@ -103,7 +108,77 @@ public class ImageHandler {
         return filePath;
     }
 
+    public ArrayList<ArrayList<Integer>> getFeatures() {
+        if (!Files.exists(Paths.get(filePath + Conf.FEATURE_EXTENSION)))
+            return computeFeatures();
+        else {
+            ArrayList<ArrayList<Integer>> res = new ArrayList<>();
+            try {
+                BufferedReader br = new BufferedReader(new FileReader(filePath + Conf.FEATURE_EXTENSION));
+                String line = br.readLine();
+                while (line != null) {
+                    ArrayList<Integer> values = new ArrayList<>();
+                    for (String val : line.split(";")) {
+                        values.add(Integer.parseInt(val));
+                    }
+                    res.add(values);
+                    line = br.readLine();
+                }
+                br.close();
 
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            return res;
+        }
+    }
+
+    public ArrayList<ArrayList<Integer>> computeFeatures() {
+        Conf.haarExtractor.updateImage(integralImage);
+        Conf.haarExtractor.compute();
+
+        ArrayList<ArrayList<Integer>> res = new ArrayList<>();
+
+
+        try {
+            PrintWriter writer = new PrintWriter(filePath + Conf.FEATURE_EXTENSION, "UTF-8");
+
+            for (Integer i : Conf.haarExtractor.getFeaturesA())
+                    writer.write(i + ";");
+            writer.write(System.lineSeparator());
+
+            for (Integer i : Conf.haarExtractor.getFeaturesB())
+                writer.write(i + ";");
+            writer.write(System.lineSeparator());
+
+            for (Integer i : Conf.haarExtractor.getFeaturesC())
+                writer.write(i + ";");
+            writer.write(System.lineSeparator());
+
+            for (Integer i : Conf.haarExtractor.getFeaturesD())
+                writer.write(i + ";");
+            writer.write(System.lineSeparator());
+
+            for (Integer i : Conf.haarExtractor.getFeaturesE())
+                writer.write(i + ";");
+
+            writer.close();
+
+        } catch (IOException ex) {
+            System.err.println("Could not write feature values to " + Conf.TRAIN_FEATURES);
+        }
+
+        res.add(Conf.haarExtractor.getFeaturesA());
+        res.add(Conf.haarExtractor.getFeaturesB());
+        res.add(Conf.haarExtractor.getFeaturesC());
+        res.add(Conf.haarExtractor.getFeaturesD());
+        res.add(Conf.haarExtractor.getFeaturesE());
+
+        return res;
+    }
 
     public UUID getUid() {
         return uid;

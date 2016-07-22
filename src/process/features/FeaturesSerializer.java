@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
 
+@Deprecated
 public class FeaturesSerializer {
     public static void toDisk(HashMap<String, ArrayList<Integer>> result, String filePath) {
         Writer writer = null;

@@ -154,7 +154,7 @@ public class CudaUtils {
         return result;
     }
 
-    public static void freeArray2D(CUdeviceptr tmpArrayDst[], CUdeviceptr ptr, int width) {
+    public static void  freeArray2D(CUdeviceptr tmpArrayDst[], CUdeviceptr ptr, int width) {
         int error = 0;
 
         for (int i = 0; i < width; i++) {

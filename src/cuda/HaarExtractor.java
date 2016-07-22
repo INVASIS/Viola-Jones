@@ -1,6 +1,5 @@
 package cuda;
 
-import GUI.ImageHandler;
 import jcuda.Pointer;
 import jcuda.Sizeof;
 import jcuda.driver.CUdeviceptr;
@@ -20,11 +19,11 @@ public class HaarExtractor {
     public static final String CUDA_FILENAME = "HaarType";
     public static final String KERNEL_NAME = "haar_type_";
 
-    private final long NUM_FEATURES_A;
-    private final long NUM_FEATURES_B;
-    private final long NUM_FEATURES_C;
-    private final long NUM_FEATURES_D;
-    private final long NUM_FEATURES_E;
+    private long NUM_FEATURES_A;
+    private long NUM_FEATURES_B;
+    private long NUM_FEATURES_C;
+    private long NUM_FEATURES_D;
+    private long NUM_FEATURES_E;
 
     private int[][] integral;
     private int width;
@@ -49,25 +48,13 @@ public class HaarExtractor {
     private CUdeviceptr allRectanglesE;
 
 
-    public HaarExtractor(int width, int height) {
-        this.integral = null;
-        this.width = width;
-        this.height = height;
-
+    public HaarExtractor() {
         this.modules = new HashMap<>();
         this.modules.put('A', CudaUtils.getModule(CUDA_FILENAME + "A"));
         this.modules.put('B', CudaUtils.getModule(CUDA_FILENAME + "B"));
         this.modules.put('C', CudaUtils.getModule(CUDA_FILENAME + "C"));
         this.modules.put('D', CudaUtils.getModule(CUDA_FILENAME + "D"));
         this.modules.put('E', CudaUtils.getModule(CUDA_FILENAME + "E"));
-
-        this.NUM_FEATURES_A = FeatureExtractor.countFeatures(FeatureExtractor.widthTypeA, FeatureExtractor.heightTypeA, width, height);
-        this.NUM_FEATURES_B = FeatureExtractor.countFeatures(FeatureExtractor.widthTypeB, FeatureExtractor.heightTypeB, width, height);
-        this.NUM_FEATURES_C = FeatureExtractor.countFeatures(FeatureExtractor.widthTypeC, FeatureExtractor.heightTypeC, width, height);
-        this.NUM_FEATURES_D = FeatureExtractor.countFeatures(FeatureExtractor.widthTypeD, FeatureExtractor.heightTypeD, width, height);
-        this.NUM_FEATURES_E = FeatureExtractor.countFeatures(FeatureExtractor.widthTypeE, FeatureExtractor.heightTypeE, width, height);
-
-        this.tmpDataPtr = new CUdeviceptr[width];
 
         this.allRectanglesA = new CUdeviceptr();
         this.allRectanglesB = new CUdeviceptr();
@@ -81,12 +68,26 @@ public class HaarExtractor {
         this.featuresD = new ArrayList<>();
         this.featuresE = new ArrayList<>();
 
+    }
+
+    public void setUp(int width, int height) {
+        this.integral = null;
+        this.width = width;
+        this.height = height;
+
+        this.NUM_FEATURES_A = FeatureExtractor.countFeatures(FeatureExtractor.widthTypeA, FeatureExtractor.heightTypeA, width, height);
+        this.NUM_FEATURES_B = FeatureExtractor.countFeatures(FeatureExtractor.widthTypeB, FeatureExtractor.heightTypeB, width, height);
+        this.NUM_FEATURES_C = FeatureExtractor.countFeatures(FeatureExtractor.widthTypeC, FeatureExtractor.heightTypeC, width, height);
+        this.NUM_FEATURES_D = FeatureExtractor.countFeatures(FeatureExtractor.widthTypeD, FeatureExtractor.heightTypeD, width, height);
+        this.NUM_FEATURES_E = FeatureExtractor.countFeatures(FeatureExtractor.widthTypeE, FeatureExtractor.heightTypeE, width, height);
+
+        this.tmpDataPtr = new CUdeviceptr[width];
+
         listAllTypeN(this.NUM_FEATURES_A, FeatureExtractor.widthTypeA, FeatureExtractor.heightTypeA, 'A');
         listAllTypeN(this.NUM_FEATURES_B, FeatureExtractor.widthTypeB, FeatureExtractor.heightTypeB, 'B');
         listAllTypeN(this.NUM_FEATURES_C, FeatureExtractor.widthTypeC, FeatureExtractor.heightTypeC, 'C');
         listAllTypeN(this.NUM_FEATURES_D, FeatureExtractor.widthTypeD, FeatureExtractor.heightTypeD, 'D');
         listAllTypeN(this.NUM_FEATURES_E, FeatureExtractor.widthTypeE, FeatureExtractor.heightTypeE, 'E');
-
     }
 
     // Free Cuda !
@@ -204,6 +205,10 @@ public class HaarExtractor {
 
     public void compute() {
 
+        if (this.tmpDataPtr == null) {
+            System.err.println("ERROR HaarExtractor not init - Aborting");
+            System.exit(42);
+        }
         // Initialisation of the input data that will be passed to Cuda
         // The image is larger to compute the filter without bounds checking
 
@@ -229,7 +234,8 @@ public class HaarExtractor {
         cuMemFree(allRectanglesD);
         cuMemFree(allRectanglesE);
 
-        CudaUtils.freeArray2D(tmpDataPtr, srcPtr, width);
+        if (srcPtr != null)
+            CudaUtils.freeArray2D(tmpDataPtr, srcPtr, width);
     }
 
     // Change the image to avoid recomputing all init stuff - to be used only for training purposes

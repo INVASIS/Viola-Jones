@@ -1,7 +1,6 @@
 package process.training;
 
 import GUI.ImageHandler;
-import cuda.HaarExtractor;
 import jeigen.DenseMatrix;
 import process.Conf;
 import process.DecisionStump;
@@ -121,9 +120,8 @@ public class Classifier {
         long featuresCount = FeatureExtractor.countAllFeatures(width, height);
 
         // Get already computed feature values if any
-        HashMap<String, ArrayList<Integer>> result = FeaturesSerializer.fromDisk(Conf.TRAIN_FEATURES);
+        //HashMap<String, ArrayList<Integer>> result = FeaturesSerializer.fromDisk(Conf.TRAIN_FEATURES);
 
-        FeatureExtractor.haarExtractor = new HaarExtractor(width, height);
         /*for (ImageHandler image : positives) {
             if (image.getWidth() == width && image.getHeight() == height) {
                 result.putIfAbsent(image.getFilePath(), computeFeatures(image));
@@ -136,9 +134,9 @@ public class Classifier {
         }*/
         //FeatureExtractor.haarExtractor.freeCuda();
         // Compute Haar-features of all examples
-//        computeFeaturesImages(positives, width, height, result);
-//        computeFeaturesImages(negatives, width, height, result);
+        //computeFeaturesImages(positives, width, height, result);
+        //computeFeaturesImages(negatives, width, height, result);
 
-        FeaturesSerializer.toDisk(result, Conf.TRAIN_FEATURES);
+        //FeaturesSerializer.toDisk(result, Conf.TRAIN_FEATURES);
     }
 }
