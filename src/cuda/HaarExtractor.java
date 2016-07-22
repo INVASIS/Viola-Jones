@@ -225,4 +225,24 @@ public class HaarExtractor {
         CudaUtils.freeArray2D(tmpDataPtr, srcPtr, width);
 
     }
+
+    public ArrayList<Integer> getFeaturesA() {
+        return featuresA;
+    }
+
+    public ArrayList<Integer> getFeaturesB() {
+        return featuresB;
+    }
+
+    public ArrayList<Integer> getFeaturesC() {
+        return featuresC;
+    }
+
+    public ArrayList<Integer> getFeaturesD() {
+        return featuresD;
+    }
+
+    public ArrayList<Integer> getFeaturesE() {
+        return featuresE;
+    }
 }

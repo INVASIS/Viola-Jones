@@ -1,6 +1,7 @@
 package process.features;
 
 import GUI.ImageHandler;
+import cuda.HaarExtractor;
 import process.Conf;
 import utils.yield.Yielderable;
 
@@ -276,6 +277,14 @@ public class FeatureExtractor {
 
     public static ArrayList<Integer> computeFeaturesGPU(ImageHandler image) {
         ArrayList<Integer> result = new ArrayList<>();
+        HaarExtractor haarExtractor = new HaarExtractor(image);
+        haarExtractor.compute();
+
+        result.addAll(haarExtractor.getFeaturesA());
+        result.addAll(haarExtractor.getFeaturesB());
+        result.addAll(haarExtractor.getFeaturesC());
+        result.addAll(haarExtractor.getFeaturesD());
+        result.addAll(haarExtractor.getFeaturesE());
 
         return result;
     }
