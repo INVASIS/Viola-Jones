@@ -43,7 +43,7 @@ public class AnyFilter {
         this.height = height;
         this.data = image;
 
-        this.module = CudaUtils.initCuda(CUDA_FILENAME);
+        this.module = CudaUtils.getModule(CUDA_FILENAME);
     }
 
     public AnyFilter(int width, int height, int[][] image, float[][] filter) {

@@ -81,10 +81,20 @@ public class CudaUtils {
     }
 
     // Avoir le meme module pour tous les valculs ??
-    public static CUmodule initCuda(String cudaFilename) {
+    public static void initCuda() {
 
         JCudaDriver.setExceptionsEnabled(true);
 
+        // Initialize the driver and create a context for the first device.
+        cuInit(0);
+        CUcontext pctx = new CUcontext();
+        CUdevice dev = new CUdevice();
+        cuDeviceGet(dev, 0);
+        cuCtxCreate(pctx, 0, dev);
+
+    }
+
+    public static CUmodule getModule(String cudaFilename) {
         // Create the PTX file by calling the NVCC
         String ptxFileName;
         try {
@@ -93,13 +103,6 @@ public class CudaUtils {
             e.printStackTrace();
             return null;
         }
-
-        // Initialize the driver and create a context for the first device.
-        cuInit(0);
-        CUcontext pctx = new CUcontext();
-        CUdevice dev = new CUdevice();
-        cuDeviceGet(dev, 0);
-        cuCtxCreate(pctx, 0, dev);
 
         // Load the file containing the kernels
         CUmodule module = new CUmodule();

@@ -15,9 +15,13 @@ import static process.IntegralImage.rectangleSum;
 
 
 public class FeatureExtractor {
+
+    public static HaarExtractor haarExtractor = null;
+
     public static final int typeA = 1;
     public static final int widthTypeA = 2;
     public static final int heightTypeA = 1;
+
     public static int computeTypeA(ImageHandler image, Rectangle r) {
         /**
          * a ------- b ------- c
@@ -52,6 +56,7 @@ public class FeatureExtractor {
     public static final int typeB = 2;
     public static final int widthTypeB = 3;
     public static final int heightTypeB = 1;
+
     public static int computeTypeB(ImageHandler image, Rectangle r) {
         /**
          * a ------- b ------- c ------- d
@@ -87,6 +92,7 @@ public class FeatureExtractor {
     public static final int typeC = 3;
     public static final int widthTypeC = 1;
     public static final int heightTypeC = 2;
+
     public static int computeTypeC(ImageHandler image, Rectangle r) {
         /**
          * a ------- b
@@ -125,6 +131,7 @@ public class FeatureExtractor {
     public static final int typeD = 4;
     public static final int widthTypeD = 1;
     public static final int heightTypeD = 3;
+
     public static int computeTypeD(ImageHandler image, Rectangle r) {
         /**
          * a ------- b
@@ -168,6 +175,7 @@ public class FeatureExtractor {
     public static final int typeE = 5;
     public static final int widthTypeE = 2;
     public static final int heightTypeE = 2;
+
     public static int computeTypeE(ImageHandler image, Rectangle r) {
         /**
          * a ------- b ------- c
@@ -255,6 +263,7 @@ public class FeatureExtractor {
         }
         return count;
     }
+
     public static long countAllFeatures(int width, int height) {
         long count = 0;
 
@@ -275,9 +284,9 @@ public class FeatureExtractor {
         return count;
     }
 
-    public static ArrayList<Integer> computeFeaturesGPU(ImageHandler image) {
+    public static ArrayList<Integer> computeFeaturesGPU(ImageHandler imageHandler, HaarExtractor haarExtractor) {
         ArrayList<Integer> result = new ArrayList<>();
-        HaarExtractor haarExtractor = new HaarExtractor(image);
+        haarExtractor.updateImage(imageHandler.getIntegralImage());
         haarExtractor.compute();
 
         result.addAll(haarExtractor.getFeaturesA());
@@ -299,9 +308,9 @@ public class FeatureExtractor {
 
     // Warning : Need to train and evaluate on the same features : only on GPU or only on CPU
     public static ArrayList<Integer> computeFeatures(ImageHandler image) {
-        if (Conf.USE_CUDA)
-            return computeFeaturesGPU(image);
-        else
+        if (Conf.USE_CUDA) {
+            return computeFeaturesGPU(image, haarExtractor);
+        } else
             return computeFeaturesCPU(image);
     }
 
@@ -311,16 +320,23 @@ public class FeatureExtractor {
         { // Parallel execution
             System.out.println("Computing all positives images features... ");
             ExecutorService executor = Executors.newFixedThreadPool(Conf.TRAIN_MAX_CONCURENT_PROCESSES);
+
+            if (Conf.USE_CUDA) {
+                haarExtractor = new HaarExtractor(width, height);
+            }
+
             for (ImageHandler image : images) {
                 if (image.getWidth() == width && image.getHeight() == height) {
                     if (result.get(image.getFilePath()) == null) { // Only compute the image if it's not already done
                         Runnable worker = new ImageFeaturesCompute(image, result);
                         executor.execute(worker);
                     }
-                }
-                else
+                } else
                     System.err.println("Image " + image.getFilePath() + " has a wrong size! (Expecting " + width + "x" + height + ", got " + image.getWidth() + "x" + image.getHeight() + ")");
             }
+            if (haarExtractor != null)
+                haarExtractor.freeCuda();
+
             executor.shutdown();
             while (!executor.isTerminated()) {/*ignore*/}
             System.out.println("Done!");
