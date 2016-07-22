@@ -1,13 +1,7 @@
 import GUI.Display;
 import GUI.ImageHandler;
 import cuda.AnyFilter;
-import cuda.HaarExtractor;
-import jcuda.jcublas.JCublas;
-import process.features.Feature;
-import process.features.FeatureExtractor;
 import process.training.Classifier;
-
-import java.util.ArrayList;
 
 
 /**
@@ -31,7 +25,7 @@ public class Main {
 //        FeatureExtractor fc = new FeatureExtractor(imageHandler);
 //        ArrayList<Feature> features = fc.getAllFeatures();
 
-        Classifier.train("data/testset-19x19/face-png", "data/testset-19x19/nonface-png", 19, 19);
+        Classifier.train("data/testset-19x19/face-png", "data/testset-19x19/non-face-png", 19, 19);
 
     }
 }
