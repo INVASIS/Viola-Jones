@@ -11,6 +11,7 @@ import java.util.*;
 
 import static java.lang.Math.log;
 import static javafx.application.Platform.exit;
+import static process.features.FeatureExtractor.computeFeatures;
 import static process.features.FeatureExtractor.computeFeaturesImages;
 import static utils.Utils.countFiles;
 import static utils.Utils.streamImageHandler;
@@ -121,9 +122,20 @@ public class Classifier {
         // Get already computed feature values if any
         HashMap<String, ArrayList<Integer>> result = FeaturesSerializer.fromDisk(Conf.TRAIN_FEATURES);
 
+        for (ImageHandler image : positives) {
+            if (image.getWidth() == width && image.getHeight() == height) {
+                result.putIfAbsent(image.getFilePath(), computeFeatures(image));
+            }
+        }
+        for (ImageHandler image : negatives) {
+            if (image.getWidth() == width && image.getHeight() == height) {
+                result.putIfAbsent(image.getFilePath(), computeFeatures(image));
+            }
+        }
+
         // Compute Haar-features of all examples
-        computeFeaturesImages(positives, width, height, result);
-        computeFeaturesImages(negatives, width, height, result);
+//        computeFeaturesImages(positives, width, height, result);
+//        computeFeaturesImages(negatives, width, height, result);
 
         FeaturesSerializer.toDisk(result, Conf.TRAIN_FEATURES);
     }
