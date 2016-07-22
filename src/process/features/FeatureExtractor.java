@@ -276,6 +276,7 @@ public class FeatureExtractor {
 
     public static ArrayList<Integer> computeFeaturesGPU(ImageHandler image) {
         ArrayList<Integer> result = new ArrayList<>();
+
         return result;
     }
 
@@ -295,17 +296,18 @@ public class FeatureExtractor {
             return computeFeaturesCPU(image);
     }
 
-    public static HashMap<String, ArrayList<Integer>> computeFeaturesImages(Iterable<ImageHandler> images, int width, int height) {
+    public static void computeFeaturesImages(Iterable<ImageHandler> images, int width, int height, HashMap<String, ArrayList<Integer>> result) {
         // Compute Haar-features of all images
-        HashMap<String, ArrayList<Integer>> result = new HashMap<>();
 
         { // Parallel execution
             System.out.println("Computing all positives images features... ");
             ExecutorService executor = Executors.newFixedThreadPool(Conf.TRAIN_MAX_CONCURENT_PROCESSES);
             for (ImageHandler image : images) {
                 if (image.getWidth() == width && image.getHeight() == height) {
-                    Runnable worker = new ImageFeaturesCompute(image, result);
-                    executor.execute(worker);
+                    if (result.get(image.getFilePath()) == null) { // Only compute the image if it's not already done
+                        Runnable worker = new ImageFeaturesCompute(image, result);
+                        executor.execute(worker);
+                    }
                 }
                 else
                     System.err.println("Image " + image.getFilePath() + " has a wrong size! (Expecting " + width + "x" + height + ", got " + image.getWidth() + "x" + image.getHeight() + ")");
@@ -314,6 +316,5 @@ public class FeatureExtractor {
             while (!executor.isTerminated()) {/*ignore*/}
             System.out.println("Done!");
         }
-        return result;
     }
 }

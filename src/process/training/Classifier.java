@@ -118,10 +118,12 @@ public class Classifier {
 
         long featuresCount = FeatureExtractor.countAllFeatures(width, height);
 
+        // Get already computed feature values if any
+        HashMap<String, ArrayList<Integer>> result = FeaturesSerializer.fromDisk(Conf.TRAIN_FEATURES);
+
         // Compute Haar-features of all examples
-        HashMap<String, ArrayList<Integer>> result = new HashMap<>();
-        result.putAll(computeFeaturesImages(positives, width, height));
-        result.putAll(computeFeaturesImages(negatives, width, height));
+        computeFeaturesImages(positives, width, height, result);
+        computeFeaturesImages(negatives, width, height, result);
 
         FeaturesSerializer.toDisk(result, Conf.TRAIN_FEATURES);
     }

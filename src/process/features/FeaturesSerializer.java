@@ -3,6 +3,8 @@ package process.features;
 import process.Conf;
 
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -31,9 +33,16 @@ public class FeaturesSerializer {
     }
     public static HashMap<String, ArrayList<Integer>> fromDisk(String filePath) {
         HashMap<String, ArrayList<Integer>> result = new HashMap<>();
+
+        if (Files.exists(Paths.get(filePath)))
+            return result;
+
         final Scanner s = new Scanner(filePath);
         while(s.hasNextLine()) {
             final String line = s.nextLine();
+            if (line.equals(""))
+                continue;
+
             String[] parts = line.split(":");
 
             ArrayList<Integer> values = new ArrayList<>();
