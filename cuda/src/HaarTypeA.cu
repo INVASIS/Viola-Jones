@@ -26,7 +26,6 @@ __global__ void haar_type_A(int** integralImage, int* allRectangles, int numRect
         int mid = w / 2;
 
         int r1 = rectanglesSum(integralImage, x, y, mid, h);
-
         int r2 = rectanglesSum(integralImage, x + mid, y, mid, h);
 
         haarFeatures[tidX] = r1 - r2;

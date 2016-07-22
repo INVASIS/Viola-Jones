@@ -282,10 +282,8 @@ public class FeatureExtractor {
     public static ArrayList<Integer> computeFeaturesCPU(ImageHandler image) {
         ArrayList<Integer> result = new ArrayList<>();
         int count = 0;
-        for (Feature f : FeatureExtractor.streamFeatures(image)) {
-            result.set(count, f.getValue());
-            count++;
-        }
+        for (Feature f : FeatureExtractor.streamFeatures(image))
+            result.add(f.getValue());
         return result;
     }
 

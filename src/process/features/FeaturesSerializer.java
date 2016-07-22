@@ -13,7 +13,6 @@ public class FeaturesSerializer {
         Writer writer = null;
         try {
             writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(filePath), "utf-8"));
-            writer.write("Something");
             for (Map.Entry<String, ArrayList<Integer>> entry : result.entrySet()) {
                 writer.write(entry.getKey() + ":");
                 for (Integer i : entry.getValue())

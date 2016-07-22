@@ -6,13 +6,11 @@ import process.Conf;
 import process.DecisionStump;
 import process.features.FeatureExtractor;
 import process.features.FeaturesSerializer;
-import process.features.ImageFeaturesCompute;
 
 import java.util.*;
 
 import static java.lang.Math.log;
 import static javafx.application.Platform.exit;
-import static process.features.FeatureExtractor.computeFeatures;
 import static process.features.FeatureExtractor.computeFeaturesImages;
 import static utils.Utils.countFiles;
 import static utils.Utils.streamImageHandler;
