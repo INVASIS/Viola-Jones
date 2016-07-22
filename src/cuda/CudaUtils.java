@@ -79,6 +79,7 @@ public class CudaUtils {
         return baos.toByteArray();
     }
 
+    // Avoir le meme module pour tous les valculs ??
     public static CUmodule initCuda(String cudaFilename) {
 
         JCudaDriver.setExceptionsEnabled(true);

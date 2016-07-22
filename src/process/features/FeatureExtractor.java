@@ -218,7 +218,7 @@ public class FeatureExtractor {
         };
     }
 
-    private static ArrayList<Rectangle> listFeaturePositions(int featureWidth, int featureHeight, int frameWidth, int frameHeight) {
+    public static ArrayList<Rectangle> listFeaturePositions(int featureWidth, int featureHeight, int frameWidth, int frameHeight) {
         ArrayList<Rectangle> rectangles = new ArrayList<>();
         for (Rectangle r : streamFeaturePositions(featureWidth, featureHeight, frameWidth, frameHeight))
             rectangles.add(r);
@@ -259,11 +259,17 @@ public class FeatureExtractor {
 
         // FIXME: find a less CPU & time consuming way of computing this
 
-        count += countFeatures(widthTypeA, heightTypeA, width, height);
-        count += countFeatures(widthTypeB, heightTypeB, width, height);
-        count += countFeatures(widthTypeC, heightTypeC, width, height);
-        count += countFeatures(widthTypeD, heightTypeD, width, height);
-        count += countFeatures(widthTypeE, heightTypeE, width, height);
+        long typeA = countFeatures(widthTypeA, heightTypeA, width, height);
+        long typeB = countFeatures(widthTypeB, heightTypeB, width, height);
+        long typeC = countFeatures(widthTypeC, heightTypeC, width, height);
+        long typeD = countFeatures(widthTypeD, heightTypeD, width, height);
+        long typeE = countFeatures(widthTypeE, heightTypeE, width, height);
+
+        count += typeA;
+        count += typeB;
+        count += typeC;
+        count += typeD;
+        count += typeE;
 
         return count;
     }
@@ -283,6 +289,7 @@ public class FeatureExtractor {
         return result;
     }
 
+    // Warning : Need to train and evaluate on the same features : only on GPU or only on CPU
     public static ArrayList<Integer> computeFeatures(ImageHandler image) {
         if (Conf.USE_CUDA)
             return computeFeaturesGPU(image);

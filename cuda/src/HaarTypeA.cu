@@ -1,25 +1,35 @@
+__device__
+int rectanglesSum(int** integralImage, int x, int y, int w, int h)
+{
+    int A = x > 0 && y > 0 ? integralImage[x - 1][y - 1] : 0;
+    int B = x + w > 0 && y > 0 ? integralImage[x + w - 1][y - 1] : 0;
+    int C = x > 0 && y + h > 0 ? integralImage[x - 1][y + h - 1] : 0;
+    int D = x + w > 0 && y + h > 0 ? integralImage[x + w - 1][y + h - 1] : 0;
+
+    return A + D - B - C;
+}
+
 extern "C"
-__global__ void haar_type_A(int** globalInputData, int posx, int posy, int sizex, int sizey, int* globalOutputData)
+__global__ void haar_type_A(int** integralImage, int* allRectangles, int numRectangles, int* haarFeatures)
 {
     // Get an "unique id" of the thread that correspond to one pixel
     const unsigned int tidX = blockIdx.x * blockDim.x + threadIdx.x;
 
-    const unsigned int x = tidX / 24;
-    const unsigned int y = tidX % 24;
-
-    if (tidX < (24 - sizex + 1) * (24 - sizey + 1))
+    if (tidX < numRectangles)
     {
-        int a = 0;
-        for (int i = 0; i < sizex / 2; i++)
-            for (int j = 0; j < sizey; j++)
-                a += globalInputData[posx + x + i][posy + y + j];
 
-        int b = 0;
-        for (int i = sizex / 2; i < sizex; i++)
-            for (int j = 0; j < sizey; j++)
-                b += globalInputData[posx + x + i][posy + y + j];
+        int x = allRectangles[tidX * 4];
+        int y = allRectangles[tidX * 4 + 1];
+        int w = allRectangles[tidX * 4 + 2];
+        int h = allRectangles[tidX * 4 + 3];
 
-        globalOutputData[tidX] = a - b;
+        int mid = w / 2;
+
+        int r1 = rectanglesSum(integralImage, x, y, mid, h);
+
+        int r2 = rectanglesSum(integralImage, x + mid, y, mid, h);
+
+        haarFeatures[tidX] = r1 - r2;
     }
 
     __syncthreads();

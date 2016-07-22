@@ -5,10 +5,15 @@ import jcuda.Sizeof;
 import jcuda.driver.CUdeviceptr;
 import jcuda.driver.CUfunction;
 import jcuda.driver.CUmodule;
+import process.features.FeatureExtractor;
+import process.features.Rectangle;
 
 import java.util.ArrayList;
 
 import static jcuda.driver.JCudaDriver.*;
+
+// Toutes haar features dechaque type
+// calculer tous les rectangles possibles pour chaque feature.
 
 public class HaarExtractor {
 
@@ -16,11 +21,11 @@ public class HaarExtractor {
     public static final String CUDA_FILENAME = "HaarType";
     public static final String KERNEL_NAME = "haar_type_";
 
-    public static final int NUM_FEATURES_A = 43200;
-    public static final int NUM_FEATURES_B = 27600;
-    public static final int NUM_FEATURES_C = 43200;
-    public static final int NUM_FEATURES_D = 27600;
-    public static final int NUM_FEATURES_E = 20736;
+    private final long NUM_FEATURES_A;
+    private final long NUM_FEATURES_B;
+    private final long NUM_FEATURES_C;
+    private final long NUM_FEATURES_D;
+    private final long NUM_FEATURES_E;
 
     private int[][] data;
     private int[][] integral;
@@ -39,6 +44,8 @@ public class HaarExtractor {
     private CUdeviceptr dstPtr;
     private CUdeviceptr tmpDataPtr[];
 
+    private CUdeviceptr allRectanglesA;
+
     // La haar feature A : |0 1| taille 2w * 1h (width et height) scalable : de 0 à w = 0 de w à 2w = 1
 
     public HaarExtractor(int[][] data, int[][] integral, int width, int height) {
@@ -47,16 +54,48 @@ public class HaarExtractor {
         this.width = width;
         this.height = height;
 
+        this.NUM_FEATURES_A = FeatureExtractor.countFeatures(FeatureExtractor.widthTypeA, FeatureExtractor.heightTypeA, 19, 19);
+        this.NUM_FEATURES_B = FeatureExtractor.countFeatures(FeatureExtractor.widthTypeB, FeatureExtractor.heightTypeB, 19, 19);
+        this.NUM_FEATURES_C = FeatureExtractor.countFeatures(FeatureExtractor.widthTypeC, FeatureExtractor.heightTypeC, 19, 19);
+        this.NUM_FEATURES_D = FeatureExtractor.countFeatures(FeatureExtractor.widthTypeD, FeatureExtractor.heightTypeD, 19, 19);
+        this.NUM_FEATURES_E = FeatureExtractor.countFeatures(FeatureExtractor.widthTypeE, FeatureExtractor.heightTypeE, 19, 19);
+
         this.tmpDataPtr = new CUdeviceptr[width];
 
         this.featuresA = new ArrayList<>();
+
+        listAllTypeA();
+    }
+
+    // Pas oublier de free en CUDA !
+    private void listAllTypeA() {
+
+        long size_output = 4 * this.NUM_FEATURES_A;
+
+        ArrayList<Rectangle> typeA = FeatureExtractor.listFeaturePositions(FeatureExtractor.widthTypeA, FeatureExtractor.heightTypeA, 19, 19);
+
+        int[] arrayTypeA = new int[(int) size_output];
+
+        int j = 0;
+        for (int i = 0; i < NUM_FEATURES_A; i++) {
+            arrayTypeA[j] = typeA.get(i).getX();
+            arrayTypeA[j + 1] = typeA.get(i).getY();
+            arrayTypeA[j + 2] = typeA.get(i).getWidth();
+            arrayTypeA[j + 3] = typeA.get(i).getHeight();
+
+            j += 4;
+        }
+
+        this.allRectanglesA = new CUdeviceptr();
+        cuMemAlloc(allRectanglesA, size_output * Sizeof.INT);
+
+        cuMemcpyHtoD(allRectanglesA, Pointer.to(arrayTypeA), size_output * Sizeof.INT);
+
     }
 
     // Haar value of sizex * sizey dim in a 24 * 24 rectangle
     // in a rectangle 24 * 24 that starts at (posx, posy)
-    private void typeA(int posx, int posy, int sizex, int sizey) {
-
-        int nb_features = (24 - sizex + 1) * (24 - sizey + 1);
+    private void computeTypeA() {
 
         this.module = CudaUtils.initCuda(CUDA_FILENAME + "A");
 
@@ -66,19 +105,17 @@ public class HaarExtractor {
         // Allocate device output memory
         // dstPtr will contain the results
         this.dstPtr = new CUdeviceptr();
-        cuMemAlloc(dstPtr, nb_features * Sizeof.INT);
+        cuMemAlloc(dstPtr, NUM_FEATURES_A * Sizeof.INT);
 
         // Set up the kernel parameters
         Pointer kernelParams = Pointer.to(
                 Pointer.to(srcPtr),
-                Pointer.to(new int[]{posx}),
-                Pointer.to(new int[]{posy}),
-                Pointer.to(new int[]{sizex}),
-                Pointer.to(new int[]{sizey}),
+                Pointer.to(allRectanglesA),
+                Pointer.to(new int[]{(int) NUM_FEATURES_A}),
                 Pointer.to(dstPtr)
         );
 
-        int nb_blocks = nb_features / THREADS_IN_BLOCK + ((nb_features % THREADS_IN_BLOCK) == 0 ? 0 : 1);
+        int nb_blocks = (int) (NUM_FEATURES_A / THREADS_IN_BLOCK + ((NUM_FEATURES_A % THREADS_IN_BLOCK) == 0 ? 0 : 1));
 
         // Call the kernel function.
         cuLaunchKernel(
@@ -92,17 +129,14 @@ public class HaarExtractor {
         );
         cuCtxSynchronize();
 
-        // Allocate host output memory and copy the device output
-        // to the host.
-        int hostOutput[] = new int[nb_features];
-        cuMemcpyDtoH(Pointer.to(hostOutput), dstPtr, nb_features * Sizeof.INT);
+        int hostOutput[] = new int[(int) NUM_FEATURES_A];
+        cuMemcpyDtoH(Pointer.to(hostOutput), dstPtr, NUM_FEATURES_A * Sizeof.INT);
 
-        // TODO : Need to do better
-        for (int index = 0; index < nb_features; index++) {
+        // TODO : Need to do better - Opti by returning only an int[]
+        for (int index = 0; index < NUM_FEATURES_A; index++) {
             featuresA.add(hostOutput[index]);
         }
 
-        // Free output that will chang for each haar feature
         cuMemFree(dstPtr);
     }
 
@@ -111,20 +145,17 @@ public class HaarExtractor {
         // Initialisation of the input data that will be passed to Cuda
         // The image is larger to compute the filter without bounds checking
 
-
         // Allocate input data to CUDA memory
-        CudaUtils.newArray2D(data, width, height, tmpDataPtr, srcPtr);
+        // Pas utiliser ça...
+        srcPtr = new CUdeviceptr();
+        CudaUtils.newArray2D(integral, width, height, tmpDataPtr, srcPtr);
 
-        // Need to compute it on all boxes of 24 * 24 in the image
-         typeA(0, 0, 2, 1);
-         typeA(width - 24, height - 24, 2, 1);
+        computeTypeA();
 
-        //typeB();
-        //typeC();
-        //typeD();
-        //typeE();
-
+        // Free intergralImg and typeA
         CudaUtils.freeArray2D(tmpDataPtr, srcPtr, width);
+
+        System.out.println(featuresA);
 
     }
 }
