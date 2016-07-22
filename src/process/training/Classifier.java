@@ -6,11 +6,13 @@ import process.Conf;
 import process.DecisionStump;
 import process.features.FeatureExtractor;
 import process.features.FeaturesSerializer;
+import process.features.ImageFeaturesCompute;
 
 import java.util.*;
 
 import static java.lang.Math.log;
 import static javafx.application.Platform.exit;
+import static process.features.FeatureExtractor.computeFeatures;
 import static process.features.FeatureExtractor.computeFeaturesImages;
 import static utils.Utils.countFiles;
 import static utils.Utils.streamImageHandler;
@@ -120,8 +122,16 @@ public class Classifier {
 
         // Compute Haar-features of all examples
         HashMap<String, ArrayList<Integer>> result = new HashMap<>();
-        result.putAll(computeFeaturesImages(positives, width, height));
-        result.putAll(computeFeaturesImages(negatives, width, height));
+        for (ImageHandler image : positives) {
+            if (image.getWidth() == width && image.getHeight() == height) {
+                System.out.println("Image " + image.getFilePath());
+                result.put(image.getFilePath(), computeFeatures(image));
+            }
+            else
+                System.err.println("Image " + image.getFilePath() + " has a wrong size! (Expecting " + width + "x" + height + ", got " + image.getWidth() + "x" + image.getHeight() + ")");
+        }
+//        result.putAll(computeFeaturesImages(positives, width, height));
+//        result.putAll(computeFeaturesImages(negatives, width, height));
 
         FeaturesSerializer.toDisk(result, Conf.TRAIN_FEATURES);
     }

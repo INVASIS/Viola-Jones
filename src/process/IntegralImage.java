@@ -14,7 +14,7 @@ import static jcuda.driver.JCudaDriver.cuMemcpyDtoH;
 
 public class IntegralImage {
 
-    public static int[][] summedAreaTableCPU(int[][] image, int width, int height) {
+    public static int[][] summedAreaTable(int[][] image, int width, int height) {
         int[][] result = new int[width][height];
 
         // Array copy
@@ -36,55 +36,6 @@ public class IntegralImage {
                 result[x][y] = result[x][y] + result[x - 1][y] + result[x][y - 1] - result[x - 1][y - 1];
 
         return result;
-    }
-
-    public static int[][] summedAreaTableGPU(int[][] image, int width, int height) {
-
-        CUmodule module = CudaUtils.initCuda("IntegralImage");
-        CUfunction function = new CUfunction();
-        cuModuleGetFunction(function, module, "integral_image");
-
-        CUdeviceptr srcPtr = new CUdeviceptr();
-        CUdeviceptr dstPtr = new CUdeviceptr();
-        CUdeviceptr[] tmpDataPtrSrc = new CUdeviceptr[width];
-        CUdeviceptr[] tmpDataPtrDst = new CUdeviceptr[width];
-
-        // Allocate input data to CUDA memory
-        CudaUtils.newArray2D(image, width, height, tmpDataPtrSrc, srcPtr);
-        CudaUtils.newArray2D(image, width, height, tmpDataPtrDst, dstPtr);
-
-        Pointer kernelParams = Pointer.to(
-                Pointer.to(srcPtr),
-                Pointer.to(new int[]{height}),
-                Pointer.to(new int[]{width}),
-                Pointer.to(dstPtr)
-        );
-
-        // Call the kernel function.
-        cuLaunchKernel(
-                function, // CUDA function to be called
-                1, 1, 1, // 3D (x, y, z) grid of block
-                1, 1, 1, // 3D (x, y, z) grid of threads
-                0, // sharedMemBytes sets the amount of dynamic shared memory that will be available to each thread block.
-                null, // can optionally be associated to a stream by passing a non-zero hStream argument.
-                kernelParams, // Array of params to be passed to the function
-                null // extra parameters
-        );
-        cuCtxSynchronize();
-
-        int[][] result = CudaUtils.memCpyArray2D(dstPtr, width, height);
-
-        CudaUtils.freeArray2D(tmpDataPtrSrc, srcPtr, width);
-        CudaUtils.freeArray2D(tmpDataPtrDst, dstPtr, width);
-
-        return result;
-    }
-
-    public static int[][] summedAreaTable(int[][] image, int width, int height) {
-        if (Conf.USE_CUDA)
-            return summedAreaTableGPU(image, width, height);
-        else
-            return summedAreaTableCPU(image, width, height);
     }
 
     // Warning : this does not compute the mean of the image, just the sum of pixels
