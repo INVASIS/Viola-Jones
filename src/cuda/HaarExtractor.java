@@ -74,9 +74,15 @@ public class HaarExtractor {
 
         this.featuresA = new ArrayList<>();
         this.featuresB = new ArrayList<>();
+        this.featuresC = new ArrayList<>();
+        this.featuresD = new ArrayList<>();
+        this.featuresE = new ArrayList<>();
 
         listAllTypeN(this.NUM_FEATURES_A, FeatureExtractor.widthTypeA, FeatureExtractor.heightTypeA, 'A');
         listAllTypeN(this.NUM_FEATURES_B, FeatureExtractor.widthTypeB, FeatureExtractor.heightTypeB, 'B');
+        listAllTypeN(this.NUM_FEATURES_C, FeatureExtractor.widthTypeC, FeatureExtractor.heightTypeC, 'C');
+        listAllTypeN(this.NUM_FEATURES_D, FeatureExtractor.widthTypeD, FeatureExtractor.heightTypeD, 'D');
+        listAllTypeN(this.NUM_FEATURES_E, FeatureExtractor.widthTypeE, FeatureExtractor.heightTypeE, 'E');
     }
 
     // Free Cuda !
@@ -204,6 +210,9 @@ public class HaarExtractor {
 
         computeTypeN(this.NUM_FEATURES_A, 'A');
         computeTypeN(this.NUM_FEATURES_B, 'B');
+        computeTypeN(this.NUM_FEATURES_C, 'C');
+        computeTypeN(this.NUM_FEATURES_D, 'D');
+        computeTypeN(this.NUM_FEATURES_E, 'E');
 
         // Free intergralImg and typeABCDE
 
@@ -214,12 +223,6 @@ public class HaarExtractor {
         cuMemFree(allRectanglesE);
 
         CudaUtils.freeArray2D(tmpDataPtr, srcPtr, width);
-
-        /*
-        System.out.println(featuresA);
-        System.out.println("Features B :" + System.lineSeparator() + System.lineSeparator() + System.lineSeparator());
-        System.out.println(featuresB);
-        */
 
     }
 }
