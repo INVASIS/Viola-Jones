@@ -77,8 +77,6 @@ public class Classifier {
         testN = countTestPos + countTestNeg;
     }
 
-
-    // Make it static ??
     private void predictLabel(int round, int N, float decisionTweak, DenseMatrix prediction) {
         /**
          * prediction = Vector (Matrix< 1,n >)
@@ -113,7 +111,6 @@ public class Classifier {
 
     private ArrayList<DecisionStump> adaboost(int round, int N) {
         ArrayList<DecisionStump> committee = new ArrayList<>();
-        ArrayList<Long> weights = new ArrayList<>();
 
         // TODO
 //            DecisionStump bestDS = DecisionStump.bestStump();
