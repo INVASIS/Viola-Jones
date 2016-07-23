@@ -119,6 +119,16 @@ public class Classifier {
 
         long featuresCount = FeatureExtractor.countAllFeatures(width, height);
 
+        // TODO: à mettre ds une fonction
+        // Pour chaque feature
+        //   vector<pair<valeur-de-la-feature, l'index de l'exemple>> ascendingFeatures;
+        //   Pour chaque exemple
+        //     ascendingFeatures.add(<valeur-de-cette-feature-pour-cet-example, index-de-l'exemple>)
+        //   trier ascendingFeatures en fonction de pair.first
+        //   Write sur disque:
+        //      * OrganizedFeatures (à l'index de la feature actuelle le ascendingFeatures.first en entier)
+        //      * OrganizedSample (à l'index de la feature actuelle le ascendingFeatures.second en entier)
+
         // Get already computed feature values if any
         //HashMap<String, ArrayList<Integer>> result = FeaturesSerializer.fromDisk(Conf.TRAIN_FEATURES);
 
