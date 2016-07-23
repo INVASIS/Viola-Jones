@@ -15,14 +15,14 @@ public class TestHaarExtractor {
         if (Conf.USE_CUDA) {
 
             Conf.haarExtractor.setUp(19, 19);
-            ImageHandler imageHandler = new ImageHandler("data/testset-19x19/face-png/face00001.png");
+            ImageHandler imageHandler = new ImageHandler("data/trainset/faces/face00001.png");
             int c = 0;
             for (List<Integer> i: imageHandler.getFeatures())
             {
                 Assert.assertTrue(i.containsAll(imageHandler.computeFeatures().get(c++)));
             }
 
-            ImageHandler imageHandler2 = new ImageHandler("data/testset-19x19/face-png/face00002.png");
+            ImageHandler imageHandler2 = new ImageHandler("data/testset/faces/face00002.png");
             int c2 = 0;
             for (List<Integer> i: imageHandler2.getFeatures())
             {

@@ -25,20 +25,20 @@ public class Main {
         }
 
         // Compute the list of files to give them an index
-        File directoryPos = new File("data/testset-19x19/face-png");
-        File directoryNeg = new File("data/testset-19x19/non-face-png");
+        File directoryPos = new File("data/testset/faces");
+        File directoryNeg = new File("data/testset/non-faces");
 
         String[] fileListPos = directoryPos.list();
         String[] fileListNeg = directoryNeg.list();
         ArrayList<String> fileList = new ArrayList<>();
         for (String aFileListNeg : fileListNeg) {
             if (!aFileListNeg.endsWith(Conf.FEATURE_EXTENSION)) {
-                fileList.add("non-face-png/" + aFileListNeg);
+                fileList.add("non-faces/" + aFileListNeg);
             }
         }
         for (String fileListPo : fileListPos) {
             if (!fileListPo.endsWith(Conf.FEATURE_EXTENSION)) {
-                fileList.add("face-png/" + fileListPo);
+                fileList.add("faces/" + fileListPo);
             }
         }
         String[] filelistIndex = new String[fileList.size()];
@@ -46,7 +46,7 @@ public class Main {
         // Compute the list of files to give them an index
 
         //ImageHandler imageHandler = new ImageHandler("data/face.jpg");
-        ImageHandler imageHandler = new ImageHandler("data/testset-19x19/face-png/face00001.png");
+        ImageHandler imageHandler = new ImageHandler("data/testset/faces/face00001.png");
 
 //        Display.drawImage(imageHandler.getBufferedImage());
 //        Display.drawImage(imageHandler.getGrayBufferedImage());
@@ -66,15 +66,15 @@ public class Main {
         for (List<Integer> i : imageHandler.getFeatures())
             System.out.println(i.containsAll(imageHandler.computeFeatures().get(c++)));
 
-        // Classifier.train("data/testset-19x19", "data/testset-19x19", 19, 19);
+        // Classifier.train("data/testset-19x19", "data/testset", 19, 19);
 
-//        Utils.computeHaar(new File("data/testset-19x19/face-png"));
-//        Utils.computeHaar(new File("data/testset-19x19/non-face-png"));
+//        Utils.computeHaar(new File("data/testset/faces"));
+//        Utils.computeHaar(new File("data/testset/non-faces"));
 
         if (Conf.haarExtractor != null)
             Conf.haarExtractor.freeCuda();
 
-        Classifier classifier = new Classifier("data/testset-19x19", "data/testset-19x19", 19, 19);
+        Classifier classifier = new Classifier("data/trainset", "data/testset", 19, 19);
         classifier.train(overallTargetDetectionRate, overallTargetFalsePositiveRate, targetDetectionRate, targetFalsePositiveRate);
     }
 }

@@ -68,12 +68,12 @@ public class Classifier {
         this.width = width;
         this.height = height;
 
-        countTrainPos = countFiles(train_dir + "/face-png", ".png");
-        countTrainNeg = countFiles(train_dir + "/non-face-png", ".png");
+        countTrainPos = countFiles(train_dir + "/faces", ".png");
+        countTrainNeg = countFiles(train_dir + "/non-faces", ".png");
         trainN = countTrainNeg + countTrainNeg;
 
-        countTestPos = countFiles(test_dir + "/face-png", ".png");
-        countTestNeg = countFiles(test_dir + "/non-face-png", ".png");
+        countTestPos = countFiles(test_dir + "/faces", ".png");
+        countTestNeg = countFiles(test_dir + "/non-faces", ".png");
         testN = countTestPos + countTestNeg;
     }
 
@@ -147,7 +147,7 @@ public class Classifier {
 
     // fileList computed in main
     public static void organizeFeatures(String[] fileList) {
-        ImageHandler imageHandler = new ImageHandler("data/testset-19x19/face-png/face00001.png");
+        ImageHandler imageHandler = new ImageHandler("data/testset/faces/face00001.png");
         ArrayList<ArrayList<Integer>> features = imageHandler.getFeatures();
 
         int nb_features = 0;
@@ -381,8 +381,8 @@ public class Classifier {
         layerMemory = new ArrayList<>();
 
         // Compute all features for train & test set
-        computeFeatures(train_dir + "/face-png", train_dir + "/non-face-png", countTrainPos, countTrainNeg, trainN, width, height);
-        computeFeatures(test_dir + "/face-png", test_dir + "/non-face-png", countTestPos, countTestNeg, testN, width, height);
+        computeFeatures(train_dir + "/faces", train_dir + "/non-faces", countTrainPos, countTrainNeg, trainN, width, height);
+        computeFeatures(test_dir + "/faces", test_dir + "/non-faces", countTestPos, countTestNeg, testN, width, height);
 
         // Estimated number of rounds needed
         int boostingRounds = (int) (Math.ceil(Math.log(overallTargetFalsePositiveRate) / Math.log(targetFalsePositiveRate)) + 20);
