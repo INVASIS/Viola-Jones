@@ -13,6 +13,12 @@ import java.util.List;
 public class Main {
     public static void main(String[] args) {
 
+        // TODO : TO CONSTANTS
+        float overallTargetDetectionRate = 0.80f;
+        float overallTargetFalsePositiveRate = 0.000001f;
+        float targetDetectionRate = 0.995f;
+        float targetFalsePositiveRate = 0.5f;
+
         if (Conf.USE_CUDA) {
             Conf.haarExtractor.setUp(19, 19);
         }
@@ -36,11 +42,10 @@ public class Main {
 
         // Verif Should be all true
         int c = 0;
-        for (List<Integer> i: imageHandler.getFeatures())
-        {
+        for (List<Integer> i : imageHandler.getFeatures())
             System.out.println(i.containsAll(imageHandler.computeFeatures().get(c++)));
-        }
-        Classifier.train("data/testset-19x19/face-png", "data/testset-19x19/non-face-png", 19, 19);
+
+        // Classifier.train("data/testset-19x19", "data/testset-19x19", 19, 19);
 
         Utils.computeHaar(new File("data/testset-19x19/face-png"));
         Utils.computeHaar(new File("data/testset-19x19/non-face-png"));

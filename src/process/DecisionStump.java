@@ -27,7 +27,7 @@ public class DecisionStump {
 
     // Initialisation
     public DecisionStump(ArrayList<Pair<Integer, Boolean>> features, ArrayList<Double> w, UUID featureId) {
-        this.margin = 0;
+        this.margin = -1; // Like that in the paper implem...
         this.error = 2;
         this.featureId = featureId;
 
