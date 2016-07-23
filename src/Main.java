@@ -1,10 +1,9 @@
 import GUI.ImageHandler;
-import cuda.AnyFilter;
-import cuda.CudaUtils;
-import cuda.HaarExtractor;
 import process.Conf;
 import process.training.Classifier;
+import utils.Utils;
 
+import java.io.File;
 import java.util.List;
 
 
@@ -41,7 +40,10 @@ public class Main {
         {
             System.out.println(i.containsAll(imageHandler.computeFeatures().get(c++)));
         }
-        //Classifier.train("data/testset-19x19/face-png", "data/testset-19x19/non-face-png", 19, 19);
+        Classifier.train("data/testset-19x19/face-png", "data/testset-19x19/non-face-png", 19, 19);
+
+        Utils.computeHaar(new File("data/testset-19x19/face-png"));
+        Utils.computeHaar(new File("data/testset-19x19/non-face-png"));
 
         if (Conf.haarExtractor != null)
             Conf.haarExtractor.freeCuda();

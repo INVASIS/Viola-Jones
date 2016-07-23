@@ -1,6 +1,7 @@
 package utils;
 
 import GUI.ImageHandler;
+import process.Conf;
 import utils.yield.Yielderable;
 
 import javax.imageio.ImageIO;
@@ -66,9 +67,24 @@ public class Utils {
     public static int countFiles(String dir) {
         int count = 0;
         for (String p : scanDir(dir)) {
-           if (new File(p).isFile())
-               count++;
+            if (new File(p).isFile())
+                count++;
         }
         return count;
     }
+
+    public static void computeHaar(File directory) {
+        String[] fileList = directory.list();
+        System.out.println(directory.getPath());
+        for (int i = 0; i < fileList.length; i++) {
+            String fileName = directory.getPath() + "/" + fileList[i];
+            if (!fileList[i].endsWith(Conf.FEATURE_EXTENSION) && !Files.exists(Paths.get(fileName + Conf.FEATURE_EXTENSION))) {
+                ImageHandler imageHandler = new ImageHandler(fileName);
+                imageHandler.getFeatures();
+            }
+        }
+    }
+
+
+
 }
