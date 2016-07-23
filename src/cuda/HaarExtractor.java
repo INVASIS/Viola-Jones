@@ -223,19 +223,18 @@ public class HaarExtractor {
         computeTypeN(this.NUM_FEATURES_D, 'D');
         computeTypeN(this.NUM_FEATURES_E, 'E');
 
+        CudaUtils.freeArray2D(tmpDataPtr, srcPtr, width);
+
     }
 
     public void freeCuda() {
-        // Free intergralImg and typeABCDE
+        // Free typeABCDE
 
         cuMemFree(allRectanglesA);
         cuMemFree(allRectanglesB);
         cuMemFree(allRectanglesC);
         cuMemFree(allRectanglesD);
         cuMemFree(allRectanglesE);
-
-        if (srcPtr != null)
-            CudaUtils.freeArray2D(tmpDataPtr, srcPtr, width);
     }
 
     // Change the image to avoid recomputing all init stuff - to be used only for training purposes

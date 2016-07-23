@@ -1,5 +1,6 @@
 package process;
 
+import cuda.CudaUtils;
 import cuda.HaarExtractor;
 import jcuda.jcublas.JCublas;
 
@@ -24,7 +25,7 @@ public class Conf {
 
     public static boolean isCUDAAvailable() {
         try {
-            JCublas.cublasInit();
+            CudaUtils.initCuda();
             System.out.println("CUDA available!");
             haarExtractor = new HaarExtractor();
             return true;

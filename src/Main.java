@@ -14,7 +14,6 @@ import java.util.List;
 public class Main {
     public static void main(String[] args) {
 
-        CudaUtils.initCuda();
         if (Conf.USE_CUDA) {
             Conf.haarExtractor.setUp(19, 19);
         }
@@ -41,7 +40,6 @@ public class Main {
         for (List<Integer> i: imageHandler.getFeatures())
         {
             System.out.println(i.containsAll(imageHandler.computeFeatures().get(c++)));
-
         }
         //Classifier.train("data/testset-19x19/face-png", "data/testset-19x19/non-face-png", 19, 19);
 
