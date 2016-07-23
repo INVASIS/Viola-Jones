@@ -13,7 +13,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 
 public class Utils {
-    public static ArrayList<String> scanDir(String dir) {
+    public static ArrayList<String> scanDir(String dir) { // Already recursive
         ArrayList<String> results = new ArrayList<>();
         try {
             Files.walk(Paths.get(dir)).forEach(filePath -> {
@@ -27,55 +27,56 @@ public class Utils {
         return results;
     }
 
-    public static ArrayList<BufferedImage> listImages(String dir) {
+    public static ArrayList<BufferedImage> listImages(String dir, String ext) {
         ArrayList<BufferedImage> results = new ArrayList<>();
         for (String p : scanDir(dir)) {
-            if (new File(p).isFile()) {
-                try {
-                    results.add(ImageIO.read(new File(p)));
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
+            if (ext == null || p.endsWith(ext))
+                if (new File(p).isFile())
+                    try {
+                        results.add(ImageIO.read(new File(p)));
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
         }
         return results;
     }
 
-    public static Yielderable<BufferedImage> streamImages(String dir) {
+    public static Yielderable<BufferedImage> streamImages(String dir, String ext) {
         return yield -> {
             for (String p : scanDir(dir)) {
-                if (new File(p).isFile()) {
-                    try {
-                        yield.returning(ImageIO.read(new File(p)));
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
+                if (ext == null || p.endsWith(ext))
+                    if (new File(p).isFile())
+                        try {
+                            yield.returning(ImageIO.read(new File(p)));
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
             }
         };
     }
 
-    public static Yielderable<ImageHandler> streamImageHandler(String dir) {
+    public static Yielderable<ImageHandler> streamImageHandler(String dir, String ext) {
         return yield -> {
             for (String p : scanDir(dir)) {
-                if (new File(p).isFile())
-                    yield.returning(new ImageHandler(p));
+                if (ext == null || p.endsWith(ext))
+                    if (new File(p).isFile())
+                        yield.returning(new ImageHandler(p));
             }
         };
     }
 
-    public static int countFiles(String dir) {
+    public static int countFiles(String dir, String ext) {
         int count = 0;
-        for (String p : scanDir(dir)) {
-            if (new File(p).isFile())
-                count++;
-        }
+        for (String p : scanDir(dir))
+            if (ext == null || p.endsWith(ext))
+                if (new File(p).isFile())
+                    count++;
         return count;
     }
 
     public static void computeHaar(File directory) {
         String[] fileList = directory.list();
-        System.out.println(directory.getPath());
+         System.out.println(directory.getPath());
         for (int i = 0; i < fileList.length; i++) {
             String fileName = directory.getPath() + "/" + fileList[i];
             if (!fileList[i].endsWith(Conf.FEATURE_EXTENSION) && !Files.exists(Paths.get(fileName + Conf.FEATURE_EXTENSION))) {
@@ -84,7 +85,4 @@ public class Utils {
             }
         }
     }
-
-
-
 }

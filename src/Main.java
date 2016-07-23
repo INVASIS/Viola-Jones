@@ -1,5 +1,6 @@
 import GUI.ImageHandler;
 import process.Conf;
+import process.training.Classifier;
 import utils.Utils;
 
 import java.io.File;
@@ -67,11 +68,13 @@ public class Main {
 
         // Classifier.train("data/testset-19x19", "data/testset-19x19", 19, 19);
 
-        Utils.computeHaar(new File("data/testset-19x19/face-png"));
-        Utils.computeHaar(new File("data/testset-19x19/non-face-png"));
+//        Utils.computeHaar(new File("data/testset-19x19/face-png"));
+//        Utils.computeHaar(new File("data/testset-19x19/non-face-png"));
 
         if (Conf.haarExtractor != null)
             Conf.haarExtractor.freeCuda();
 
+        Classifier classifier = new Classifier("data/testset-19x19", "data/testset-19x19", 19, 19);
+        classifier.train(overallTargetDetectionRate, overallTargetFalsePositiveRate, targetDetectionRate, targetFalsePositiveRate);
     }
 }
