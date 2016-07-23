@@ -1,19 +1,18 @@
 package process.training;
 
 import GUI.ImageHandler;
+import javafx.util.Pair;
 import jeigen.DenseMatrix;
 import process.Conf;
 import process.DecisionStump;
 import process.features.FeatureExtractor;
-import process.features.FeaturesSerializer;
 
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.*;
 
-import static java.lang.Math.floor;
 import static java.lang.Math.log;
 import static javafx.application.Platform.exit;
-import static process.features.FeatureExtractor.computeFeatures;
-import static process.features.FeatureExtractor.computeFeaturesImages;
 import static utils.Utils.countFiles;
 import static utils.Utils.streamImageHandler;
 
@@ -95,6 +94,64 @@ public class Classifier {
 
         return committee;
     }
+
+    // TODO: à mettre ds une fonction
+    // Pour chaque feature (60 000)
+    //   vector<pair<valeur-de-la-feature, l'index de l'exemple (image)>> ascendingFeatures;
+    //   Pour chaque exemple
+    //     ascendingFeatures.add(<valeur-de-cette-feature-pour-cet-example, index-de-l'exemple>)
+    //   trier ascendingFeatures en fonction de pair.first
+    //   Write sur disque:
+    //      * OrganizedFeatures (à l'index de la feature actuelle le ascendingFeatures.first en entier) tmp/training
+    //      * OrganizedSample (à l'index de la feature actuelle le ascendingFeatures.second en entier)
+
+    // fileList computed in main
+    public static void organizeFeatures(String[] fileList) {
+        ImageHandler imageHandler = new ImageHandler("data/testset-19x19/face-png/face00001.png");
+        ArrayList<ArrayList<Integer>> features = imageHandler.getFeatures();
+
+        int nb_features = 0;
+        for (ArrayList<Integer> list : features)
+            nb_features += list.size();
+
+        for (int i = 0; i < nb_features; i++) {
+            ArrayList<Pair<Integer, Integer>> ascendingFeatures = new ArrayList<>();
+            int j = 0;
+            for (String s : fileList) {
+                ImageHandler tmp_image = new ImageHandler(s);
+                ArrayList<ArrayList<Integer>> tmp_features = tmp_image.getFeatures();
+                ArrayList<Integer> allFeat = tmp_features.get(0);
+                allFeat.addAll(tmp_features.get(1));
+                allFeat.addAll(tmp_features.get(2));
+                allFeat.addAll(tmp_features.get(3));
+                allFeat.addAll(tmp_features.get(4));
+                ascendingFeatures.add(new Pair<>(allFeat.get(i), j));
+            }
+
+            // Sort ascending features by first arg of the pair
+            ascendingFeatures.sort((o1, o2) -> o1.getKey() < o2.getKey() ? -1 : o1.getKey() > o2.getKey() ? 1 : 0);
+
+            // Write on disk but does not write over the file (if recomputed the file needs to be erased by hand)
+            try {
+                // true to write after the file
+                FileWriter writer1 = new FileWriter(Conf.ORGANIZED_FEATURES, true);
+                FileWriter writer2 = new FileWriter(Conf.ORGANIZED_SAMPLE, true);
+                for (Pair pair : ascendingFeatures) {
+                    writer1.write(pair.getKey().toString() + ";");
+                    writer2.write(pair.getValue().toString() + ";");
+                }
+                writer1.write(System.lineSeparator());
+                writer2.write(System.lineSeparator());
+
+                writer1.close();
+                writer2.close();
+
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
 
     public static void cascadeClassify(String faces_dir, String nonfaces_dir, int width, int height) {
         /**
@@ -286,8 +343,8 @@ public class Classifier {
 
     // p141 in paper?
     private static float[] calcEmpiricalError(ArrayList<DecisionStump> committee,
-                                       float[] tweaks, int layerCount, int N, int countPos,
-                                       DenseMatrix labels) {
+                                              float[] tweaks, int layerCount, int N, int countPos,
+                                              DenseMatrix labels) {
 
         float res[] = new float[2];
 
