@@ -25,8 +25,8 @@ public class Main {
         }
 
         // Compute the list of files to give them an index
-        File directoryPos = new File("data/testset/faces");
-        File directoryNeg = new File("data/testset/non-faces");
+        File directoryPos = new File("data/trainset/faces");
+        File directoryNeg = new File("data/trainset/non-faces");
 
         String[] fileListPos = directoryPos.list();
         String[] fileListNeg = directoryNeg.list();
@@ -46,7 +46,7 @@ public class Main {
         // Compute the list of files to give them an index
 
         //ImageHandler imageHandler = new ImageHandler("data/face.jpg");
-        ImageHandler imageHandler = new ImageHandler("data/testset/faces/face00001.png");
+        ImageHandler imageHandler = new ImageHandler("data/trainset/faces/face00001.png");
 
 //        Display.drawImage(imageHandler.getBufferedImage());
 //        Display.drawImage(imageHandler.getGrayBufferedImage());
@@ -68,8 +68,8 @@ public class Main {
 
         // Classifier.train("data/testset-19x19", "data/testset", 19, 19);
 
-//        Utils.computeHaar(new File("data/testset/faces"));
-//        Utils.computeHaar(new File("data/testset/non-faces"));
+//        Utils.computeHaar(new File("data/trainset/faces"));
+//        Utils.computeHaar(new File("data/trainset/non-faces"));
 
         if (Conf.haarExtractor != null)
             Conf.haarExtractor.freeCuda();

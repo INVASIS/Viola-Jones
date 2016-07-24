@@ -13,6 +13,7 @@ import java.util.HashMap;
 
 import static jcuda.driver.JCudaDriver.*;
 
+// TODO : singleton ?
 public class HaarExtractor {
 
     public static final int THREADS_IN_BLOCK = 1024;

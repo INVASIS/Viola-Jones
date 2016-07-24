@@ -22,7 +22,7 @@ public class TestHaarExtractor {
                 Assert.assertTrue(i.containsAll(imageHandler.computeFeatures().get(c++)));
             }
 
-            ImageHandler imageHandler2 = new ImageHandler("data/testset/faces/face00002.png");
+            ImageHandler imageHandler2 = new ImageHandler("data/testset/faces/cmu_0000.png");
             int c2 = 0;
             for (List<Integer> i: imageHandler2.getFeatures())
             {
