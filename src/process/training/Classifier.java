@@ -6,7 +6,9 @@ import jeigen.DenseMatrix;
 import process.Conf;
 import process.DecisionStump;
 import process.features.FeatureExtractor;
+import utils.Utils;
 
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.*;
@@ -25,6 +27,9 @@ public class Classifier {
      * A Weak classifier is just a simple basic classifier, it could be Binary, Naive Bayes or anything else.
      * The only need for a weak classifier is to return results with a success rate > 0.5, which is actually better than random.
      * The combination of all these Weak classifier create of very good classifier, which is called the Strong classifier.
+     *
+     *
+     *
      */
 
     /* --- CONSTANTS FOR TRAINING --- */
@@ -192,7 +197,6 @@ public class Classifier {
         }
     }
 
-
     private void computeFeatures(String faces_dir, String nonfaces_dir, int countPos, int countNeg, int N, int width, int height) {
         /**
          * In order to avoid excessive memory usage, this training temporary stores metadata on disk.
@@ -200,63 +204,34 @@ public class Classifier {
          * width: Width of all training images
          * height : Height of all training images
          */
-
-        System.out.println("Computing features for:");
+        System.out.println("Pre-computing features for:");
         System.out.println("  - " + faces_dir);
         System.out.println("  - " + nonfaces_dir);
+        Utils.computeHaar(new File(faces_dir));
+        Utils.computeHaar(new File(nonfaces_dir));
 
-        Iterable<ImageHandler> positives = streamImageHandler(faces_dir, ".png");
-        Iterable<ImageHandler> negatives = streamImageHandler(nonfaces_dir, ".png");
-
-
-        double averageWeightPos = 0.5 / countPos;
-        double averageWeightNeg = 0.5 / countNeg;
-
-        DenseMatrix weights = new DenseMatrix(N, 1); // weight vector for all examples involved
-        DenseMatrix labels = new DenseMatrix(N, 1); // -1 = negative | 1 = positive example
-
-        // Init weights & labels
-        for (int i = 0; i < N; i++) {
-            labels.set(i, 0, i < countPos ? 1 : -1); // labels = [positives then negatives] = [1 1 ..., -1 -1 ...]
-            weights.set(i, 0, i < countPos ? averageWeightPos : averageWeightNeg);
-        }
-
-        long featuresCount = FeatureExtractor.countAllFeatures(width, height);
-
-        // TODO: à mettre ds une fonction
-        // Pour chaque feature (60 000)
-        //   vector<pair<valeur-de-la-feature, l'index de l'exemple (image)>> ascendingFeatures;
-        //   Pour chaque exemple
-        //     ascendingFeatures.add(<valeur-de-cette-feature-pour-cet-example, index-de-l'exemple>)
-        //   trier ascendingFeatures en fonction de pair.first
-        //   Write sur disque:
-        //      * OrganizedFeatures (à l'index de la feature actuelle le ascendingFeatures.first en entier)
-        //      * OrganizedSample (à l'index de la feature actuelle le ascendingFeatures.second en entier)
-
-        // Get already computed feature values if any
-        //HashMap<String, ArrayList<Integer>> result = FeaturesSerializer.fromDisk(Conf.TRAIN_FEATURES);
-
-        /*for (ImageHandler image : positives) {
-            if (image.getWidth() == width && image.getHeight() == height) {
-                result.putIfAbsent(image.getFilePath(), computeFeatures(image));
-            }
-        }*/
-        /*for (ImageHandler image : negatives) {
-            if (image.getWidth() == width && image.getHeight() == height) {
-                result.putIfAbsent(image.getFilePath(), computeFeatures(image));
-            }
-        }*/
-        //FeatureExtractor.haarExtractor.freeCuda();
-        // Compute Haar-features of all examples
-        //computeFeaturesImages(positives, width, height, result);
-        //computeFeaturesImages(negatives, width, height, result);
-
-        //FeaturesSerializer.toDisk(result, Conf.TRAIN_FEATURES);
+        // FIXME: Do we need all that code?
+//        Iterable<ImageHandler> positives = streamImageHandler(faces_dir, ".png");
+//        Iterable<ImageHandler> negatives = streamImageHandler(nonfaces_dir, ".png");
+//
+//        double averageWeightPos = 0.5 / countPos;
+//        double averageWeightNeg = 0.5 / countNeg;
+//
+//        DenseMatrix weights = new DenseMatrix(N, 1); // weight vector for all examples involved
+//        DenseMatrix labels = new DenseMatrix(N, 1); // -1 = negative | 1 = positive example
+//
+//        // Init weights & labels
+//        for (int i = 0; i < N; i++) {
+//            labels.set(i, 0, i < countPos ? 1 : -1); // labels = [positives then negatives] = [1 1 ..., -1 -1 ...]
+//            weights.set(i, 0, i < countPos ? averageWeightPos : averageWeightNeg);
+//        }
+//
+//        long featuresCount = FeatureExtractor.countAllFeatures(width, height);
     }
 
     // p141 in paper?
     private float[] calcEmpiricalError(int round, int N, int countPos, DenseMatrix labels) {
-
+        // STATE: OK & CHECKED 16/26/08
         float res[] = new float[2];
 
         int nFalsePositive = 0;
@@ -292,6 +267,7 @@ public class Classifier {
      */
     public void attentionalCascade(int round, int committeeSizeGuide,
                                    float overallTargetDetectionRate, float overallTargetFalsePositiveRate) {
+        // STATE: OK & CHECKED 16/26/08
         boolean layerMissionAccomplished = false;
 
         while (!layerMissionAccomplished) {
@@ -388,6 +364,7 @@ public class Classifier {
         int boostingRounds = (int) (Math.ceil(Math.log(overallTargetFalsePositiveRate) / Math.log(targetFalsePositiveRate)) + 20);
         System.out.println("Boosting rounds : " + boostingRounds);
 
+        // Initialization
         tweaks = new ArrayList<>(boostingRounds);
         cascade = new ArrayList[boostingRounds];
         for (int i = 0; i < boostingRounds; i++)
@@ -407,6 +384,7 @@ public class Classifier {
 
         double accumulatedFalsePositive = 1;
 
+        // Training: run Cascade until we arrive to a certain wanted rate of success
         for (int round = 0; round < boostingRounds && accumulatedFalsePositive > GOAL; round++) {
 
             int committeeSizeGuide = Math.min(20 + round * 10, 200);
@@ -441,5 +419,9 @@ public class Classifier {
             // TODO: recordRule(target.toFile, cascade[round], round == 0, round == boostingRounds - 1 || accumulatedFalsePositive < GOAL);
         }
         // TODO: record layerMemory
+
+
+        // Serialize training
+        computed = true;
     }
 }

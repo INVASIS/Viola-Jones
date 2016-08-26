@@ -76,7 +76,7 @@ public class Utils {
 
     public static void computeHaar(File directory) {
         String[] fileList = directory.list();
-         System.out.println(directory.getPath());
+        System.out.println(directory.getPath());
         for (int i = 0; i < fileList.length; i++) {
             String fileName = directory.getPath() + "/" + fileList[i];
             if (!fileList[i].endsWith(Conf.FEATURE_EXTENSION) && !Files.exists(Paths.get(fileName + Conf.FEATURE_EXTENSION))) {
@@ -84,5 +84,28 @@ public class Utils {
                 imageHandler.getFeatures();
             }
         }
+    }
+
+    public static String[] computeIndexes(String testsetDir) {
+        // Compute the list of files to give them an index
+        File directoryPos = new File(testsetDir + "faces");
+        File directoryNeg = new File(testsetDir + "non-faces");
+
+        String[] fileListPos = directoryPos.list();
+        String[] fileListNeg = directoryNeg.list();
+        ArrayList<String> fileList = new ArrayList<>();
+        for (String aFileListNeg : fileListNeg) {
+            if (!aFileListNeg.endsWith(Conf.FEATURE_EXTENSION)) {
+                fileList.add("non-faces/" + aFileListNeg);
+            }
+        }
+        for (String fileListPo : fileListPos) {
+            if (!fileListPo.endsWith(Conf.FEATURE_EXTENSION)) {
+                fileList.add("faces/" + fileListPo);
+            }
+        }
+        String[] filelistIndex = new String[fileList.size()];
+        fileList.toArray(filelistIndex);
+        return filelistIndex;
     }
 }

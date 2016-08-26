@@ -1,6 +1,5 @@
 package GUI;
 
-import cuda.HaarExtractor;
 import process.Conf;
 import utils.Converters;
 import process.Filters;
@@ -9,9 +8,7 @@ import process.IntegralImage;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.*;
-import java.nio.charset.Charset;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 

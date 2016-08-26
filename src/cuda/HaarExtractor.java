@@ -84,6 +84,7 @@ public class HaarExtractor {
 
         this.tmpDataPtr = new CUdeviceptr[width];
 
+        // TODO: possible optimization: do not use all rectangles, as we train on simple x*x squares already centered on faces, we don't need all rectangles.
         listAllTypeN(this.NUM_FEATURES_A, FeatureExtractor.widthTypeA, FeatureExtractor.heightTypeA, 'A');
         listAllTypeN(this.NUM_FEATURES_B, FeatureExtractor.widthTypeB, FeatureExtractor.heightTypeB, 'B');
         listAllTypeN(this.NUM_FEATURES_C, FeatureExtractor.widthTypeC, FeatureExtractor.heightTypeC, 'C');
@@ -91,7 +92,6 @@ public class HaarExtractor {
         listAllTypeN(this.NUM_FEATURES_E, FeatureExtractor.widthTypeE, FeatureExtractor.heightTypeE, 'E');
     }
 
-    // Free Cuda !
     private void listAllTypeN(long numFeatures, int width, int height, char type) {
 
         long size_output = 4 * numFeatures;
@@ -131,7 +131,6 @@ public class HaarExtractor {
 
         cuMemAlloc(tmp_ptr, size_output * Sizeof.INT);
         cuMemcpyHtoD(tmp_ptr, Pointer.to(arrayTypeN), size_output * Sizeof.INT);
-
     }
 
     private void computeTypeN(long numFeatures, char type) {
@@ -205,7 +204,7 @@ public class HaarExtractor {
     }
 
     public void compute() {
-
+        // TODO: handle non-CUDA haar computing
         if (this.tmpDataPtr == null) {
             System.err.println("ERROR HaarExtractor not init - Aborting");
             System.exit(42);
