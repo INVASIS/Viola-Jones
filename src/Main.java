@@ -14,10 +14,11 @@ public class Main {
         if (Conf.USE_CUDA)
             Conf.haarExtractor.setUp(19, 19);
 
+        Classifier classifier = new Classifier("data/trainset", "data/testset", 19, 19);
+        classifier.train(overallTargetDetectionRate, overallTargetFalsePositiveRate, targetDetectionRate, targetFalsePositiveRate);
+
         if (Conf.haarExtractor != null)
             Conf.haarExtractor.freeCuda();
 
-        Classifier classifier = new Classifier("data/trainset", "data/testset", 19, 19);
-        classifier.train(overallTargetDetectionRate, overallTargetFalsePositiveRate, targetDetectionRate, targetFalsePositiveRate);
     }
 }
