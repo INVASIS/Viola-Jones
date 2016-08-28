@@ -82,7 +82,7 @@ public class Classifier {
         testN = countTestPos + countTestNeg;
     }
 
-    private void predictLabel(int round, int N, float decisionTweak, DenseMatrix prediction) {
+    private void predictLabel(int round, int N, float decisionTweak, DenseMatrix prediction, boolean onlyMostRecent) {
         /**
          * prediction = Vector (Matrix< 1,n >)
          */
@@ -90,7 +90,9 @@ public class Classifier {
         DenseMatrix memberVerdict = new DenseMatrix(committeeSize, N);
         DenseMatrix memberWeight = new DenseMatrix(1, committeeSize);
 
-        for (int member = committeeSize - 1; member < committeeSize; member++) {
+        int start = onlyMostRecent ? committeeSize - 1 : 0;
+
+        for (int member = start; member < committeeSize; member++) {
             if (cascade[round].get(member).getError() == 0 && member != 0) {
                 System.err.println("Boosting Error Occurred!");
                 exit();
@@ -123,7 +125,7 @@ public class Classifier {
 
 
         DenseMatrix prediction = new DenseMatrix(1, N);
-        predictLabel(round, N, 0, prediction);
+        predictLabel(round, N, 0, prediction, true);
 
 
         boolean werror = false;
@@ -250,7 +252,7 @@ public class Classifier {
         DenseMatrix layerPrediction = DenseMatrix.zeros(1, N);
 
         for (int layer = 0; layer < round + 1; layer++) {
-            predictLabel(round, N, tweaks.get(round), layerPrediction);
+            predictLabel(round, N, tweaks.get(round), layerPrediction, false);
             verdicts = verdicts.min(layerPrediction);
         }
 
@@ -366,8 +368,8 @@ public class Classifier {
         layerMemory = new ArrayList<>();
 
         // Compute all features for train & test set
-        computeFeatures(train_dir + "/faces", train_dir + "/non-faces", countTrainPos, countTrainNeg, trainN, width, height);
-        computeFeatures(test_dir + "/faces", test_dir + "/non-faces", countTestPos, countTestNeg, testN, width, height);
+        //computeFeatures(train_dir + "/faces", train_dir + "/non-faces", countTrainPos, countTrainNeg, trainN, width, height);
+        //computeFeatures(test_dir + "/faces", test_dir + "/non-faces", countTestPos, countTestNeg, testN, width, height);
 
         // Estimated number of rounds needed
         int boostingRounds = (int) (Math.ceil(Math.log(overallTargetFalsePositiveRate) / Math.log(targetFalsePositiveRate)) + 20);
