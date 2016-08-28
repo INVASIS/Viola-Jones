@@ -7,6 +7,8 @@ import process.Conf;
 
 import java.util.List;
 
+import static process.features.FeatureExtractor.computeImageFeatures;
+
 public class TestHaarExtractor {
 
     @Test
@@ -19,23 +21,15 @@ public class TestHaarExtractor {
             int c = 0;
             for (List<Integer> i: imageHandler.getFeatures())
             {
-                Assert.assertTrue(i.containsAll(imageHandler.computeFeatures().get(c++)));
+                Assert.assertTrue(i.containsAll(computeImageFeatures(imageHandler.getFilePath(), false).get(c++)));
             }
 
             ImageHandler imageHandler2 = new ImageHandler("data/testset/faces/cmu_0000.png");
             int c2 = 0;
             for (List<Integer> i: imageHandler2.getFeatures())
             {
-                Assert.assertTrue(i.containsAll(imageHandler2.computeFeatures().get(c2++)));
+                Assert.assertTrue(i.containsAll(computeImageFeatures(imageHandler2.getFilePath(), false).get(c2++)));
             }
-
-
-            if (Conf.haarExtractor != null)
-                Conf.haarExtractor.freeCuda();
-
         }
-
-
     }
-
 }

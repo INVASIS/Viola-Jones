@@ -2,10 +2,8 @@ package process;
 
 import cuda.CudaUtils;
 import cuda.HaarExtractor;
-import jcuda.jcublas.JCublas;
 
 import java.io.IOException;
-import java.io.StreamCorruptedException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
@@ -23,6 +21,7 @@ public class Conf {
     public final static boolean PATH_CREATED = createPaths();
     public final static int TRAIN_MAX_ROUNDS = 20;
     public final static String FEATURE_EXTENSION = ".haar";
+    public final static String IMAGES_EXTENSION = ".png";
 
 
 

@@ -7,10 +7,7 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 
-/**
- * We give you this class to help you display images.
- * You are free to use it or not, to modify it.
- */
+
 public class ImagePanel extends JPanel {
     public BufferedImage image;
     private JFrame jFrame;

@@ -16,9 +16,5 @@ public class Main {
 
         Classifier classifier = new Classifier("data/trainset", "data/testset", 19, 19);
         classifier.train(overallTargetDetectionRate, overallTargetFalsePositiveRate, targetDetectionRate, targetFalsePositiveRate);
-
-        if (Conf.haarExtractor != null)
-            Conf.haarExtractor.freeCuda();
-
     }
 }

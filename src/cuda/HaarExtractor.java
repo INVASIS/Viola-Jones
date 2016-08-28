@@ -14,11 +14,11 @@ import java.util.HashMap;
 import static jcuda.driver.JCudaDriver.*;
 
 // TODO : singleton ?
-public class HaarExtractor {
+public class HaarExtractor implements AutoCloseable {
 
-    public static final int THREADS_IN_BLOCK = 1024;
-    public static final String CUDA_FILENAME = "HaarType";
-    public static final String KERNEL_NAME = "haar_type_";
+    private static final int THREADS_IN_BLOCK = 1024;
+    private static final String CUDA_FILENAME = "HaarType";
+    private static final String KERNEL_NAME = "haar_type_";
 
     private long NUM_FEATURES_A;
     private long NUM_FEATURES_B;
@@ -204,7 +204,6 @@ public class HaarExtractor {
     }
 
     public void compute() {
-        // TODO: handle non-CUDA haar computing
         if (this.tmpDataPtr == null) {
             System.err.println("ERROR HaarExtractor not init - Aborting");
             System.exit(42);
@@ -225,16 +224,6 @@ public class HaarExtractor {
 
         CudaUtils.freeArray2D(tmpDataPtr, srcPtr, width);
 
-    }
-
-    public void freeCuda() {
-        // Free typeABCDE
-
-        cuMemFree(allRectanglesA);
-        cuMemFree(allRectanglesB);
-        cuMemFree(allRectanglesC);
-        cuMemFree(allRectanglesD);
-        cuMemFree(allRectanglesE);
     }
 
     // Change the image to avoid recomputing all init stuff - to be used only for training purposes
@@ -265,5 +254,16 @@ public class HaarExtractor {
 
     public ArrayList<Integer> getFeaturesE() {
         return featuresE;
+    }
+
+    @Override
+    public void close() throws Exception {
+        // Free CUDA
+        System.out.println("Freeing CUDA memory...");
+        cuMemFree(allRectanglesA);
+        cuMemFree(allRectanglesB);
+        cuMemFree(allRectanglesC);
+        cuMemFree(allRectanglesD);
+        cuMemFree(allRectanglesE);
     }
 }

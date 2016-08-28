@@ -5,18 +5,15 @@ import javafx.util.Pair;
 import jeigen.DenseMatrix;
 import process.Conf;
 import process.DecisionStump;
-import process.features.FeatureExtractor;
-import utils.Utils;
 
-import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.*;
 
 import static java.lang.Math.log;
 import static javafx.application.Platform.exit;
+import static process.features.FeatureExtractor.computeSetFeatures;
 import static utils.Utils.countFiles;
-import static utils.Utils.streamImageHandler;
 
 public class Classifier {
     /**
@@ -101,7 +98,7 @@ public class Classifier {
             // 0.5 does not count here
             // if member's weightedError is zero, member weight is nan, but it won't be used anyway
             memberWeight.set(member, log((1.0 / cascade[round].get(member).getError()) - 1));
-            int featureId = cascade[round].get(member).getFeatureIndex();
+            int featureIndex = cascade[round].get(member).getFeatureIndex();
             for (int i = 0; i < N; i++) {
                 // TODO
 //                int exampleIndex = getExampleIndex(featureId, i);
@@ -203,47 +200,6 @@ public class Classifier {
                 e.printStackTrace();
             }
         }
-    }
-
-    private void computeFeatures(String faces_dir, String nonfaces_dir, int countPos, int countNeg, int N, int width, int height) {
-        /**
-         * In order to avoid excessive memory usage, this training temporary stores metadata on disk.
-         *
-         * width: Width of all training images
-         * height : Height of all training images
-         */
-        System.out.println("Pre-computing features for:");
-        System.out.println("  - " + faces_dir);
-        System.out.println("  - " + nonfaces_dir);
-
-        long startTime = System.currentTimeMillis();
-        int count = 0;
-        count += Utils.computeHaar(new File(faces_dir));
-        count += Utils.computeHaar(new File(nonfaces_dir));
-        long elapsedTimeMS = (new Date()).getTime() - startTime;
-        System.out.println("Statistics:");
-        System.out.println("  - Elapsed time: " + elapsedTimeMS / 1000 + "s");
-        System.out.println("  - Images computed: " + count);
-        System.out.println("  - image/seconds: " + count / (elapsedTimeMS / 1000));
-
-
-        // FIXME: Do we need all that code?
-//        Iterable<ImageHandler> positives = streamImageHandler(faces_dir, ".png");
-//        Iterable<ImageHandler> negatives = streamImageHandler(nonfaces_dir, ".png");
-//
-//        double averageWeightPos = 0.5 / countPos;
-//        double averageWeightNeg = 0.5 / countNeg;
-//
-//        DenseMatrix weights = new DenseMatrix(N, 1); // weight vector for all examples involved
-//        DenseMatrix labels = new DenseMatrix(N, 1); // -1 = negative | 1 = positive example
-//
-//        // Init weights & labels
-//        for (int i = 0; i < N; i++) {
-//            labels.set(i, 0, i < countPos ? 1 : -1); // labels = [positives then negatives] = [1 1 ..., -1 -1 ...]
-//            weights.set(i, 0, i < countPos ? averageWeightPos : averageWeightNeg);
-//        }
-//
-//        long featuresCount = FeatureExtractor.countAllFeatures(width, height);
     }
 
     // p141 in paper?
@@ -364,6 +320,9 @@ public class Classifier {
 
     public void train(float overallTargetDetectionRate, float overallTargetFalsePositiveRate,
                       float targetDetectionRate, float targetFalsePositiveRate) {
+        /**
+         * In order to avoid excessive memory usage, this training temporary stores metadata on disk.         *
+         */
 
         // TODO : mettre a jour positiveTotalWeights de DecisionStump
 
@@ -376,8 +335,20 @@ public class Classifier {
         layerMemory = new ArrayList<>();
 
         // Compute all features for train & test set
-        //computeFeatures(train_dir + "/faces", train_dir + "/non-faces", countTrainPos, countTrainNeg, trainN, width, height);
-        //computeFeatures(test_dir + "/faces", test_dir + "/non-faces", countTestPos, countTestNeg, testN, width, height);
+        {
+            System.out.println("Pre-computing features for:");
+            System.out.println("  - " + train_dir);
+            System.out.println("  - " + test_dir);
+            int count = 0;
+            long startTime = System.currentTimeMillis();
+            count += computeSetFeatures(train_dir + "/faces", train_dir + "/non-faces", true);
+            count += computeSetFeatures(test_dir + "/faces", test_dir + "/non-faces", true);
+            long elapsedTimeMS = (new Date()).getTime() - startTime;
+            System.out.println("Statistics:");
+            System.out.println("  - Elapsed time: " + elapsedTimeMS / 1000 + "s");
+            System.out.println("  - Images computed: " + count);
+            System.out.println("  - image/seconds: " + count / (elapsedTimeMS / 1000));
+        }
 
         // Estimated number of rounds needed
         int boostingRounds = (int) (Math.ceil(Math.log(overallTargetFalsePositiveRate) / Math.log(targetFalsePositiveRate)) + 20);

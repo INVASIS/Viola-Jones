@@ -1,16 +1,6 @@
 package process;
 
 import GUI.ImageHandler;
-import cuda.CudaUtils;
-import jcuda.Pointer;
-import jcuda.Sizeof;
-import jcuda.driver.CUdeviceptr;
-import jcuda.driver.CUfunction;
-import jcuda.driver.CUmodule;
-
-import static jcuda.driver.JCudaDriver.*;
-import static jcuda.driver.JCudaDriver.cuMemFree;
-import static jcuda.driver.JCudaDriver.cuMemcpyDtoH;
 
 public class IntegralImage {
 

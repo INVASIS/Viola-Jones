@@ -14,12 +14,12 @@ import static jcuda.driver.JCudaDriver.*;
 
 public class CudaUtils {
 
-    public final static String PATH_TO_SRC = "cuda/src/";
-    public final static String PATH_TO_PTX = "cuda/ptx/";
+    private final static String PATH_TO_SRC = "cuda/src/";
+    private final static String PATH_TO_PTX = "cuda/ptx/";
 
     // Return the name of ptx file compiled
     // Arg cudaFilename should have no extension
-    public static String compileCuda(String fileName) throws IOException {
+    private static String compileCuda(String fileName) throws IOException {
         String ptxFileName = PATH_TO_PTX + fileName + ".ptx";
         String cudaFileName = PATH_TO_SRC + fileName + ".cu";
         File ptxFile = new File(ptxFileName);
@@ -47,7 +47,7 @@ public class CudaUtils {
 
         String errorMessage = new String(toByteArray(process.getErrorStream()));
         String outputMessage = new String(toByteArray(process.getInputStream()));
-        int exitValue = 0;
+        int exitValue;
 
         try {
             exitValue = process.waitFor();
@@ -94,7 +94,7 @@ public class CudaUtils {
 
     }
 
-    public static CUmodule getModule(String cudaFilename) {
+    static CUmodule getModule(String cudaFilename) {
         // Create the PTX file by calling the NVCC
         String ptxFileName;
         try {
@@ -111,7 +111,7 @@ public class CudaUtils {
         return module;
     }
 
-    public static void newArray2D(int[][] src, int width, int height, CUdeviceptr tmpArrayDst[], CUdeviceptr dstPtr) {
+    static void newArray2D(int[][] src, int width, int height, CUdeviceptr tmpArrayDst[], CUdeviceptr dstPtr) {
         int error = 0;
 
         // [CUdeviceptr, CUdeviceptr, CUdeviceptr, ...] -> Array of pointers to columns
@@ -154,7 +154,7 @@ public class CudaUtils {
         return result;
     }
 
-    public static void  freeArray2D(CUdeviceptr tmpArrayDst[], CUdeviceptr ptr, int width) {
+    static void  freeArray2D(CUdeviceptr tmpArrayDst[], CUdeviceptr ptr, int width) {
         int error = 0;
 
         for (int i = 0; i < width; i++) {

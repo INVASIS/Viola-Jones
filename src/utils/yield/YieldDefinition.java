@@ -35,7 +35,7 @@ public class YieldDefinition<T> implements Iterable<T>, ClosableIterator<T> {
     @Override
     public boolean hasNext() {
         calculateNextValue();
-        Message<T> message = unchecked(() -> dataChannel.take());
+        Message<T> message = unchecked(dataChannel::take);
         if (message instanceof Completed) return false;
         currentValue.set(message.value());
         return true;
@@ -60,7 +60,7 @@ public class YieldDefinition<T> implements Iterable<T>, ClosableIterator<T> {
     }
 
     private void waitUntilNextValueRequested() {
-        unchecked(() -> flowChannel.take());
+        unchecked(flowChannel::take);
     }
 
     private void publish(T value) {

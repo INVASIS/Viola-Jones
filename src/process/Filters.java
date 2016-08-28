@@ -20,6 +20,7 @@ public class Filters {
     }
 
     public static int[][] crGrayscale(BufferedImage bi) {
+        // FIXME: diff between grayscale & crGrayscale?
         int[][] result = Filters.grayscale(bi);
 
         /*

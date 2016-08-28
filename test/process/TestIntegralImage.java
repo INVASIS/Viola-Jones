@@ -1,7 +1,6 @@
 package process;
 
 import GUI.ImageHandler;
-import cuda.CudaUtils;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;

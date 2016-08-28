@@ -13,6 +13,8 @@ import java.nio.file.Paths;
 import java.util.*;
 
 import static javafx.application.Platform.exit;
+import static process.features.FeatureExtractor.computeImageFeatures;
+import static process.features.FeaturesSerializer.imageFeaturesFromDisk;
 
 public class ImageHandler {
 
@@ -106,75 +108,12 @@ public class ImageHandler {
     }
 
     public ArrayList<ArrayList<Integer>> getFeatures() {
-        if (!Files.exists(Paths.get(filePath + Conf.FEATURE_EXTENSION)))
-            return computeFeatures();
-        else {
-            ArrayList<ArrayList<Integer>> res = new ArrayList<>();
-            try {
-                BufferedReader br = new BufferedReader(new FileReader(filePath + Conf.FEATURE_EXTENSION));
-                String line = br.readLine();
-                while (line != null) {
-                    ArrayList<Integer> values = new ArrayList<>();
-                    for (String val : line.split(";")) {
-                        values.add(Integer.parseInt(val));
-                    }
-                    res.add(values);
-                    line = br.readLine();
-                }
-                br.close();
+        String haarFilePath = filePath + Conf.FEATURE_EXTENSION;
 
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-
-            return res;
-        }
-    }
-
-    public ArrayList<ArrayList<Integer>> computeFeatures() {
-        Conf.haarExtractor.updateImage(integralImage);
-        Conf.haarExtractor.compute();
-
-        ArrayList<ArrayList<Integer>> res = new ArrayList<>();
-
-
-        try {
-            PrintWriter writer = new PrintWriter(filePath + Conf.FEATURE_EXTENSION, "UTF-8");
-
-            for (Integer i : Conf.haarExtractor.getFeaturesA())
-                    writer.write(i + ";");
-            writer.write(System.lineSeparator());
-
-            for (Integer i : Conf.haarExtractor.getFeaturesB())
-                writer.write(i + ";");
-            writer.write(System.lineSeparator());
-
-            for (Integer i : Conf.haarExtractor.getFeaturesC())
-                writer.write(i + ";");
-            writer.write(System.lineSeparator());
-
-            for (Integer i : Conf.haarExtractor.getFeaturesD())
-                writer.write(i + ";");
-            writer.write(System.lineSeparator());
-
-            for (Integer i : Conf.haarExtractor.getFeaturesE())
-                writer.write(i + ";");
-
-            writer.close();
-
-        } catch (IOException ex) {
-            System.err.println("Could not write feature values to " + Conf.TRAIN_FEATURES);
-        }
-
-        res.add(Conf.haarExtractor.getFeaturesA());
-        res.add(Conf.haarExtractor.getFeaturesB());
-        res.add(Conf.haarExtractor.getFeaturesC());
-        res.add(Conf.haarExtractor.getFeaturesD());
-        res.add(Conf.haarExtractor.getFeaturesE());
-
-        return res;
+        if (Files.exists(Paths.get(haarFilePath)))
+            return imageFeaturesFromDisk(haarFilePath);
+        else
+            return computeImageFeatures(filePath, true);
     }
 
     public UUID getUid() {

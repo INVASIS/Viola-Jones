@@ -27,32 +27,33 @@ public class Utils {
         return results;
     }
 
-    public static ArrayList<BufferedImage> listImages(String dir, String ext) {
-        ArrayList<BufferedImage> results = new ArrayList<>();
-        for (String p : scanDir(dir)) {
-            if (ext == null || p.endsWith(ext))
-                if (new File(p).isFile())
-                    try {
-                        results.add(ImageIO.read(new File(p)));
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-        }
-        return results;
-    }
-
-    public static Yielderable<BufferedImage> streamImages(String dir, String ext) {
+    public static Yielderable<String> streamFiles(String dir, String ext) {
         return yield -> {
             for (String p : scanDir(dir)) {
                 if (ext == null || p.endsWith(ext))
                     if (new File(p).isFile())
-                        try {
-                            yield.returning(ImageIO.read(new File(p)));
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
+                        yield.returning(p);
             }
         };
+    }
+
+    public static Yielderable<BufferedImage> streamImages(String dir, String ext) {
+        return yield -> {
+            for (String p : streamFiles(dir, ext)) {
+                try {
+                    yield.returning(ImageIO.read(new File(p)));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        };
+    }
+
+    public static ArrayList<BufferedImage> listImages(String dir, String ext) {
+        ArrayList<BufferedImage> images = new ArrayList<>();
+        for (BufferedImage r : streamImages(dir, ext))
+            images.add(r);
+        return images;
     }
 
     public static Yielderable<ImageHandler> streamImageHandler(String dir, String ext) {
@@ -72,22 +73,6 @@ public class Utils {
                 if (new File(p).isFile())
                     count++;
         return count;
-    }
-
-    public static int computeHaar(File directory) {
-        // Returns the number of features computed
-
-        int c = 0;
-        String[] fileList = directory.list();
-        for (int i = 0; i < fileList.length; i++) {
-            String fileName = directory.getPath() + "/" + fileList[i];
-            if (!fileList[i].endsWith(Conf.FEATURE_EXTENSION) && !Files.exists(Paths.get(fileName + Conf.FEATURE_EXTENSION))) {
-                ImageHandler imageHandler = new ImageHandler(fileName);
-                imageHandler.computeFeatures();
-                c++;
-            }
-        }
-        return c;
     }
 
     public static String[] computeIndexes(String testsetDir) {

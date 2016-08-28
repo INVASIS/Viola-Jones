@@ -1,16 +1,6 @@
 package utils.yield;
 
-import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.SynchronousQueue;
-import java.util.concurrent.atomic.AtomicReference;
-
-import static utils.yield.Completed.completed;
-import static utils.yield.Exceptions.unchecked;
-import static utils.yield.FlowControl.youMayProceed;
-import static utils.yield.IfAbsent.ifAbsent;
-import static utils.yield.Message.message;
 
 
 public interface Yielderable<T> extends Iterable<T> {
@@ -23,8 +13,7 @@ public interface Yielderable<T> extends Iterable<T> {
             yieldDefinition.waitUntilFirstValueRequested();
             try {
                 execute(yieldDefinition);
-            } catch (BreakException e) {
-            }
+            } catch (BreakException e) {/*ignored*/}
             yieldDefinition.signalComplete();
         });
         collectorThread.setDaemon(true);
@@ -42,11 +31,11 @@ interface Message<T> {
 }
 
 interface Completed<T> extends Message<T> {
-    static <T> Completed<T> completed() { return () -> Optional.empty(); }
+    static <T> Completed<T> completed() { return Optional::empty; }
 }
 
 interface FlowControl {
-    static FlowControl youMayProceed = new FlowControl() {};
+    FlowControl youMayProceed = new FlowControl() {};
 }
 
 class BreakException extends RuntimeException {

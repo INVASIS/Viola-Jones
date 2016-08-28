@@ -2,28 +2,29 @@ package process.features;
 
 import process.Conf;
 
-import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Scanner;
 
-@Deprecated
+
 public class FeaturesSerializer {
-    public static void toDisk(HashMap<String, ArrayList<Integer>> result, String filePath) {
-        Writer writer = null;
+
+    public static void imageFeaturesToDisk(String filePath, ArrayList<ArrayList<Integer>> features) {
+        PrintWriter writer = null;
         try {
-            writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(filePath), "utf-8"));
-            for (Map.Entry<String, ArrayList<Integer>> entry : result.entrySet()) {
-                writer.write(entry.getKey() + ":");
-                for (Integer i : entry.getValue())
-                    writer.write(i + ';');
-                writer.write('\n');
+            writer = new PrintWriter(filePath, "UTF-8");
+
+            for (ArrayList<Integer> featuresOfType : features) {
+                for (Integer i : featuresOfType)
+                    writer.write(i + ";");
+                writer.write(System.lineSeparator());
             }
+
         } catch (IOException ex) {
             System.err.println("Could not write feature values to " + Conf.TRAIN_FEATURES);
+
         } finally {
             try {
                 if (writer != null) {
@@ -32,28 +33,26 @@ public class FeaturesSerializer {
             } catch (Exception ex) {/*ignore*/}
         }
     }
-    public static HashMap<String, ArrayList<Integer>> fromDisk(String filePath) {
-        HashMap<String, ArrayList<Integer>> result = new HashMap<>();
 
-        if (Files.exists(Paths.get(filePath)))
-            return result;
-
-        final Scanner s = new Scanner(filePath);
-        while(s.hasNextLine()) {
-            final String line = s.nextLine();
-            if (line.equals(""))
-                continue;
-
-            String[] parts = line.split(":");
-
-            ArrayList<Integer> values = new ArrayList<>();
-            int i = 0;
-            for (String val : parts[1].split(";")) {
-                values.add(i, Integer.parseInt(val));
-                i++;
+    public static ArrayList<ArrayList<Integer>> imageFeaturesFromDisk(String filePath) {
+        ArrayList<ArrayList<Integer>> res = new ArrayList<>();
+        try {
+            BufferedReader br = new BufferedReader(new FileReader(filePath));
+            String line = br.readLine();
+            while (line != null) {
+                ArrayList<Integer> values = new ArrayList<>();
+                for (String val : line.split(";")) {
+                    values.add(Integer.parseInt(val));
+                }
+                res.add(values);
+                line = br.readLine();
             }
-            result.put(parts[0], values);
+            br.close();
+
+        } catch (IOException e) {
+            e.printStackTrace();
         }
-        return result;
+
+        return res;
     }
 }

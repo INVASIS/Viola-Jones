@@ -1,17 +1,17 @@
 package process.features;
 
 import GUI.ImageHandler;
-import cuda.HaarExtractor;
 import process.Conf;
 import utils.yield.Yielderable;
 
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 import static process.IntegralImage.rectangleSum;
+import static process.features.FeaturesSerializer.imageFeaturesToDisk;
+import static utils.Utils.streamFiles;
 
 
 public class FeatureExtractor {
@@ -232,40 +232,29 @@ public class FeatureExtractor {
         return rectangles;
     }
 
-    public static Yielderable<Feature> streamFeatures(ImageHandler image) {
+    public static Yielderable<ArrayList<Feature>> streamFeaturesByType(ImageHandler image) {
         return yield -> {
-            for (Feature f : streamAllTypeA(image))
-                yield.returning(f);
-            for (Feature f : streamAllTypeB(image))
-                yield.returning(f);
-            for (Feature f : streamAllTypeC(image))
-                yield.returning(f);
-            for (Feature f : streamAllTypeD(image))
-                yield.returning(f);
-            for (Feature f : streamAllTypeE(image))
-                yield.returning(f);
+            yield.returning(listAllTypeA(image));
+            yield.returning(listAllTypeB(image));
+            yield.returning(listAllTypeC(image));
+            yield.returning(listAllTypeD(image));
+            yield.returning(listAllTypeE(image));
         };
     }
 
     public static long countFeatures(int featureWidth, int featureHeight, int frameWidth, int frameHeight) {
-        // TODO: Use CUDA?
+        // TODO: Use CUDA? (It could be very long on large frames)
         long count = 0;
-        for (int w = featureWidth; w <= frameWidth; w += featureWidth) {
-            for (int h = featureHeight; h <= frameHeight; h += featureHeight) {
-                for (int x = 0; x <= frameWidth - w; x++) {
-                    for (int y = 0; y <= frameHeight - h; y++) {
+        for (int w = featureWidth; w <= frameWidth; w += featureWidth)
+            for (int h = featureHeight; h <= frameHeight; h += featureHeight)
+                for (int x = 0; x <= frameWidth - w; x++)
+                    for (int y = 0; y <= frameHeight - h; y++)
                         count++;
-                    }
-                }
-            }
-        }
         return count;
     }
 
     public static long countAllFeatures(int width, int height) {
         long count = 0;
-
-        // FIXME: find a less CPU & time consuming way of computing this
 
         long typeA = countFeatures(widthTypeA, heightTypeA, width, height);
         long typeB = countFeatures(widthTypeB, heightTypeB, width, height);
@@ -282,56 +271,60 @@ public class FeatureExtractor {
         return count;
     }
 
-    public static ArrayList<Integer> computeFeaturesGPU(ImageHandler imageHandler, HaarExtractor haarExtractor) {
-        ArrayList<Integer> result = new ArrayList<>();
-        haarExtractor.updateImage(imageHandler.getIntegralImage());
-        haarExtractor.compute();
+    // Warning: Need to train and evaluate on the same features : only on GPU or only on CPU
+    public static ArrayList<ArrayList<Integer>> computeImageFeatures(String imagePath, boolean writeToDisk) {
+        ImageHandler image = new ImageHandler(imagePath);
 
-        result.addAll(haarExtractor.getFeaturesA());
-        result.addAll(haarExtractor.getFeaturesB());
-        result.addAll(haarExtractor.getFeaturesC());
-        result.addAll(haarExtractor.getFeaturesD());
-        result.addAll(haarExtractor.getFeaturesE());
-
-        return result;
-    }
-
-    public static ArrayList<Integer> computeFeaturesCPU(ImageHandler image) {
-        ArrayList<Integer> result = new ArrayList<>();
-        int count = 0;
-        for (Feature f : FeatureExtractor.streamFeatures(image))
-            result.add(f.getValue());
-        return result;
-    }
-
-    // Warning : Need to train and evaluate on the same features : only on GPU or only on CPU
-    public static ArrayList<Integer> computeFeatures(ImageHandler image) {
+        ArrayList<ArrayList<Integer>> result = new ArrayList<>();
         if (Conf.USE_CUDA) {
-            return computeFeaturesGPU(image, Conf.haarExtractor);
-        } else
-            return computeFeaturesCPU(image);
+            Conf.haarExtractor.updateImage(image.getIntegralImage());
+            Conf.haarExtractor.compute();
+            result.add(Conf.haarExtractor.getFeaturesA());
+            result.add(Conf.haarExtractor.getFeaturesB());
+            result.add(Conf.haarExtractor.getFeaturesC());
+            result.add(Conf.haarExtractor.getFeaturesD());
+            result.add(Conf.haarExtractor.getFeaturesE());
+        }
+        else {
+            for (ArrayList<Feature> features : FeatureExtractor.streamFeaturesByType(image)) {
+                ArrayList<Integer> featuresValues = new ArrayList<>();
+                for (Feature f : features) {
+                    featuresValues.add(f.getValue());
+                }
+                result.add(featuresValues);
+            }
+        }
+
+        if (writeToDisk)
+            imageFeaturesToDisk(imagePath + Conf.FEATURE_EXTENSION, result);
+
+        return result;
     }
 
-    public static void computeFeaturesImages(Iterable<ImageHandler> images, int width, int height, HashMap<String, ArrayList<Integer>> result) {
-        // Compute Haar-features of all images
+    private static int computeImagesFeatures(String dir, boolean writeToDisk) {
+        /**
+         * returns: the number of features computed
+         */
 
-        { // Parallel execution
-            System.out.println("Computing all positives images features... ");
-            ExecutorService executor = Executors.newFixedThreadPool(Conf.TRAIN_MAX_CONCURENT_PROCESSES);
-
-            for (ImageHandler image : images) {
-                if (image.getWidth() == width && image.getHeight() == height) {
-                    if (result.get(image.getFilePath()) == null) { // Only compute the image if it's not already done
-                        Runnable worker = new ImageFeaturesCompute(image, result);
-                        executor.execute(worker);
-                    }
-                } else
-                    System.err.println("Image " + image.getFilePath() + " has a wrong size! (Expecting " + width + "x" + height + ", got " + image.getWidth() + "x" + image.getHeight() + ")");
+        int count = 0;
+        for (String imagePath :  streamFiles(dir, Conf.IMAGES_EXTENSION)) {
+            if (!Files.exists(Paths.get(imagePath + Conf.FEATURE_EXTENSION)))
+            {
+                computeImageFeatures(imagePath, writeToDisk);
+                count++;
             }
-
-            executor.shutdown();
-            while (!executor.isTerminated()) {/*ignore*/}
-            System.out.println("Done!");
         }
+        return count;
+    }
+
+    public static int computeSetFeatures(String faces_dir, String nonfaces_dir, boolean writeToDisk) { // Set = faces + non-faces
+        /**
+         * returns: the number of features computed
+         */
+
+        int count = 0;
+        count += computeImagesFeatures(faces_dir, writeToDisk);
+        count += computeImagesFeatures(nonfaces_dir, writeToDisk);
+        return count;
     }
 }

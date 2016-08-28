@@ -14,10 +14,10 @@ public class AnyFilter {
     public static final String CUDA_FILENAME = "anyFilter";
     public static final String KERNEL_NAME = "any_filter";
 
-    private int[][] data;
-    private int width;
-    private int height;
-    private CUmodule module;
+    private final int[][] data;
+    private final int width;
+    private final int height;
+    private final CUmodule module;
 
     private float[][] filter = {{0, 1, 0},
                                 {1, -4, 1},
