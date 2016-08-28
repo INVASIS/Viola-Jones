@@ -4,16 +4,15 @@ import javafx.util.Pair;
 
 import java.util.ArrayList;
 import java.util.Objects;
-import java.util.UUID;
 
-public class DecisionStump {
+public class DecisionStump { // == stumpRule
 
     // Values that will be used to find the best DecisionStump
-    private double threshold;
-    private boolean toggle;
+    private int featureIndex;
     private double error;
+    private double threshold;
     private double margin;
-    private UUID featureId;
+    private boolean toggle; // = polarity {-1; 1}
 
 
     private double W1plus;
@@ -26,10 +25,10 @@ public class DecisionStump {
 
 
     // Initialisation
-    public DecisionStump(ArrayList<Pair<Integer, Boolean>> features, ArrayList<Double> w, UUID featureId) {
+    public DecisionStump(ArrayList<Pair<Integer, Boolean>> features, ArrayList<Double> w, int featureIndex) {
         this.margin = -1; // Like that in the paper implem...
         this.error = 2;
-        this.featureId = featureId;
+        this.featureIndex = featureIndex;
 
         this.W1plus = 0;
         this.W1min = 0;
@@ -129,7 +128,7 @@ public class DecisionStump {
 //        }
 //
 //        return best;
-        return new DecisionStump(features.get(0), w, UUID.fromString("temporary"));
+        return new DecisionStump(features.get(0), w, 0);
     }
 
     public double getMargin() {
@@ -148,7 +147,7 @@ public class DecisionStump {
         return error;
     }
 
-    public UUID getFeatureId() {
-        return featureId;
+    public int getFeatureIndex() {
+        return featureIndex;
     }
 }

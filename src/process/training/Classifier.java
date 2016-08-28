@@ -28,7 +28,7 @@ public class Classifier {
      * The only need for a weak classifier is to return results with a success rate > 0.5, which is actually better than random.
      * The combination of all these Weak classifier create of very good classifier, which is called the Strong classifier.
      *
-     *
+     * This is what we call Adaboosting.
      *
      */
 
@@ -117,6 +117,10 @@ public class Classifier {
 
 
     private ArrayList<DecisionStump> adaboost(int round, int N) {
+        /**
+         * Strong classifier based on multiple weak classifiers.
+         * Here, weak classifier are called "Stumps", see: https://en.wikipedia.org/wiki/Decision_stump
+         */
         ArrayList<DecisionStump> committee = new ArrayList<>();
 
         // TODO
