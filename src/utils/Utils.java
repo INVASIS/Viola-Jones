@@ -74,16 +74,20 @@ public class Utils {
         return count;
     }
 
-    public static void computeHaar(File directory) {
+    public static int computeHaar(File directory) {
+        // Returns the number of features computed
+
+        int c = 0;
         String[] fileList = directory.list();
-        System.out.println(directory.getPath());
         for (int i = 0; i < fileList.length; i++) {
             String fileName = directory.getPath() + "/" + fileList[i];
             if (!fileList[i].endsWith(Conf.FEATURE_EXTENSION) && !Files.exists(Paths.get(fileName + Conf.FEATURE_EXTENSION))) {
                 ImageHandler imageHandler = new ImageHandler(fileName);
-                imageHandler.getFeatures();
+                imageHandler.computeFeatures();
+                c++;
             }
         }
+        return c;
     }
 
     public static String[] computeIndexes(String testsetDir) {

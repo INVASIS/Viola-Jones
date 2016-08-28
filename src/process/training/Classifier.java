@@ -207,8 +207,17 @@ public class Classifier {
         System.out.println("Pre-computing features for:");
         System.out.println("  - " + faces_dir);
         System.out.println("  - " + nonfaces_dir);
-        Utils.computeHaar(new File(faces_dir));
-        Utils.computeHaar(new File(nonfaces_dir));
+
+        long startTime = System.currentTimeMillis();
+        int count = 0;
+        count += Utils.computeHaar(new File(faces_dir));
+        count += Utils.computeHaar(new File(nonfaces_dir));
+        long elapsedTimeMS = (new Date()).getTime() - startTime;
+        System.out.println("Statistics:");
+        System.out.println("  - Elapsed time: " + elapsedTimeMS / 1000 + "s");
+        System.out.println("  - Images computed: " + count);
+        System.out.println("  - image/seconds: " + count / (elapsedTimeMS / 1000));
+
 
         // FIXME: Do we need all that code?
 //        Iterable<ImageHandler> positives = streamImageHandler(faces_dir, ".png");
