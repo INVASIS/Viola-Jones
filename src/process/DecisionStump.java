@@ -7,6 +7,8 @@ import java.util.Objects;
 
 public class DecisionStump { // == stumpRule
 
+    public static double positiveTotalWeights = 0.5;
+
     // Values that will be used to find the best DecisionStump
     private int featureIndex;
     private double error;
@@ -15,10 +17,10 @@ public class DecisionStump { // == stumpRule
     private boolean toggle; // = polarity {-1; 1}
 
 
-    private double W1plus;
-    private double W0plus;
-    private double W1min;
-    private double W0min;
+    private double rPos;
+    private double rNeg;
+    private double lPos;
+    private double lNeg;
 
     private ArrayList<Pair<Integer, Boolean>> features;
     private ArrayList<Double> w;
@@ -26,109 +28,112 @@ public class DecisionStump { // == stumpRule
 
     // Initialisation
     public DecisionStump(ArrayList<Pair<Integer, Boolean>> features, ArrayList<Double> w, int featureIndex) {
-        this.margin = -1; // Like that in the paper implem...
-        this.error = 2;
-        this.featureIndex = featureIndex;
 
-        this.W1plus = 0;
-        this.W1min = 0;
-        this.W1min = 0;
-        this.W0min = 0;
+        this.featureIndex = featureIndex;
+        this.error = 2;
+        this.threshold = this.features.get(0).getKey() - 1; // FIXME with organized features
+        this.margin = -1; // Like that in the paper implem...
+        this.toggle = false;
+
+        this.rPos = positiveTotalWeights;
+        this.rNeg = 1 - positiveTotalWeights;
+
+        this.lPos = 0;
+        this.lNeg = 0;
 
         // Should be arranged in ascending order
         this.features = (ArrayList<Pair<Integer, Boolean>>) features.clone();
         this.w = (ArrayList<Double>) w.clone();
 
-        this.threshold = this.features.get(0).getKey();
-        for (int i = 0; i < this.features.size(); i++) {
-            if (this.features.get(i).getKey() < this.threshold)
-                this.threshold = this.features.get(i).getKey();
-
-            // Pas sur...
-            if (this.w.get(i) == 1)
-                this.W1plus += this.w.get(i);
-            else
-                this.W0plus += this.w.get(i);
-        }
-        this.threshold--;
-
-
     }
 
     public void compute() {
 
-        int n = this.features.size() - 1;
-        int j = 0;
+        int num_features = this.features.size() - 1;
+        int iter = -1;
+
+
         double tmp_threshold = this.threshold;
         double tmp_margin = this.margin;
-        double tmp_error = 0;
+        double small_error = 0;
         boolean tmp_togle = false;
 
         while (true) {
-            double errorPlus = W1plus + W0plus;
-            double errorMin = W1min + W0min;
+            double errorPlus = lPos + rNeg;
+            double errorMin = rPos + lNeg;
 
             if (errorPlus < errorMin) {
-                tmp_error = errorPlus;
+                small_error = errorPlus;
                 tmp_togle = true;
             } else {
-                tmp_error = errorMin;
+                small_error = errorMin;
                 tmp_togle = false;
             }
 
-            if (tmp_error < this.error || tmp_error == this.error && tmp_margin > this.margin) {
-                this.error = tmp_error;
+            if (small_error < this.error || small_error == this.error && tmp_margin > this.margin) {
+                this.error = small_error;
                 this.threshold = tmp_threshold;
                 this.margin = tmp_margin;
                 this.toggle = tmp_togle;
             }
 
-            if (j == n)
+            iter++;
+
+            // Pas sur si c'est toutes les features ou pas... mais ça doit etre bon...
+            if (iter == num_features)
                 break;
 
-            j++;
-
             while (true) {
-                if (!this.features.get(j).getValue()) {
-                    this.W0min += this.w.get(j);
-                    this.W0plus -= this.w.get(j);
+
+                if (!this.features.get(iter).getValue()) {
+                    this.lNeg += this.w.get(iter);
+                    this.rNeg -= this.w.get(iter);
                 } else {
-                    this.W1min += this.w.get(j);
-                    this.W1plus -= this.w.get(j);
+                    this.lPos += this.w.get(iter);
+                    this.rPos -= this.w.get(iter);
                 }
 
-                if (j == n || Objects.equals(this.features.get(j).getKey(), this.features.get(j + 1).getKey()))
+                if (iter == num_features || Objects.equals(this.features.get(iter).getKey(), this.features.get(iter + 1).getKey()))
                     break;
 
-                j++;
+                iter++;
             }
 
-            if (j == n) {
-                tmp_threshold = this.features.get(j).getKey();
-                tmp_margin = 0;
+            if (iter < num_features - 1) {
+                tmp_threshold = (this.features.get(iter).getKey() + this.features.get(iter + 1).getKey()) / 2;
+                tmp_margin = this.features.get(iter + 1).getKey() - this.features.get(iter).getKey();
             } else {
-                tmp_threshold = (this.features.get(j).getKey() + this.features.get(j + 1).getKey()) / 2;
-                tmp_margin = this.features.get(j + 1).getKey() + this.features.get(j).getKey();
+                tmp_threshold = this.features.get(iter).getKey() + 1;
+                tmp_margin = 0;
             }
         }
     }
 
+    /**
+     * <Integer, Boolean> indique pour chaque feature (qui normalement doivent etre triées), si c'est un face ou non-face
+     */
     public static DecisionStump bestStump(ArrayList<ArrayList<Pair<Integer, Boolean>>> features, ArrayList<Double> w) {
-        // FIXME
-//        DecisionStump best = new DecisionStump(features.get(0), w);
-//        best.compute();
-//
-//        for (int i = 1; i < features.size(); i++) {
-//            DecisionStump decisionStump = new DecisionStump(features.get(i), w);
-//            decisionStump.compute();
-//
-//            if (decisionStump.error < best.error || decisionStump.error == best.error && decisionStump.margin > best.margin) {
-//                best = decisionStump;
-//            }
-//        }
-//
-//        return best;
-        return new DecisionStump(features.get(0), w, 0);
+        /**
+         * VERIF OK
+         * Not exactly like in the implem, but improved a bit...
+         */
+
+        DecisionStump best = new DecisionStump(features.get(0), w, 0);
+        best.compute();
+
+        for (int i = 1; i < features.size(); i++) {
+            DecisionStump decisionStump = new DecisionStump(features.get(i), w, i);
+            decisionStump.compute();
+
+            if (decisionStump.error < best.error || decisionStump.error == best.error && decisionStump.margin > best.margin) {
+                best = decisionStump;
+            }
+        }
+
+        if (best.error >= 0.5)
+            System.err.println("Failed best stump, error : " + best.error + " >= 0.5 ! (not good but we still continue)");
+
+        return best;
     }
 
     public double getMargin() {

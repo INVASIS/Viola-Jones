@@ -39,7 +39,7 @@ public class Classifier {
     private static final double MIN_TWEAK = 1e-5;       // tweak unit cannot go lower than this
     private static final double GOAL = 1e-7;
 
-
+    private static int adaboostPasses = 0;
     /* --- CLASS VARIABLES --- */
     private final int countTrainPos;
     private final int countTrainNeg;
@@ -101,7 +101,7 @@ public class Classifier {
             // 0.5 does not count here
             // if member's weightedError is zero, member weight is nan, but it won't be used anyway
             memberWeight.set(member, log((1.0 / cascade[round].get(member).getError()) - 1));
-            UUID featureId = cascade[round].get(member).getFeatureId();
+            int featureId = cascade[round].get(member).getFeatureIndex();
             for (int i = 0; i < N; i++) {
                 // TODO
 //                int exampleIndex = getExampleIndex(featureId, i);
@@ -121,28 +121,30 @@ public class Classifier {
          * Strong classifier based on multiple weak classifiers.
          * Here, weak classifier are called "Stumps", see: https://en.wikipedia.org/wiki/Decision_stump
          */
+
         ArrayList<DecisionStump> committee = new ArrayList<>();
 
-        // TODO
-//            DecisionStump bestDS = DecisionStump.bestStump();
-//            committee.add(bestDS);
-
+        // TODO : when we have the list of list of features and the weights
+        //DecisionStump bestDS = DecisionStump.bestStump(features, weights);
+        //committee.add(bestDS);
 
         DenseMatrix prediction = new DenseMatrix(1, N);
         predictLabel(round, N, 0, prediction, true);
-
+        adaboostPasses++;
 
         boolean werror = false;
 
-
         if (werror) {
             // Update weights
+            // Update pos and neg weights
+            // Update positiveTotalWeights
 
         } else {
             // Training ends, just return
 
         }
 
+        System.out.println("Adaboost passes : " + adaboostPasses);
         return committee;
     }
 
@@ -362,6 +364,8 @@ public class Classifier {
 
     public void train(float overallTargetDetectionRate, float overallTargetFalsePositiveRate,
                       float targetDetectionRate, float targetFalsePositiveRate) {
+
+        // TODO : mettre a jour positiveTotalWeights de DecisionStump
 
         if (computed) {
             System.out.println("Training already done!");
