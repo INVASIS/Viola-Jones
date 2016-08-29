@@ -1,19 +1,22 @@
-package process.training;
+package process;
 
-import GUI.ImageHandler;
 import javafx.util.Pair;
 import jeigen.DenseMatrix;
-import process.Conf;
-import process.DecisionStump;
 
-import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.*;
 
 import static java.lang.Math.log;
+import static java.util.Comparator.comparing;
 import static javafx.application.Platform.exit;
 import static process.features.FeatureExtractor.computeSetFeatures;
+import static process.features.FeatureExtractor.countAllFeatures;
+import static utils.Serializer.appendArrayToDisk;
+import static utils.Serializer.readIntFromDisk;
 import static utils.Utils.countFiles;
+import static utils.Utils.listFiles;
 
 public class Classifier {
     /**
@@ -38,16 +41,18 @@ public class Classifier {
 
     private static int adaboostPasses = 0;
     /* --- CLASS VARIABLES --- */
-    private final int countTrainPos;
-    private final int countTrainNeg;
-    private final int trainN;
+    private int countTrainPos;
+    private int countTrainNeg;
+    private int trainN;
 
-    private final int countTestPos;
-    private final int countTestNeg;
-    private final int testN;
+    private long featureCount;
 
-    private final String train_dir;
-    private final String test_dir;
+    private int countTestPos;
+    private int countTestNeg;
+    private int testN;
+
+    private String train_dir;
+    private String test_dir;
 
     private final int width;
     private final int height;
@@ -63,20 +68,11 @@ public class Classifier {
     private DenseMatrix labelsTrain[];
     private DenseMatrix labelsTest[];
 
-    public Classifier(String train_dir, String test_dir, int width, int height) {
-        this.train_dir = train_dir;
-        this.test_dir = test_dir;
-
+    public Classifier(int width, int height) {
         this.width = width;
         this.height = height;
 
-        countTrainPos = countFiles(train_dir + "/faces", ".png");
-        countTrainNeg = countFiles(train_dir + "/non-faces", ".png");
-        trainN = countTrainNeg + countTrainNeg;
-
-        countTestPos = countFiles(test_dir + "/faces", ".png");
-        countTestNeg = countFiles(test_dir + "/non-faces", ".png");
-        testN = countTestPos + countTestNeg;
+        this.featureCount = countAllFeatures(width, height);
     }
 
     private void predictLabel(int round, int N, float decisionTweak, DenseMatrix prediction, boolean onlyMostRecent) {
@@ -106,7 +102,7 @@ public class Classifier {
             }
         }
 
-        DenseMatrix finalVerdict = memberWeight.mmul(memberVerdict);
+        DenseMatrix finalVerdict = memberWeight.mul(memberVerdict);
         for (int exampleIndex = 0; exampleIndex < N; exampleIndex++)
             prediction.set(1, exampleIndex, finalVerdict.get(1, exampleIndex) > 0 ? 1 : -1);
 
@@ -145,63 +141,6 @@ public class Classifier {
         return committee;
     }
 
-    // TODO: à mettre ds une fonction
-    // Pour chaque feature (60 000)
-    //   vector<pair<valeur-de-la-feature, l'index de l'exemple (image)>> ascendingFeatures;
-    //   Pour chaque exemple
-    //     ascendingFeatures.add(<valeur-de-cette-feature-pour-cet-example, index-de-l'exemple>)
-    //   trier ascendingFeatures en fonction de pair.first
-    //   Write sur disque:
-    //      * OrganizedFeatures (à l'index de la feature actuelle le ascendingFeatures.first en entier) tmp/training
-    //      * OrganizedSample (à l'index de la feature actuelle le ascendingFeatures.second en entier)
-
-    // fileList computed in main
-    public static void organizeFeatures(String[] fileList) {
-        ImageHandler imageHandler = new ImageHandler("data/testset/faces/face00001.png");
-        ArrayList<ArrayList<Integer>> features = imageHandler.getFeatures();
-
-        int nb_features = 0;
-        for (ArrayList<Integer> list : features)
-            nb_features += list.size();
-
-        for (int i = 0; i < nb_features; i++) {
-            ArrayList<Pair<Integer, Integer>> ascendingFeatures = new ArrayList<>();
-            int j = 0;
-            for (String s : fileList) {
-                ImageHandler tmp_image = new ImageHandler(s);
-                ArrayList<ArrayList<Integer>> tmp_features = tmp_image.getFeatures();
-                ArrayList<Integer> allFeat = tmp_features.get(0);
-                allFeat.addAll(tmp_features.get(1));
-                allFeat.addAll(tmp_features.get(2));
-                allFeat.addAll(tmp_features.get(3));
-                allFeat.addAll(tmp_features.get(4));
-                ascendingFeatures.add(new Pair<>(allFeat.get(i), j));
-            }
-
-            // Sort ascending features by first arg of the pair
-            ascendingFeatures.sort((o1, o2) -> o1.getKey() < o2.getKey() ? -1 : o1.getKey() > o2.getKey() ? 1 : 0);
-
-            // Write on disk but does not write over the file (if recomputed the file needs to be erased by hand)
-            try {
-                // true to write after the file
-                FileWriter writer1 = new FileWriter(Conf.ORGANIZED_FEATURES, true);
-                FileWriter writer2 = new FileWriter(Conf.ORGANIZED_SAMPLE, true);
-                for (Pair pair : ascendingFeatures) {
-                    writer1.write(pair.getKey().toString() + ";");
-                    writer2.write(pair.getValue().toString() + ";");
-                }
-                writer1.write(System.lineSeparator());
-                writer2.write(System.lineSeparator());
-
-                writer1.close();
-                writer2.close();
-
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
     // p141 in paper?
     private float[] calcEmpiricalError(int round, int N, int countPos, DenseMatrix labels) {
         // STATE: OK & CHECKED 16/26/08
@@ -218,7 +157,7 @@ public class Classifier {
             verdicts = verdicts.min(layerPrediction);
         }
 
-        DenseMatrix agree = labels.mmul(verdicts.t());
+        DenseMatrix agree = labels.mul(verdicts.t());
         for (int exampleIndex = 0; exampleIndex < N; exampleIndex++) {
             if (agree.get(0, exampleIndex) < 0) {
                 if (exampleIndex < countPos) {
@@ -318,7 +257,65 @@ public class Classifier {
         }
     }
 
-    public void train(float overallTargetDetectionRate, float overallTargetFalsePositiveRate,
+    private void organizeFeatures() {
+        /**
+         * Pour chaque feature:
+         *      vector<pair<valeur-de-la-feature, l'index de l'exemple (image)>> ascendingFeatures;
+         *      Pour chaque exemple:
+         *          ascendingFeatures.add(<valeur-de-cette-feature-pour-cet-example, index-de-l'exemple>)
+         *          trier ascendingFeatures en fonction de pair.first
+         *          Write sur disque:
+         *              * OrganizedFeatures (à l'index de la feature actuelle le ascendingFeatures.first en entier) tmp/training
+         *              * OrganizedSample (à l'index de la feature actuelle le ascendingFeatures.second en entier)
+         */
+        if (Files.exists(Paths.get(Conf.ORGANIZED_FEATURES)))
+            try {
+                Files.delete(Paths.get(Conf.ORGANIZED_FEATURES));
+            } catch (IOException e) {
+                System.err.println("Could not delete " + Conf.ORGANIZED_FEATURES + " file!");
+                exit();
+            }
+
+        final Comparator<Pair<Integer, Integer>> c = comparing(Pair::getValue);
+
+        ArrayList<String> examples = listFiles(test_dir, Conf.IMAGES_EXTENSION);
+        for (long featureIndex = 0; featureIndex < featureCount; featureIndex++){
+            // <exampleIndex, value>
+            ArrayList<Pair<Integer, Integer>> ascendingFeatures = new ArrayList<>();
+
+
+            for (int exampleIndex = 0; exampleIndex < trainN; exampleIndex++) {
+                ascendingFeatures.add(new Pair<>(exampleIndex, readIntFromDisk(examples.get(exampleIndex), featureIndex)));
+            }
+            ascendingFeatures.stream().sorted(c);
+
+            ArrayList<Integer> permutedSamples = new ArrayList<>(trainN);
+            ArrayList<Integer> permutedFeatures = new ArrayList<>(trainN);
+
+            for (int k = 0; k < trainN; k++) {
+                permutedSamples.set(k, ascendingFeatures.get(k).getKey());
+                permutedFeatures.set(k, ascendingFeatures.get(k).getValue());
+            }
+
+            appendArrayToDisk(Conf.ORGANIZED_SAMPLE, permutedSamples);
+            appendArrayToDisk(Conf.ORGANIZED_FEATURES, permutedFeatures);
+        }
+    }
+
+    private void computeFeaturesTimed(String path) {
+        System.out.println("Computing features for:");
+        System.out.println("  - " + path);
+        int count = 0;
+        long startTime = System.currentTimeMillis();
+        count += computeSetFeatures(path + "/faces", path + "/non-faces", true);
+        long elapsedTimeMS = (new Date()).getTime() - startTime;
+        System.out.println("Statistics:");
+        System.out.println("  - Elapsed time: " + elapsedTimeMS / 1000 + "s");
+        System.out.println("  - Images computed: " + count);
+        System.out.println("  - image/seconds: " + count / (elapsedTimeMS / 1000));
+    }
+
+    public void train(String dir, float overallTargetDetectionRate, float overallTargetFalsePositiveRate,
                       float targetDetectionRate, float targetFalsePositiveRate) {
         /**
          * In order to avoid excessive memory usage, this training temporary stores metadata on disk.         *
@@ -331,24 +328,19 @@ public class Classifier {
             return;
         }
 
+        train_dir = dir;
+        countTrainPos = countFiles(train_dir + "/faces", Conf.IMAGES_EXTENSION);
+        countTrainNeg = countFiles(train_dir + "/non-faces", Conf.IMAGES_EXTENSION);
+        trainN = countTrainNeg + countTrainNeg;
+
         // FIXME: What is that?
         layerMemory = new ArrayList<>();
 
         // Compute all features for train & test set
-        {
-            System.out.println("Pre-computing features for:");
-            System.out.println("  - " + train_dir);
-            System.out.println("  - " + test_dir);
-            int count = 0;
-            long startTime = System.currentTimeMillis();
-            count += computeSetFeatures(train_dir + "/faces", train_dir + "/non-faces", true);
-            count += computeSetFeatures(test_dir + "/faces", test_dir + "/non-faces", true);
-            long elapsedTimeMS = (new Date()).getTime() - startTime;
-            System.out.println("Statistics:");
-            System.out.println("  - Elapsed time: " + elapsedTimeMS / 1000 + "s");
-            System.out.println("  - Images computed: " + count);
-            System.out.println("  - image/seconds: " + count / (elapsedTimeMS / 1000));
-        }
+        computeFeaturesTimed(train_dir);
+
+        // Now organize all those features, so that it is easier to make requests on it
+        organizeFeatures();
 
         // Estimated number of rounds needed
         int boostingRounds = (int) (Math.ceil(Math.log(overallTargetFalsePositiveRate) / Math.log(targetFalsePositiveRate)) + 20);
@@ -413,5 +405,23 @@ public class Classifier {
 
         // Serialize training
         computed = true;
+    }
+
+    public float test(String dir) {
+        if (!computed) {
+            System.err.println("Train the classifier before testing it!");
+            exit();
+        }
+
+        test_dir = dir;
+        countTestPos = countFiles(test_dir + "/faces", Conf.IMAGES_EXTENSION);
+        countTestNeg = countFiles(test_dir + "/non-faces", Conf.IMAGES_EXTENSION);
+        testN = countTestPos + countTestNeg;
+
+        computeFeaturesTimed(test_dir);
+
+        // TODO: after the training has been done, we can test on a new set of images.
+
+        return 0;
     }
 }

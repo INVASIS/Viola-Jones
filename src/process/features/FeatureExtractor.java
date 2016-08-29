@@ -10,7 +10,7 @@ import java.util.ArrayList;
 import java.util.stream.Collectors;
 
 import static process.IntegralImage.rectangleSum;
-import static process.features.FeaturesSerializer.imageFeaturesToDisk;
+import static utils.Serializer.appendArrayOfArrayToDisk;
 import static utils.Utils.streamFiles;
 
 
@@ -296,7 +296,7 @@ public class FeatureExtractor {
         }
 
         if (writeToDisk)
-            imageFeaturesToDisk(imagePath + Conf.FEATURE_EXTENSION, result);
+            appendArrayOfArrayToDisk(imagePath + Conf.FEATURE_EXTENSION, result);
 
         return result;
     }
@@ -307,7 +307,7 @@ public class FeatureExtractor {
          */
 
         int count = 0;
-        for (String imagePath :  streamFiles(dir, Conf.IMAGES_EXTENSION)) {
+        for (String imagePath : streamFiles(dir, Conf.IMAGES_EXTENSION)) {
             if (!Files.exists(Paths.get(imagePath + Conf.FEATURE_EXTENSION)))
             {
                 computeImageFeatures(imagePath, writeToDisk);

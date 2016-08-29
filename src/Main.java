@@ -1,5 +1,5 @@
+import process.Classifier;
 import process.Conf;
-import process.training.Classifier;
 
 
 public class Main {
@@ -14,7 +14,8 @@ public class Main {
         if (Conf.USE_CUDA)
             Conf.haarExtractor.setUp(19, 19);
 
-        Classifier classifier = new Classifier("data/trainset", "data/testset", 19, 19);
-        classifier.train(overallTargetDetectionRate, overallTargetFalsePositiveRate, targetDetectionRate, targetFalsePositiveRate);
+        Classifier classifier = new Classifier(19, 19);
+        classifier.train("data/trainset", overallTargetDetectionRate, overallTargetFalsePositiveRate, targetDetectionRate, targetFalsePositiveRate);
+        classifier.test("data/testset");
     }
 }

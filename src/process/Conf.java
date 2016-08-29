@@ -14,8 +14,9 @@ public class Conf {
     public final static boolean USE_CUDA = isCUDAAvailable();
     public final static String TMP_DIR = "tmp";
     public final static String TRAIN_DIR = TMP_DIR + "/training";
-    public final static String ORGANIZED_FEATURES = TRAIN_DIR + "/organizedFeatures";
-    public final static String ORGANIZED_SAMPLE = TRAIN_DIR + "/organizedSample";
+    public final static String TEST_DIR = TMP_DIR + "/test";
+    public final static String ORGANIZED_FEATURES = TRAIN_DIR + "/organizedFeatures.data";
+    public final static String ORGANIZED_SAMPLE = TRAIN_DIR + "/organizedSample.data";
     public final static String TRAIN_FEATURES = TRAIN_DIR + "/featuresValues.data";
     public final static int TRAIN_MAX_CONCURENT_PROCESSES = 1; // FIXME
     public final static boolean PATH_CREATED = createPaths();
@@ -42,6 +43,7 @@ public class Conf {
         try {
             Files.createDirectories(Paths.get(TMP_DIR));
             Files.createDirectories(Paths.get(TRAIN_DIR));
+            Files.createDirectories(Paths.get(TEST_DIR));
             return true;
         } catch (IOException e) {
             e.printStackTrace();

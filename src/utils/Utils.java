@@ -37,6 +37,14 @@ public class Utils {
         };
     }
 
+    public static ArrayList<String> listFiles(String dir, String ext) {
+        ArrayList<String> result = new ArrayList<>();
+        for (String s : streamFiles(dir, ext)) {
+            result.add(s);
+        }
+        return result;
+    }
+
     public static Yielderable<BufferedImage> streamImages(String dir, String ext) {
         return yield -> {
             for (String p : streamFiles(dir, ext)) {

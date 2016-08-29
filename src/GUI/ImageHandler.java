@@ -14,7 +14,7 @@ import java.util.*;
 
 import static javafx.application.Platform.exit;
 import static process.features.FeatureExtractor.computeImageFeatures;
-import static process.features.FeaturesSerializer.imageFeaturesFromDisk;
+import static utils.Serializer.readArrayOfArrayFromDisk;
 
 public class ImageHandler {
 
@@ -111,7 +111,7 @@ public class ImageHandler {
         String haarFilePath = filePath + Conf.FEATURE_EXTENSION;
 
         if (Files.exists(Paths.get(haarFilePath)))
-            return imageFeaturesFromDisk(haarFilePath);
+            return readArrayOfArrayFromDisk(haarFilePath);
         else
             return computeImageFeatures(filePath, true);
     }
