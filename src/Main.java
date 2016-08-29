@@ -4,6 +4,7 @@ import process.Conf;
 
 public class Main {
     public static void main(String[] args) {
+        Conf.haarExtractor.setUp(19, 19);
 
         // TODO : TO CONSTANTS
         float overallTargetDetectionRate = 0.80f;

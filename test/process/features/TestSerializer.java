@@ -9,9 +9,9 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 
 import static junit.framework.TestCase.assertEquals;
-import static utils.Serializer.appendArrayToDisk;
+import static process.features.FeatureExtractor.computeImageFeatures;
+import static utils.Serializer.*;
 import static utils.Serializer.readArrayOfArrayFromDisk;
-import static utils.Serializer.readIntFromDisk;
 
 
 public class TestSerializer {
@@ -37,8 +37,40 @@ public class TestSerializer {
         assertEquals(result.get(1).get(4), new Integer(10));
         assertEquals(result.get(0).get(0), new Integer(1));
         assertEquals(readIntFromDisk(filePath, 1, 3), 6);
+        assertEquals(readIntFromDisk(filePath, 4+4), 6);
         try {
             Files.delete(Paths.get(filePath));
         } catch (IOException e) {/*ignored*/}
+        writeArrayOfArrayToDisk(filePath, result);
+        result = readArrayOfArrayFromDisk(filePath);
+        assertEquals(result.get(0).get(4), new Integer(7));
+        assertEquals(result.get(1).get(4), new Integer(10));
+        assertEquals(result.get(0).get(0), new Integer(1));
+        assertEquals(readIntFromDisk(filePath, 1, 3), 6);
+        assertEquals(readIntFromDisk(filePath, 4+4), 6);
+        try {
+            Files.delete(Paths.get(filePath));
+        } catch (IOException e) {/*ignored*/}
+    }
+
+    @Test
+    public void computeWriteAndRead() {
+        String img = "data/trainset/faces/face00001.png";
+        String haar = img + Conf.FEATURE_EXTENSION;
+
+        if (Files.exists(Paths.get(haar))) {
+            try {
+                Files.delete(Paths.get(haar));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        ArrayList<ArrayList<Integer>> correctValues = computeImageFeatures(img, true);
+        ArrayList<ArrayList<Integer>> writtenValues = readArrayOfArrayFromDisk(haar);
+
+        for (int i = 0; i < correctValues.size(); i++)
+            for (int j = 0; j < correctValues.get(0).size(); j++)
+                assertEquals(writtenValues.get(i).get(j), correctValues.get(i).get(j));
     }
 }

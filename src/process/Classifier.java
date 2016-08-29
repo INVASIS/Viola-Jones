@@ -278,7 +278,7 @@ public class Classifier {
 
         final Comparator<Pair<Integer, Integer>> c = comparing(Pair::getValue);
 
-        ArrayList<String> examples = listFiles(test_dir, Conf.IMAGES_EXTENSION);
+        ArrayList<String> examples = listFiles(train_dir, Conf.IMAGES_EXTENSION);
         for (long featureIndex = 0; featureIndex < featureCount; featureIndex++){
             // <exampleIndex, value>
             ArrayList<Pair<Integer, Integer>> ascendingFeatures = new ArrayList<>();
@@ -331,7 +331,9 @@ public class Classifier {
         train_dir = dir;
         countTrainPos = countFiles(train_dir + "/faces", Conf.IMAGES_EXTENSION);
         countTrainNeg = countFiles(train_dir + "/non-faces", Conf.IMAGES_EXTENSION);
-        trainN = countTrainNeg + countTrainNeg;
+        trainN = countTrainPos + countTrainNeg;
+        System.out.println("Total number of training images: " + trainN +
+                " (pos: " + countTrainPos + ", neg: " + countTrainNeg + ")");
 
         // FIXME: What is that?
         layerMemory = new ArrayList<>();

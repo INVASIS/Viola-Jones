@@ -10,7 +10,7 @@ import java.util.ArrayList;
 import java.util.stream.Collectors;
 
 import static process.IntegralImage.rectangleSum;
-import static utils.Serializer.appendArrayOfArrayToDisk;
+import static utils.Serializer.writeArrayOfArrayToDisk;
 import static utils.Utils.streamFiles;
 
 
@@ -273,6 +273,7 @@ public class FeatureExtractor {
 
     // Warning: Need to train and evaluate on the same features : only on GPU or only on CPU
     public static ArrayList<ArrayList<Integer>> computeImageFeatures(String imagePath, boolean writeToDisk) {
+        System.out.println("computeImageFeatures(" + imagePath + ")");
         ImageHandler image = new ImageHandler(imagePath);
 
         ArrayList<ArrayList<Integer>> result = new ArrayList<>();
@@ -296,7 +297,7 @@ public class FeatureExtractor {
         }
 
         if (writeToDisk)
-            appendArrayOfArrayToDisk(imagePath + Conf.FEATURE_EXTENSION, result);
+            writeArrayOfArrayToDisk(imagePath + Conf.FEATURE_EXTENSION, result);
 
         return result;
     }

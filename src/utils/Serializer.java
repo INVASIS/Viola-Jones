@@ -1,5 +1,6 @@
 package utils;
 import java.io.*;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -33,17 +34,17 @@ public class Serializer {
         }
     }
 
-    public static void appendArrayOfArrayToDisk(String filePath, ArrayList<ArrayList<Integer>> values) {
+    public static void writeArrayOfArrayToDisk(String filePath, ArrayList<ArrayList<Integer>> values) {
+        System.out.println("writeArrayOfArrayToDisk(" + filePath + ")");
+        if (Files.exists(Paths.get(filePath))) {
+            new FileAlreadyExistsException(filePath).printStackTrace();
+            exit();
+        }
+        
         DataOutputStream os;
         try {
-            boolean b = Files.exists(Paths.get(filePath));
-            if (!b) {
-                os = new DataOutputStream(new FileOutputStream(filePath, false));
-                os.writeInt(values.get(0).size()); // First int will always be the size of the array!
-            }
-            else {
-                os = new DataOutputStream(new FileOutputStream(filePath, true));
-            }
+            os = new DataOutputStream(new FileOutputStream(filePath, false));
+            os.writeInt(values.get(0).size()); // First int will always be the size of the array!
             for (ArrayList<Integer> a : values)
                 for (Integer i : a)
                     os.writeInt(i);
@@ -69,17 +70,26 @@ public class Serializer {
     }
 
     public static ArrayList<ArrayList<Integer>> readArrayOfArrayFromDisk(String filePath) {
-        boolean b = true;
         int i = 0;
 
         ArrayList<ArrayList<Integer>> result = new ArrayList<>();
-        while (b) {
-            try {
-                result.add(readArrayFromDisk(filePath, i));
-                i++;
-            } catch (IOException e) {
-                b = false;
+        try {
+            DataInputStream os = new DataInputStream(new FileInputStream(filePath));
+            int elementsByArray = os.readInt();
+            while (true) {
+                try {
+                    ArrayList<Integer> tmp = new ArrayList<>();
+                    for (int j = 0; j < elementsByArray; j++)
+                        tmp.add(os.readInt());
+                    result.add(tmp);
+                    i++;
+                } catch (EOFException e) {
+                    break;
+                }
             }
+        } catch (IOException e) {
+            e.printStackTrace();
+            exit();
         }
         return result;
     }
