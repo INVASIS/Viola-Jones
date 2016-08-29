@@ -3,7 +3,7 @@ package process;
 import javafx.util.Pair;
 import jeigen.DenseMatrix;
 
-import java.io.IOException;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
@@ -27,9 +27,8 @@ public class Classifier {
      * A Weak classifier is just a simple basic classifier, it could be Binary, Naive Bayes or anything else.
      * The only need for a weak classifier is to return results with a success rate > 0.5, which is actually better than random.
      * The combination of all these Weak classifier create of very good classifier, which is called the Strong classifier.
-     *
+     * <p>
      * This is what we call Adaboosting.
-     *
      */
 
     /* --- CONSTANTS FOR TRAINING --- */
@@ -40,6 +39,7 @@ public class Classifier {
     private static final double GOAL = 1e-7;
 
     private static int adaboostPasses = 0;
+
     /* --- CLASS VARIABLES --- */
     private int countTrainPos;
     private int countTrainNeg;
@@ -63,10 +63,11 @@ public class Classifier {
     private ArrayList<DecisionStump>[] cascade;
     private ArrayList<Float> tweaks;
 
-    private DenseMatrix weightsTrain[];
-    private DenseMatrix weightsTest[];
-    private DenseMatrix labelsTrain[];
-    private DenseMatrix labelsTest[];
+    // FIXME : the [] was removed
+    private DenseMatrix weightsTrain;
+    private DenseMatrix weightsTest;
+    private DenseMatrix labelsTrain;
+    private DenseMatrix labelsTest;
 
     public Classifier(int width, int height) {
         this.width = width;
@@ -118,23 +119,44 @@ public class Classifier {
         ArrayList<DecisionStump> committee = new ArrayList<>();
 
         // TODO : when we have the list of list of features and the weights
-        //DecisionStump bestDS = DecisionStump.bestStump(features, weights);
+        //DecisionStump bestDS = DecisionStump.bestStump(features, weightsTrain);
         //committee.add(bestDS);
+        adaboostPasses++;
 
         DenseMatrix prediction = new DenseMatrix(1, N);
         predictLabel(round, N, 0, prediction, true);
-        adaboostPasses++;
+
+        // cwise product = mul
+        //DenseMatrix agree = labelsTrain[round].mul(prediction.t());
+        DenseMatrix agree = labelsTrain.mul(prediction.t());
+
+        DenseMatrix weightUpdate = DenseMatrix.ones(1, N);
 
         boolean werror = false;
 
+        for (int index = 0; index < N; index++) {
+            if (agree.get(0, index) < 0) {
+                // TODO : uncomment when the decisionStump is computed
+                //weightUpdate[index] = 1 / bestDS.getError() - 1;
+                werror = true;
+            }
+        }
+
         if (werror) {
             // Update weights
-            // Update pos and neg weights
+            weightsTrain = weightsTrain.mul(weightUpdate);
+            DecisionStump.positiveTotalWeights = 0;
+
+            for (int i = 0; i < weightsTrain.cols; i++) {
+                weightsTrain.set(0, i, weightsTrain.get(0, i) / weightsTrain.s());
+
+                // Update pos weight
+                if (i < countTrainPos)
+                    DecisionStump.positiveTotalWeights += weightsTrain.get(0, i);
+            }
+
             // Update positiveTotalWeights
-
-        } else {
-            // Training ends, just return
-
+            // minWeight ?
         }
 
         System.out.println("Adaboost passes : " + adaboostPasses);
@@ -202,17 +224,23 @@ public class Classifier {
             while (Math.abs(tweak) < 1.1) {
                 tweaks.set(round, tweak);
 
-                float tmp[] = calcEmpiricalError(round, trainN, countTrainPos, labelsTrain[round]);
+                float tmp[] = calcEmpiricalError(round, trainN, countTrainPos, labelsTrain);
                 ctrlFalsePositive = tmp[0];
                 ctrlDetectionRate = tmp[1];
 
-                tmp = calcEmpiricalError(round, testN, countTestPos, labelsTest[round]);
+                /*
+                // FIXME : train without using the test values... maybe less detection rate doing that ?
+                tmp = calcEmpiricalError(round, testN, countTestPos, labelsTest);
                 falsePositive = tmp[0];
                 detectionRate = tmp[1];
 
 
                 float worstFalsePositive = Math.max(falsePositive, ctrlFalsePositive);
                 float worstDetectionRate = Math.min(detectionRate, ctrlDetectionRate);
+                */
+
+                float worstFalsePositive = ctrlFalsePositive;
+                float worstDetectionRate = ctrlDetectionRate;
 
                 if (finalTweak) {
                     if (worstDetectionRate >= 0.99) {
@@ -279,7 +307,7 @@ public class Classifier {
         final Comparator<Pair<Integer, Integer>> c = comparing(Pair::getValue);
 
         ArrayList<String> examples = listFiles(test_dir, Conf.IMAGES_EXTENSION);
-        for (long featureIndex = 0; featureIndex < featureCount; featureIndex++){
+        for (long featureIndex = 0; featureIndex < featureCount; featureIndex++) {
             // <exampleIndex, value>
             ArrayList<Pair<Integer, Integer>> ascendingFeatures = new ArrayList<>();
 
@@ -321,8 +349,6 @@ public class Classifier {
          * In order to avoid excessive memory usage, this training temporary stores metadata on disk.         *
          */
 
-        // TODO : mettre a jour positiveTotalWeights de DecisionStump
-
         if (computed) {
             System.out.println("Training already done!");
             return;
@@ -333,7 +359,7 @@ public class Classifier {
         countTrainNeg = countFiles(train_dir + "/non-faces", Conf.IMAGES_EXTENSION);
         trainN = countTrainNeg + countTrainNeg;
 
-        // FIXME: What is that?
+        // FIXME: What is that? - Used later
         layerMemory = new ArrayList<>();
 
         // Compute all features for train & test set
@@ -353,21 +379,27 @@ public class Classifier {
             cascade[i] = new ArrayList<>();
 
         // Init weights & labels
-        weightsTrain = new DenseMatrix[boostingRounds];
-        weightsTest = new DenseMatrix[boostingRounds];
-        labelsTrain = new DenseMatrix[boostingRounds];
-        labelsTest = new DenseMatrix[boostingRounds];
-        for (int i = 0; i < boostingRounds; i++) {
-            weightsTest[i] = new DenseMatrix(testN, 1);
-            labelsTest[i] = new DenseMatrix(testN, 1);
-            weightsTrain[i] = new DenseMatrix(trainN, 1);
-            labelsTrain[i] = new DenseMatrix(trainN, 1);
-        }
+        // FIXME : already init later in the next for
 
         double accumulatedFalsePositive = 1;
 
         // Training: run Cascade until we arrive to a certain wanted rate of success
         for (int round = 0; round < boostingRounds && accumulatedFalsePositive > GOAL; round++) {
+
+            DecisionStump.positiveTotalWeights = 0.5;
+
+            // TODO : for now only for train
+            double posAverageWeight = DecisionStump.positiveTotalWeights / countTrainPos;
+            double negAverageWeight = (1 - DecisionStump.positiveTotalWeights) / countTrainNeg;
+
+            labelsTrain = new DenseMatrix(1, trainN);
+            weightsTrain = new DenseMatrix(1, trainN);
+
+            // FIXME : sould it be sorted in ascending order ?
+            for (int i = 0; i < trainN; i++) {
+                labelsTrain.set(0, i, i < countTrainPos ? 1 : -1);
+                weightsTrain.set(0, i, i < countTrainPos ? posAverageWeight : negAverageWeight);
+            }
 
             int committeeSizeGuide = Math.min(20 + round * 10, 200);
             System.out.println("CommitteeSizeGuide = " + committeeSizeGuide);
@@ -384,27 +416,91 @@ public class Classifier {
             System.out.println("The committee size is " + cascade[round].size());
 
             float detectionRate, falsePositive;
-            float[] tmp = calcEmpiricalError(round, trainN, countTrainPos, labelsTrain[round]);
+            float[] tmp = calcEmpiricalError(round, trainN, countTrainPos, labelsTrain);
             falsePositive = tmp[0];
             detectionRate = tmp[1];
             System.out.println("The current tweak " + tweaks.get(round) + " has falsePositive " + falsePositive + " and detectionRate " + detectionRate + " on the training examples.");
 
-            tmp = calcEmpiricalError(round, testN, countTestPos, labelsTest[round]);
+            /*
+            tmp = calcEmpiricalError(round, testN, countTestPos, labelsTest);
             falsePositive = tmp[0];
             detectionRate = tmp[1];
             System.out.println("The current tweak " + tweaks.get(round) + " has falsePositive " + falsePositive + " and detectionRate " + detectionRate + " on the validation examples.");
-
+            */
             accumulatedFalsePositive *= falsePositive;
             System.out.println("Accumulated False Positive Rate is around " + accumulatedFalsePositive);
 
+            // TODO : blackList ??
+
             //record the boosted rule into a target file
-            // TODO: recordRule(target.toFile, cascade[round], round == 0, round == boostingRounds - 1 || accumulatedFalsePositive < GOAL);
+            recordRule(cascade[round], round == 0, round == boostingRounds - 1 || accumulatedFalsePositive <= GOAL);
+
         }
-        // TODO: record layerMemory
+        recordLayerMemory();
 
 
         // Serialize training
         computed = true;
+    }
+
+    private void recordRule(ArrayList<DecisionStump> committee, boolean firstRound, boolean lastRound) {
+
+        try {
+            int memberCount = committee.size();
+
+            PrintWriter writer = new PrintWriter(new FileWriter(Conf.TRAIN_FEATURES, true));
+
+            if (firstRound)
+                writer.println(System.lineSeparator() + "double stumps[][4]={");
+
+            for (int i = 0; i < memberCount; i++) {
+                DecisionStump decisionStump = committee.get(i);
+                writer.print("{" + decisionStump.getFeatureIndex() + "," + decisionStump.getError() + ","
+                        + decisionStump.getThreshold() + "," + decisionStump.getToggle() + "}");
+
+                if (i == memberCount - 1 && lastRound)
+                    writer.println(System.lineSeparator() + "};");
+                else
+                    writer.println(",");
+            }
+
+            writer.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void recordLayerMemory() {
+
+        try {
+            int layerCount = this.layerMemory.size();
+            PrintWriter writer = new PrintWriter(new FileWriter(Conf.TRAIN_FEATURES, true));
+
+            writer.println("int layerCount=" + layerCount + ";");
+            writer.print("int layerCommitteeSize[]={");
+
+            for (int i = 0; i < layerCount; i++) {
+                writer.print(this.layerMemory.get(i));
+                if (i < layerCount - 1)
+                    writer.print(",");
+                else
+                    writer.println("};");
+            }
+
+            writer.print("float tweaks[]={");
+            for (int i = 0; i < layerCount; i++) {
+                writer.print(this.tweaks.get(i));
+                if (i < layerCount - 1)
+                    writer.print(",");
+                else
+                    writer.println("};");
+            }
+
+            writer.close();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public float test(String dir) {
@@ -425,3 +521,4 @@ public class Classifier {
         return 0;
     }
 }
+

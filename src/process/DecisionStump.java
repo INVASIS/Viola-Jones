@@ -1,6 +1,7 @@
 package process;
 
 import javafx.util.Pair;
+import jeigen.DenseMatrix;
 
 import java.util.ArrayList;
 import java.util.Objects;
@@ -23,11 +24,11 @@ public class DecisionStump { // == stumpRule
     private double lNeg;
 
     private ArrayList<Pair<Integer, Boolean>> features;
-    private ArrayList<Double> w;
+    private DenseMatrix weights;
 
 
     // Initialisation
-    public DecisionStump(ArrayList<Pair<Integer, Boolean>> features, ArrayList<Double> w, int featureIndex) {
+    public DecisionStump(ArrayList<Pair<Integer, Boolean>> features, DenseMatrix w, int featureIndex) {
 
         this.featureIndex = featureIndex;
         this.error = 2;
@@ -43,7 +44,7 @@ public class DecisionStump { // == stumpRule
 
         // Should be arranged in ascending order
         this.features = (ArrayList<Pair<Integer, Boolean>>) features.clone();
-        this.w = (ArrayList<Double>) w.clone();
+        this.weights =  w;
 
     }
 
@@ -86,11 +87,11 @@ public class DecisionStump { // == stumpRule
             while (true) {
 
                 if (!this.features.get(iter).getValue()) {
-                    this.lNeg += this.w.get(iter);
-                    this.rNeg -= this.w.get(iter);
+                    this.lNeg += this.weights.get(0, iter);
+                    this.rNeg -= this.weights.get(0, iter);
                 } else {
-                    this.lPos += this.w.get(iter);
-                    this.rPos -= this.w.get(iter);
+                    this.lPos += this.weights.get(0, iter);
+                    this.rPos -= this.weights.get(0, iter);
                 }
 
                 if (iter == num_features || Objects.equals(this.features.get(iter).getKey(), this.features.get(iter + 1).getKey()))
@@ -112,7 +113,7 @@ public class DecisionStump { // == stumpRule
     /**
      * <Integer, Boolean> indique pour chaque feature (qui normalement doivent etre triées), si c'est un face ou non-face
      */
-    public static DecisionStump bestStump(ArrayList<ArrayList<Pair<Integer, Boolean>>> features, ArrayList<Double> w) {
+    public static DecisionStump bestStump(ArrayList<ArrayList<Pair<Integer, Boolean>>> features, DenseMatrix w) {
         /**
          * VERIF OK
          * Not exactly like in the implem, but improved a bit...
@@ -156,3 +157,4 @@ public class DecisionStump { // == stumpRule
         return featureIndex;
     }
 }
+
