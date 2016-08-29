@@ -1,5 +1,6 @@
 package process.features;
 
+import cuda.HaarExtractor;
 import org.junit.Test;
 import process.Conf;
 
@@ -55,6 +56,7 @@ public class TestSerializer {
 
     @Test
     public void computeWriteAndRead() {
+        Conf.haarExtractor.setUp(19, 19);
         String img = "data/trainset/faces/face00001.png";
         String haar = img + Conf.FEATURE_EXTENSION;
 
@@ -70,7 +72,7 @@ public class TestSerializer {
         ArrayList<ArrayList<Integer>> writtenValues = readArrayOfArrayFromDisk(haar);
 
         for (int i = 0; i < correctValues.size(); i++)
-            for (int j = 0; j < correctValues.get(0).size(); j++)
+            for (int j = 0; j < correctValues.get(i).size(); j++)
                 assertEquals(writtenValues.get(i).get(j), correctValues.get(i).get(j));
     }
 }
