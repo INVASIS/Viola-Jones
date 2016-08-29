@@ -1,6 +1,5 @@
 package process.features;
 
-import cuda.HaarExtractor;
 import org.junit.Test;
 import process.Conf;
 
@@ -16,6 +15,11 @@ import static utils.Serializer.readArrayOfArrayFromDisk;
 
 
 public class TestSerializer {
+
+
+    // FIXME : J'ai fix l'autre test mais ça fait rater celui la
+    // car j'ai modifié readArrayOfArrasFromDisk pour le fix.
+    // Je laisse comme ça que tu change en fonction de ce qu'il te convient le mieux
     @Test
     public void writeReadArray() {
         String filePath = Conf.TEST_DIR + "/writeReadArray.data";

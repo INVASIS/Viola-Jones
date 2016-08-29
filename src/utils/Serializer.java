@@ -43,11 +43,13 @@ public class Serializer {
         
         DataOutputStream os;
         try {
+            int j = 0;
             os = new DataOutputStream(new FileOutputStream(filePath, false));
-            os.writeInt(values.get(0).size()); // First int will always be the size of the array!
-            for (ArrayList<Integer> a : values)
+            for (ArrayList<Integer> a : values) {
+                os.writeInt(values.get(j++).size()); // First int will always be the size of the array! - Nope ! arrays are not always the same length :)
                 for (Integer i : a)
                     os.writeInt(i);
+            }
             os.close();
         } catch (IOException e) {
             System.err.println("Could not write to " + filePath);
@@ -75,9 +77,9 @@ public class Serializer {
         ArrayList<ArrayList<Integer>> result = new ArrayList<>();
         try {
             DataInputStream os = new DataInputStream(new FileInputStream(filePath));
-            int elementsByArray = os.readInt();
             while (true) {
                 try {
+                    int elementsByArray = os.readInt();
                     ArrayList<Integer> tmp = new ArrayList<>();
                     for (int j = 0; j < elementsByArray; j++)
                         tmp.add(os.readInt());
