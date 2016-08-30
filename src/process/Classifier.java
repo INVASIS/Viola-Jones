@@ -316,21 +316,25 @@ public class Classifier {
                 exit();
             }
 
-
         final Comparator<Pair<Integer, Integer>> c = comparing(Pair::getValue);
 
         ArrayList<String> examples = new ArrayList<>(trainN);
         examples.addAll(train_faces);
         examples.addAll(train_nonfaces);
 
+        assert examples.size() == trainN;
+
         long presumableFreeMemory = Runtime.getRuntime().maxMemory() - (Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory());
-        boolean allInMemory = presumableFreeMemory > (readArrayFromDisk(examples.get(0)).size() * Integer.BYTES * trainN);
+        long neededMemory = featureCount * Integer.BYTES * trainN;
+        System.out.println("  - Needed memory: " + neededMemory + " (presumable free memory: " + presumableFreeMemory + ")");
+        boolean allInMemory = presumableFreeMemory > neededMemory;
 
         ArrayList<ArrayList<Integer>> allImagesFeatures = null;
         if (allInMemory) {
             allImagesFeatures = new ArrayList<>();
             for (String e : examples)
                 allImagesFeatures.add(readArrayFromDisk(e + Conf.FEATURE_EXTENSION));
+            System.out.println("  - Prefetched all images features");
         }
         for (long featureIndex = 0; featureIndex < featureCount; featureIndex++) {
             // <exampleIndex, value>
@@ -400,7 +404,7 @@ public class Classifier {
         train_nonfaces = new ArrayList<>(countTestNeg);
 
         train_faces = listFiles(train_dir + "/faces", Conf.IMAGES_EXTENSION);
-        train_faces = listFiles(train_dir + "/non-faces", Conf.IMAGES_EXTENSION);
+        train_nonfaces = listFiles(train_dir + "/non-faces", Conf.IMAGES_EXTENSION);
 
 
         // FIXME: What is that? - Used later
