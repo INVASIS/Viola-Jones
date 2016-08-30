@@ -15,6 +15,12 @@ public class Main {
         if (Conf.USE_CUDA)
             Conf.haarExtractor.setUp(19, 19);
 
+        System.out.println("Max memory : " + Runtime.getRuntime().maxMemory());
+        System.out.println("Free memory : " + Runtime.getRuntime().freeMemory());
+        System.out.println("Total memory : " + Runtime.getRuntime().totalMemory());
+
+
+
         Classifier classifier = new Classifier(19, 19);
         classifier.train("data/trainset", overallTargetDetectionRate, overallTargetFalsePositiveRate, targetDetectionRate, targetFalsePositiveRate);
         classifier.test("data/testset");

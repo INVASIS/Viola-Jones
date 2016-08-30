@@ -4,6 +4,7 @@ import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Date;
 
 import static javafx.application.Platform.exit;
 
@@ -25,8 +26,8 @@ public class Serializer {
     public static void appendArrayToDisk(String filePath, ArrayList<Integer> values) {
         DataOutputStream os;
         try {
-            os = new DataOutputStream(new FileOutputStream(filePath, fileExists(filePath)));
-            for (Integer i : values)
+            os = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(filePath, fileExists(filePath))));
+            for (int i : values)
                 os.writeInt(i);
             os.close();
         } catch (IOException e) {
@@ -49,7 +50,7 @@ public class Serializer {
 
         DataInputStream os;
         try {
-            os = new DataInputStream(new FileInputStream(filePath));
+            os = new DataInputStream(new BufferedInputStream(new FileInputStream(filePath)));
             while (true) {
                 try {
                     result.add(os.readInt());

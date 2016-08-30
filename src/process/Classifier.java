@@ -398,6 +398,7 @@ public class Classifier {
             weightsTrain = new DenseMatrix(1, trainN);
 
             // FIXME : sould it be sorted in ascending order ?
+            // IMPORTANT : Images should be set as follow : first the countTrainPos first positive images, and then the negative images
             for (int i = 0; i < trainN; i++) {
                 labelsTrain.set(0, i, i < countTrainPos ? 1 : -1);
                 weightsTrain.set(0, i, i < countTrainPos ? posAverageWeight : negAverageWeight);
