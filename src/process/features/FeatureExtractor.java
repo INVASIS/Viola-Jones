@@ -10,7 +10,7 @@ import java.util.ArrayList;
 import java.util.stream.Collectors;
 
 import static process.IntegralImage.rectangleSum;
-import static utils.Serializer.writeArrayOfArrayToDisk;
+import static utils.Serializer.writeArrayToDisk;
 import static utils.Utils.streamFiles;
 
 
@@ -272,32 +272,27 @@ public class FeatureExtractor {
     }
 
     // Warning: Need to train and evaluate on the same features : only on GPU or only on CPU
-    public static ArrayList<ArrayList<Integer>> computeImageFeatures(String imagePath, boolean writeToDisk) {
+    public static ArrayList<Integer> computeImageFeatures(String imagePath, boolean writeToDisk) {
         System.out.println("computeImageFeatures(" + imagePath + ")");
         ImageHandler image = new ImageHandler(imagePath);
 
-        ArrayList<ArrayList<Integer>> result = new ArrayList<>();
+        ArrayList<Integer> result = new ArrayList<>();
         if (Conf.USE_CUDA) {
             Conf.haarExtractor.updateImage(image.getIntegralImage());
             Conf.haarExtractor.compute();
-            result.add(Conf.haarExtractor.getFeaturesA());
-            result.add(Conf.haarExtractor.getFeaturesB());
-            result.add(Conf.haarExtractor.getFeaturesC());
-            result.add(Conf.haarExtractor.getFeaturesD());
-            result.add(Conf.haarExtractor.getFeaturesE());
+            result.addAll(Conf.haarExtractor.getFeaturesA());
+            result.addAll(Conf.haarExtractor.getFeaturesB());
+            result.addAll(Conf.haarExtractor.getFeaturesC());
+            result.addAll(Conf.haarExtractor.getFeaturesD());
+            result.addAll(Conf.haarExtractor.getFeaturesE());
         }
-        else {
-            for (ArrayList<Feature> features : FeatureExtractor.streamFeaturesByType(image)) {
-                ArrayList<Integer> featuresValues = new ArrayList<>();
-                for (Feature f : features) {
-                    featuresValues.add(f.getValue());
-                }
-                result.add(featuresValues);
-            }
-        }
+        else
+            for (ArrayList<Feature> features : FeatureExtractor.streamFeaturesByType(image))
+                for (Feature f : features)
+                    result.add(f.getValue());
 
         if (writeToDisk)
-            writeArrayOfArrayToDisk(imagePath + Conf.FEATURE_EXTENSION, result);
+            writeArrayToDisk(imagePath + Conf.FEATURE_EXTENSION, result);
 
         return result;
     }

@@ -307,7 +307,7 @@ public class Classifier {
         final Comparator<Pair<Integer, Integer>> c = comparing(Pair::getValue);
 
         ArrayList<String> examples = listFiles(train_dir, Conf.IMAGES_EXTENSION);
-        for (long featureIndex = 0; featureIndex < featureCount; featureIndex++){
+        for (long featureIndex = 0; featureIndex < featureCount; featureIndex++) {
             // <exampleIndex, value>
             ArrayList<Pair<Integer, Integer>> ascendingFeatures = new ArrayList<>();
 

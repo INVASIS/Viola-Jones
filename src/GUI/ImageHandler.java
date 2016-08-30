@@ -14,7 +14,7 @@ import java.util.*;
 
 import static javafx.application.Platform.exit;
 import static process.features.FeatureExtractor.computeImageFeatures;
-import static utils.Serializer.readArrayOfArrayFromDisk;
+import static utils.Serializer.readArrayFromDisk;
 
 public class ImageHandler {
 
@@ -23,7 +23,6 @@ public class ImageHandler {
     private int height;
     private int[][] crGrayImage;// Centered & reduced gray image
     private int[][] integralImage;
-    private final UUID uid = UUID.randomUUID();
     private final String filePath;
 
     private void init() {
@@ -107,16 +106,12 @@ public class ImageHandler {
         return filePath;
     }
 
-    public ArrayList<ArrayList<Integer>> getFeatures() {
+    public ArrayList<Integer> getFeatures() {
         String haarFilePath = filePath + Conf.FEATURE_EXTENSION;
 
         if (Files.exists(Paths.get(haarFilePath)))
-            return readArrayOfArrayFromDisk(haarFilePath);
+            return readArrayFromDisk(haarFilePath);
         else
             return computeImageFeatures(filePath, true);
-    }
-
-    public UUID getUid() {
-        return uid;
     }
 }

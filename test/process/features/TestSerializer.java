@@ -11,15 +11,10 @@ import java.util.ArrayList;
 import static junit.framework.TestCase.assertEquals;
 import static process.features.FeatureExtractor.computeImageFeatures;
 import static utils.Serializer.*;
-import static utils.Serializer.readArrayOfArrayFromDisk;
 
 
 public class TestSerializer {
 
-
-    // FIXME : J'ai fix l'autre test mais ça fait rater celui la
-    // car j'ai modifié readArrayOfArrasFromDisk pour le fix.
-    // Je laisse comme ça que tu change en fonction de ce qu'il te convient le mieux
     @Test
     public void writeReadArray() {
         String filePath = Conf.TEST_DIR + "/writeReadArray.data";
@@ -37,25 +32,43 @@ public class TestSerializer {
         r2.add(6);
         r2.add(10);
         appendArrayToDisk(filePath, r2);
-        ArrayList<ArrayList<Integer>> result = readArrayOfArrayFromDisk(filePath);
-        assertEquals(result.get(0).get(4), new Integer(7));
-        assertEquals(result.get(1).get(4), new Integer(10));
-        assertEquals(result.get(0).get(0), new Integer(1));
-        assertEquals(readIntFromDisk(filePath, 1, 3), 6);
-        assertEquals(readIntFromDisk(filePath, 4+4), 6);
+        ArrayList<Integer> result = readArrayFromDisk(filePath);
+        assertEquals(result.get(0), new Integer(1));
+        assertEquals(result.get(1), new Integer(2));
+        assertEquals(result.get(2), new Integer(3));
+        assertEquals(result.get(3), new Integer(5));
+        assertEquals(result.get(4), new Integer(7));
+        assertEquals(result.get(5), new Integer(8));
+        assertEquals(result.get(6), new Integer(9));
+        assertEquals(result.get(7), new Integer(1));
+        assertEquals(result.get(8), new Integer(6));
+        assertEquals(result.get(9), new Integer(10));
+        assertEquals(readIntFromDisk(filePath, 8), 6);
+
         try {
             Files.delete(Paths.get(filePath));
-        } catch (IOException e) {/*ignored*/}
-        writeArrayOfArrayToDisk(filePath, result);
-        result = readArrayOfArrayFromDisk(filePath);
-        assertEquals(result.get(0).get(4), new Integer(7));
-        assertEquals(result.get(1).get(4), new Integer(10));
-        assertEquals(result.get(0).get(0), new Integer(1));
-        assertEquals(readIntFromDisk(filePath, 1, 3), 6);
-        assertEquals(readIntFromDisk(filePath, 4+4), 6);
+        } catch (IOException e) {
+            assertEquals(false, true);
+        }
+
+        writeArrayToDisk(filePath, result);
+        result = readArrayFromDisk(filePath);
+        assertEquals(result.get(0), new Integer(1));
+        assertEquals(result.get(1), new Integer(2));
+        assertEquals(result.get(2), new Integer(3));
+        assertEquals(result.get(3), new Integer(5));
+        assertEquals(result.get(4), new Integer(7));
+        assertEquals(result.get(5), new Integer(8));
+        assertEquals(result.get(6), new Integer(9));
+        assertEquals(result.get(7), new Integer(1));
+        assertEquals(result.get(8), new Integer(6));
+        assertEquals(result.get(9), new Integer(10));
+        assertEquals(readIntFromDisk(filePath, 8), 6);
         try {
             Files.delete(Paths.get(filePath));
-        } catch (IOException e) {/*ignored*/}
+        } catch (IOException e) {
+            assertEquals(false, true);
+        }
     }
 
     @Test
@@ -69,14 +82,16 @@ public class TestSerializer {
                 Files.delete(Paths.get(haar));
             } catch (IOException e) {
                 e.printStackTrace();
+                assertEquals(false, true);
             }
         }
 
-        ArrayList<ArrayList<Integer>> correctValues = computeImageFeatures(img, true);
-        ArrayList<ArrayList<Integer>> writtenValues = readArrayOfArrayFromDisk(haar);
+        ArrayList<Integer> correctValues = computeImageFeatures(img, true);
+        ArrayList<Integer> writtenValues = readArrayFromDisk(haar);
+
+        assertEquals(writtenValues.size(), correctValues.size());
 
         for (int i = 0; i < correctValues.size(); i++)
-            for (int j = 0; j < correctValues.get(i).size(); j++)
-                assertEquals(writtenValues.get(i).get(j), correctValues.get(i).get(j));
+            assertEquals(writtenValues.get(i), correctValues.get(i));
     }
 }
