@@ -24,6 +24,7 @@ public class Serializer {
     }
 
     public static void appendArrayToDisk(String filePath, ArrayList<Integer> values) {
+        long startTime = System.currentTimeMillis();
         DataOutputStream os;
         try {
             os = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(filePath, fileExists(filePath))));
@@ -35,6 +36,8 @@ public class Serializer {
             e.printStackTrace();
             exit();
         }
+        long elapsedTimeMS = (new Date()).getTime() - startTime;
+        System.out.println(elapsedTimeMS + "ms to write " + values.size() + " values...");
     }
 
     public static void writeArrayToDisk(String filePath, ArrayList<Integer> values) {
