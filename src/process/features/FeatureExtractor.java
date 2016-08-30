@@ -273,7 +273,6 @@ public class FeatureExtractor {
 
     // Warning: Need to train and evaluate on the same features : only on GPU or only on CPU
     public static ArrayList<Integer> computeImageFeatures(String imagePath, boolean writeToDisk) {
-        System.out.println("computeImageFeatures(" + imagePath + ")");
         ImageHandler image = new ImageHandler(imagePath);
 
         ArrayList<Integer> result = new ArrayList<>();

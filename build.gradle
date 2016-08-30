@@ -1,5 +1,5 @@
- group 'Viola-Jones'
-version '1.0-SNAPSHOT'
+group 'Viola-Jones'
+version '1.0'
 
 apply plugin: 'java'
 apply plugin: 'application'
@@ -33,4 +33,15 @@ jar {
 dependencies {
     testCompile group: 'junit', name: 'junit', version: '4.11'
     compile fileTree(dir: 'libs' , include: '*.jar')
+}
+
+task fatJar(type: Jar) {
+ manifest {
+     attributes 'Implementation-Title': 'Gradle Jar File Example',
+             'Implementation-Version': version,
+             'Main-Class': mainClassName
+ }
+ baseName = project.name + '-all'
+ from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+ with jar
 }

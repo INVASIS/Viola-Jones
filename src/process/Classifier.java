@@ -77,6 +77,8 @@ public class Classifier {
         this.height = height;
 
         this.featureCount = countAllFeatures(width, height);
+
+        System.out.println("Feature count: " + featureCount);
     }
 
     private void predictLabel(int round, int N, float decisionTweak, DenseMatrix prediction, boolean onlyMostRecent) {
@@ -325,7 +327,7 @@ public class Classifier {
         assert examples.size() == trainN;
 
         long presumableFreeMemory = Runtime.getRuntime().maxMemory() - (Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory());
-        long neededMemory = featureCount * Integer.BYTES * trainN;
+        long neededMemory = featureCount * Integer.BYTES * Integer.BYTES * trainN;
         System.out.println("  - Needed memory: " + neededMemory + " (presumable free memory: " + presumableFreeMemory + ")");
         boolean allInMemory = presumableFreeMemory > neededMemory;
 
