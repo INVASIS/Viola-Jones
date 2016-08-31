@@ -12,6 +12,8 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 
+import static javafx.application.Platform.exit;
+
 public class Utils {
     public static ArrayList<String> scanDir(String dir) { // Already recursive
         ArrayList<String> results = new ArrayList<>();
@@ -104,5 +106,18 @@ public class Utils {
         String[] filelistIndex = new String[fileList.size()];
         fileList.toArray(filelistIndex);
         return filelistIndex;
+    }
+
+    public static void deleteFile(String filePath) {
+        try {
+            Files.delete(Paths.get(filePath));
+        } catch (IOException e) {
+            e.printStackTrace();
+            exit();
+        }
+    }
+
+    public static boolean fileExists(String filePath) {
+        return Files.exists(Paths.get(filePath));
     }
 }

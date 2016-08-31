@@ -13,11 +13,8 @@ import static java.util.Comparator.comparing;
 import static javafx.application.Platform.exit;
 import static process.features.FeatureExtractor.computeSetFeatures;
 import static process.features.FeatureExtractor.countAllFeatures;
-import static utils.Serializer.appendArrayToDisk;
-import static utils.Serializer.readArrayFromDisk;
-import static utils.Serializer.readIntFromDisk;
-import static utils.Utils.countFiles;
-import static utils.Utils.listFiles;
+import static utils.Serializer.*;
+import static utils.Utils.*;
 
 public class Classifier {
     /**
@@ -299,24 +296,24 @@ public class Classifier {
      *          Write sur disque:
      *              * OrganizedFeatures (à l'index de la feature actuelle le ascendingFeatures.first en entier) tmp/training
      *              * OrganizedSample (à l'index de la feature actuelle le ascendingFeatures.second en entier)
+     *
+     * Le résultat est le suivant:
+     *   * OrganizedFeatures : (une ligne = une feature | chaque colonne dans cette ligne est la valeur de cette feature pour une image)
+     *   * OrganizedSample   : (une ligne = une feature | chaque colonne dans cette ligne est l'index de l'image correspondante)
      */
     private void organizeFeatures() {
         System.out.println("Organizing features...");
 
-        if (Files.exists(Paths.get(Conf.ORGANIZED_FEATURES)))
-            try {
-                Files.delete(Paths.get(Conf.ORGANIZED_FEATURES));
-            } catch (IOException e) {
-                e.printStackTrace();
-                exit();
-            }
-        if (Files.exists(Paths.get(Conf.ORGANIZED_SAMPLE)))
-            try {
-                Files.delete(Paths.get(Conf.ORGANIZED_SAMPLE));
-            } catch (IOException e) {
-                e.printStackTrace();
-                exit();
-            }
+        if (fileExists(Conf.ORGANIZED_FEATURES)) {
+            if (validSizeOfArray(Conf.ORGANIZED_FEATURES, trainN * featureCount))
+                return;
+            deleteFile(Conf.ORGANIZED_FEATURES);
+        }
+        if (fileExists(Conf.ORGANIZED_SAMPLE)) {
+            if (validSizeOfArray(Conf.ORGANIZED_SAMPLE, trainN * featureCount))
+                return;
+            deleteFile(Conf.ORGANIZED_SAMPLE);
+        }
 
         final Comparator<Pair<Integer, Integer>> c = comparing(Pair::getValue);
 

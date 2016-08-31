@@ -11,6 +11,7 @@ import java.util.stream.Collectors;
 
 import static process.IntegralImage.rectangleSum;
 import static utils.Serializer.writeArrayToDisk;
+import static utils.Utils.fileExists;
 import static utils.Utils.streamFiles;
 
 
@@ -303,7 +304,7 @@ public class FeatureExtractor {
 
         int count = 0;
         for (String imagePath : streamFiles(dir, Conf.IMAGES_EXTENSION)) {
-            if (!Files.exists(Paths.get(imagePath + Conf.FEATURE_EXTENSION)))
+            if (!fileExists(imagePath + Conf.FEATURE_EXTENSION))
             {
                 computeImageFeatures(imagePath, writeToDisk);
                 count++;

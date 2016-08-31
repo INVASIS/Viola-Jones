@@ -1,19 +1,13 @@
 package utils;
 import java.io.*;
 import java.nio.file.FileAlreadyExistsException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Date;
 
 import static javafx.application.Platform.exit;
+import static utils.Utils.fileExists;
 
 
 public class Serializer {
-    private static boolean fileExists(String filePath) {
-        return Files.exists(Paths.get(filePath));
-    }
-
     private static void skipBytesLong(DataInputStream dis, long skip) throws IOException {
         long total = 0;
         long cur = 0;
@@ -64,6 +58,28 @@ public class Serializer {
             exit();
         }
         return result;
+    }
+
+    public static boolean validSizeOfArray(String filePath, long expectedSize) {
+        DataInputStream os;
+
+        try {
+            os = new DataInputStream(new FileInputStream(filePath));
+            skipBytesLong(os, Integer.BYTES *(expectedSize - 1));
+            os.readInt(); // Read the last expected int
+            try {
+                os.readInt(); // Should raise EOFException if expectedSize is right
+                os.close();
+            } catch (EOFException e) {
+                return true;
+            }
+        } catch (EOFException e) {
+            return false;
+        } catch (IOException e) {
+            e.printStackTrace();
+            exit();
+        }
+        return false;
     }
 
     public static int readIntFromDisk(String filePath, long valueIndex) {
