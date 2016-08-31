@@ -119,7 +119,7 @@ public class Classifier {
      * Strong classifier based on multiple weak classifiers.
      * Here, weak classifier are called "Stumps", see: https://en.wikipedia.org/wiki/Decision_stump
      */
-    private ArrayList<DecisionStump> adaboost(int round) {
+    private void adaboost(int round) {
         // STATE: OK & CHECKED 16/31/08
 
         // The result to be filled & returned
@@ -127,6 +127,7 @@ public class Classifier {
 
         DecisionStump bestDS = DecisionStump.bestStump(labelsTrain, weightsTrain, featureCount, trainN, totalWeightPos, totalWeightPos, minWeight);
         committee.add(bestDS);
+        cascade[round] = committee;
         adaboostPasses++;
 
         DenseMatrix prediction = new DenseMatrix(1, trainN);
@@ -171,7 +172,6 @@ public class Classifier {
         }
 
         System.out.println("Adaboost passes : " + adaboostPasses);
-        return committee;
     }
 
     // p141 in paper?
@@ -220,7 +220,7 @@ public class Classifier {
         while (!layerMissionAccomplished) {
 
             // Run algorithm N°6 (adaboost) to produce a classifier (which is in fact a committee == ArrayList<DecisionStump>)
-            cascade[round] = adaboost(round);
+            adaboost(round);
 
             boolean overSized = cascade[round].size() > committeeSizeGuide;
             boolean finalTweak = overSized;
@@ -352,9 +352,6 @@ public class Classifier {
         // Initialization
         tweaks = new ArrayList<>(boostingRounds);
         cascade = new ArrayList[boostingRounds];
-        for (int i = 0; i < boostingRounds; i++)
-            cascade[i] = new ArrayList<>();
-
 
         // Updating weights
         totalWeightPos = initialPositiveWeight;
