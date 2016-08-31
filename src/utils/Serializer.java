@@ -1,14 +1,11 @@
 package utils;
 
-import process.Conf;
 import process.DecisionStump;
 
 import java.io.*;
 import java.nio.file.FileAlreadyExistsException;
 import java.util.ArrayList;
-import java.util.Scanner;
 
-import static javafx.application.Platform.exit;
 import static utils.Utils.fileExists;
 
 
@@ -32,14 +29,14 @@ public class Serializer {
         } catch (IOException e) {
             System.err.println("Could not write to " + filePath);
             e.printStackTrace();
-            exit();
+            System.exit(1);
         }
     }
 
     public static void writeArrayToDisk(String filePath, ArrayList<Integer> values) {
         if (fileExists(filePath)) {
             new FileAlreadyExistsException(filePath).printStackTrace();
-            exit();
+            System.exit(1);
         }
         appendArrayToDisk(filePath, values);
     }
@@ -60,7 +57,7 @@ public class Serializer {
             os.close();
         } catch (IOException e) {
             e.printStackTrace();
-            exit();
+            System.exit(1);
         }
         return result;
     }
@@ -85,7 +82,7 @@ public class Serializer {
             return false;
         } catch (IOException e) {
             e.printStackTrace();
-            exit();
+            System.exit(1);
         }
         return false;
     }
@@ -102,7 +99,7 @@ public class Serializer {
         } catch (IOException e) {
             System.err.println("Could not read int from " + filePath + "!");
             e.printStackTrace();
-            exit();
+            System.exit(1);
         }
 
         return i;

@@ -427,7 +427,7 @@ public class FeatureExtractor {
         return readIntFromDisk(organizedSample, featureIndex * trainN + iterator);
     }
     public static int getExampleIndex(long featureIndex, int iterator, int trainN) {
-        return getExampleIndex(featureIndex, iterator, trainN, Conf.ORGANIZED_FEATURES);
+        return getExampleIndex(featureIndex, iterator, trainN, Conf.ORGANIZED_SAMPLE);
     }
 
     /**

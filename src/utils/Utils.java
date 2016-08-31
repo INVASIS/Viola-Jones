@@ -113,7 +113,7 @@ public class Utils {
             Files.delete(Paths.get(filePath));
         } catch (IOException e) {
             e.printStackTrace();
-            exit();
+            System.exit(1);
         }
     }
 

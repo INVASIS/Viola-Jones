@@ -8,8 +8,6 @@ import process.IntegralImage;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.*;
 
 import static javafx.application.Platform.exit;
@@ -102,7 +100,7 @@ public class ImageHandler {
     public String getFilePath() {
         if (this.filePath == null) {
             System.err.println("Requesting filePath of an ImageHandler which has not been initialized from an image file.");
-            exit();
+            System.exit(1);
         }
         return filePath;
     }

@@ -9,7 +9,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 
-import static javafx.application.Platform.exit;
 import static jcuda.driver.JCudaDriver.*;
 
 public class CudaUtils {
@@ -126,7 +125,7 @@ public class CudaUtils {
 
         if (error != 0) {
             System.err.println("Failed to create a new CUDA 2D array.");
-            exit();
+            System.exit(1);
         }
     }
 
@@ -148,7 +147,7 @@ public class CudaUtils {
 
         if (error != 0) {
             System.err.println("Failed to memCpy to a new CUDA 2D array.");
-            exit();
+            System.exit(1);
         }
 
         return result;
@@ -164,7 +163,7 @@ public class CudaUtils {
 
         if (error != 0) {
             System.err.println("Failed to free a CUDA 2D array.");
-            exit();
+            System.exit(1);
         }
     }
 }

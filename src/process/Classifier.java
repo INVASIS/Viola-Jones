@@ -3,13 +3,11 @@ package process;
 import jeigen.DenseMatrix;
 import utils.Serializer;
 
-import java.io.*;
 import java.util.*;
 
 import static java.lang.Math.log;
 import static java.lang.Math.max;
 import static java.lang.Math.min;
-import static javafx.application.Platform.exit;
 import static process.features.FeatureExtractor.*;
 import static utils.Utils.*;
 
@@ -94,7 +92,7 @@ public class Classifier {
         for (int member = start; member < committeeSize; member++) {
             if (cascade[round].get(member).error == 0 && member != 0) {
                 System.err.println("Boosting Error Occurred!");
-                exit();
+                System.exit(1);
             }
 
             // 0.5 does not count here
@@ -423,7 +421,7 @@ public class Classifier {
     public float test(String dir) {
         if (!computed) {
             System.err.println("Train the classifier before testing it!");
-            exit();
+            System.exit(1);
         }
 
         test_dir = dir;

@@ -2,7 +2,6 @@ package process;
 
 import jeigen.DenseMatrix;
 
-import static javafx.application.Platform.exit;
 import static process.features.FeatureExtractor.getExampleFeature;
 import static process.features.FeatureExtractor.getExampleIndex;
 
@@ -115,7 +114,7 @@ public class DecisionStump { // == stumpRule
                                 getExampleFeature(featureIndex, iterator + 1, N) + ". Problem feature " +
                                 featureIndex + " and problem example " + getExampleIndex(featureIndex, iterator, N) + " :" +
                                 getExampleIndex(featureIndex, iterator + 1, N));
-                        exit();
+                        System.exit(1);
                     }
                 }
 
@@ -160,7 +159,7 @@ public class DecisionStump { // == stumpRule
 
         if (best.error >= 0.5) {
             System.out.println("Failed best stump, error : " + best.error + " >= 0.5 !");
-            exit();
+            System.exit(1);
         }
 
         return best;
