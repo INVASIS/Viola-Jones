@@ -4,6 +4,7 @@ import GUI.ImageHandler;
 import org.junit.Assert;
 import org.junit.Test;
 import process.Conf;
+import utils.Serializer;
 import utils.Utils;
 
 import java.util.ArrayList;
@@ -93,10 +94,30 @@ public class TestFeatureExtractor {
         files.add(img3);
         files.add(img4);
 
-        ArrayList<Integer> features1 = computeImageFeatures(img1, true);
-        ArrayList<Integer> features2 = computeImageFeatures(img2, true);
-        ArrayList<Integer> features3 = computeImageFeatures(img3, true);
-        ArrayList<Integer> features4 = computeImageFeatures(img4, true);
+        ArrayList<Integer> features1;
+        if (Utils.fileExists(img1))
+            features1 = Serializer.readArrayFromDisk(img1 + Conf.FEATURE_EXTENSION);
+        else
+            features1 = computeImageFeatures(img1, true);
+
+        ArrayList<Integer> features2;
+        if (Utils.fileExists(img2))
+            features2 = Serializer.readArrayFromDisk(img2 + Conf.FEATURE_EXTENSION);
+        else
+            features2 = computeImageFeatures(img2, true);
+
+        ArrayList<Integer> features3;
+        if (Utils.fileExists(img3))
+            features3 = Serializer.readArrayFromDisk(img3 + Conf.FEATURE_EXTENSION);
+        else
+            features3 = computeImageFeatures(img3, true);
+
+        ArrayList<Integer> features4;
+        if (Utils.fileExists(img4))
+            features4 = Serializer.readArrayFromDisk(img4 + Conf.FEATURE_EXTENSION);
+        else
+            features4 = computeImageFeatures(img4, true);
+
 
         ArrayList<ArrayList<Integer>> all = new ArrayList<>();
         all.add(features1);
@@ -104,8 +125,10 @@ public class TestFeatureExtractor {
         all.add(features3);
         all.add(features4);
 
-        Utils.deleteFile(ORGANIZED_FEATURES);
-        Utils.deleteFile(ORGANIZED_SAMPLE);
+        if (Utils.fileExists(ORGANIZED_SAMPLE))
+            Utils.deleteFile(ORGANIZED_SAMPLE);
+        if (Utils.fileExists(ORGANIZED_FEATURES))
+            Utils.deleteFile(ORGANIZED_FEATURES);
 
         organizeFeatures(features1.size(), files, ORGANIZED_FEATURES, ORGANIZED_SAMPLE, forceDisk);
 
