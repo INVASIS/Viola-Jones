@@ -18,7 +18,7 @@ public class Main {
         System.out.println("Max memory : " + Runtime.getRuntime().maxMemory());
         System.out.println("Free memory : " + Runtime.getRuntime().freeMemory());
         System.out.println("Total memory : " + Runtime.getRuntime().totalMemory());
-
+        System.out.println("Available Processors (num of max threads) : " + Runtime.getRuntime().availableProcessors());
 
 
         Classifier classifier = new Classifier(19, 19);

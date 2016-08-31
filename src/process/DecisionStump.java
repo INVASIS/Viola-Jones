@@ -4,7 +4,8 @@ import jeigen.DenseMatrix;
 
 import java.util.ArrayList;
 
-import static process.features.FeatureExtractor.*;
+import static process.features.FeatureExtractor.getExampleFeature;
+import static process.features.FeatureExtractor.getExampleIndex;
 
 public class DecisionStump { // == stumpRule
 
@@ -25,136 +26,20 @@ public class DecisionStump { // == stumpRule
         this.toggle = toggle;
     }
 
-    private static DecisionStump deepCopy(DecisionStump other) {
-        return new DecisionStump(
-                other.featureIndex,
-                other.error,
-                other.threshold,
-                other.margin,
-                other.toggle
-        );
-    }
-
-    private static boolean compare(DecisionStump first, DecisionStump second) {
+    public static boolean compare(DecisionStump first, DecisionStump second) {
         return (first.error < second.error ||
                 (first.error == second.error && first.margin > second.margin));
     }
 
-    public static DecisionStump compute(DenseMatrix labels, DenseMatrix weights, long featureIndex, int N, double totalWeightPos, double totalWeightNeg, double minWeight) {
-        DecisionStump best = new DecisionStump(featureIndex, 2, getExampleFeature(featureIndex, 0, N) - 1, -1, 0);
-        DecisionStump current = deepCopy(best); // copy of best
-
-        // Left & Right hand of the stump
-        double leftWeightPos = 0;
-        double leftWeightNeg = 0;
-        double rightWeightPos = totalWeightPos;
-	    double rightWeightNeg = totalWeightNeg;
-
-        // Go through all these observations one after another
-        int iterator = -1;
-
-        // To build a decision stump, you need a toggle and an admissible threshold
-        // which doesn't coincide with any of the observations
-
-        ArrayList<Integer> featureExampleIndexes = getFeatureExamplesIndexes(featureIndex, N);
-        ArrayList<Integer> featureValues = getFeatureValues(featureIndex, N);
-        assert featureExampleIndexes.size() == N;
-        assert featureValues.size() == N;
-
-        while (true) {
-            double errorPlus = leftWeightPos + rightWeightNeg;
-            double errorMinus = rightWeightPos + leftWeightNeg;
-
-            double Epsilon_hat;
-            if (errorPlus < errorMinus) {
-                Epsilon_hat = errorPlus;
-                current.toggle = 1;
-            } else {
-                Epsilon_hat = errorMinus;
-                current.toggle = -1;
-            }
-
-            current.error = Epsilon_hat < minWeight * 0.9 ? 0 : Epsilon_hat;
-
-            if (compare(current, best))
-                best = deepCopy(current);
-
-            iterator++;
-
-
-            // We don't actually need to look at the sample with the largest feature
-            // because its rule is exactly equivalent to those produced
-            // by the sample with the smallest feature on training observations
-            // but it won't do any harm anyway
-            if (iterator == N)
-                break;
-
-            while (true) {
-                int exampleIndex = getExampleIndex(featureIndex, iterator, N);
-                assert featureExampleIndexes.get(iterator) == exampleIndex;
-                double label = (int) labels.get(0, exampleIndex);
-                double weight = weights.get(0, exampleIndex);
-
-                if (label < 0) {
-                    leftWeightNeg += weight;
-                    rightWeightNeg -= weight;
-                }
-                else {
-                    leftWeightPos += weight;
-                    rightWeightPos -= weight;
-                }
-
-                // if a new threshold can be found, break
-                // two cases are possible:
-                //   - Either it is the last observation:
-                if (iterator == N - 1)
-                    break;
-                //   - Or no duplicate. If there is a duplicate, repeat:
-
-                int featureValue = getExampleFeature(featureIndex, iterator, N);
-                int nextFeatureValue = getExampleFeature(featureIndex, iterator + 1, N);
-                assert featureValues.get(iterator) == featureValue;
-                assert featureValues.get(iterator + 1) == nextFeatureValue;
-
-                if (featureValue != nextFeatureValue) {
-                    double test = featureValue + nextFeatureValue;
-                    test /= 2;
-
-                    if (featureValue < test && test < nextFeatureValue)
-                        break;
-//                    else { FIXME: useful?
-//                        System.err.println("FATAL: Numerical precision breached: problem feature values " +
-//                                getExampleFeature(featureIndex, iterator, N) + " : " +
-//                                getExampleFeature(featureIndex, iterator + 1, N) + ". Problem feature " +
-//                                featureIndex + " and problem example " + getExampleIndex(featureIndex, iterator, N) + " :" +
-//                                getExampleIndex(featureIndex, iterator + 1, N));
-//                        System.exit(1);
-//                    }
-                }
-                iterator++;
-            }
-
-            if (iterator < N - 1) {
-                current.threshold = ((double)getExampleFeature(featureIndex, iterator, N) + (double)getExampleFeature(featureIndex, iterator + 1, N)) / 2.0d ;
-                current.margin = getExampleFeature(featureIndex, iterator + 1, N) - getExampleFeature(featureIndex, iterator, N);
-            } else {
-                current.threshold = getExampleFeature(featureIndex, iterator, N) + 1;
-                current.margin = 0;
-            }
-        }
-
-        return best;
-    }
-
     /**
      * Algorithm 5 from the original paper
-     *
+     * <p>
      * Return the most discriminative feature and its rule
      * We compute each DecisionStump, and find the one with:
-     *   - the lower weighted error first
-     *   - the wider margin
-     *
-     *
+     * - the lower weighted error first
+     * - the wider margin
+     * <p>
+     * <p>
      * Pair<Integer i, Boolean b> indicates whether feature i is a face (b=true) or not (b=false)
      */
     public static DecisionStump bestStump(DenseMatrix labels, DenseMatrix weights, long featureCount, int N, double totalWeightPos, double totalWeightNeg, double minWeight) {
@@ -163,11 +48,33 @@ public class DecisionStump { // == stumpRule
         //   if (current.weightedError < best.weightedError) -> best = current
         //   else if (current.weightedError == best.weightedError && current.margin > best.margin) -> best = current
 
-        DecisionStump best = compute(labels, weights, 0, N, totalWeightPos, totalWeightNeg, minWeight);
+        int nb_threads = Runtime.getRuntime().availableProcessors();
+        ThreadManager managerFor0 = new ThreadManager(labels, weights, 0, N, totalWeightPos, totalWeightNeg, minWeight);
+        managerFor0.run();
+        DecisionStump best = managerFor0.getBest();
         for (long i = 1; i < featureCount; i++) {
-            DecisionStump current = compute(labels, weights, i, N, totalWeightPos, totalWeightNeg, minWeight);
-            if (compare(current, best))
-                best = current;
+
+            ArrayList<ThreadManager> listThreads = new ArrayList<>(nb_threads);
+            long j = 0;
+            for (j = 0; j < nb_threads && j + i < featureCount; j++) {
+                ThreadManager threadManager = new ThreadManager(labels, weights, i + j, N, totalWeightPos, totalWeightNeg, minWeight);
+                listThreads.add(threadManager);
+                threadManager.start();
+            }
+            i += j;
+            for (int k = 0; k < j; k++) {
+                try {
+                    listThreads.get(k).join();
+                } catch (InterruptedException e) {
+                    System.err.println("Error in thread while computing bestStump - i = " + i + " k = " + k + " j = " + j);
+                    e.printStackTrace();
+                }
+            }
+
+            for (int k = 0; k < j; k++) {
+                if (compare(listThreads.get(k).getBest(), best))
+                    best = listThreads.get(k).getBest();
+            }
         }
 
         if (best.error >= 0.5) {
