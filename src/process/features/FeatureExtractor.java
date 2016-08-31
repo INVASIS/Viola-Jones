@@ -289,8 +289,7 @@ public class FeatureExtractor {
             result.addAll(Conf.haarExtractor.getFeaturesC());
             result.addAll(Conf.haarExtractor.getFeaturesD());
             result.addAll(Conf.haarExtractor.getFeaturesE());
-        }
-        else
+        } else
             for (ArrayList<Feature> features : FeatureExtractor.streamFeaturesByType(image))
                 for (Feature f : features)
                     result.add(f.getValue());
@@ -307,8 +306,7 @@ public class FeatureExtractor {
     private static int computeImagesFeatures(String dir, boolean writeToDisk) {
         int count = 0;
         for (String imagePath : streamFiles(dir, Conf.IMAGES_EXTENSION)) {
-            if (!fileExists(imagePath + Conf.FEATURE_EXTENSION))
-            {
+            if (!fileExists(imagePath + Conf.FEATURE_EXTENSION)) {
                 computeImageFeatures(imagePath, writeToDisk);
                 count++;
             }
@@ -338,8 +336,7 @@ public class FeatureExtractor {
             System.out.println("    - Elapsed time: " + elapsedTimeMS / 1000 + "s");
             System.out.println("    - Images computed: " + count);
             System.out.println("    - image/seconds: " + count / (elapsedTimeMS / 1000));
-        }
-        else
+        } else
             System.out.println("  - All features already computed!");
     }
 
@@ -352,27 +349,27 @@ public class FeatureExtractor {
      *          Write sur disque:
      *              * OrganizedFeatures (à l'index de la feature actuelle le ascendingFeatures.first en entier) tmp/training
      *              * OrganizedSample (à l'index de la feature actuelle le ascendingFeatures.second en entier)
-     *
+     * <p>
      * Le résultat est le suivant:
-     *   * OrganizedFeatures : (une ligne = une feature | chaque colonne dans cette ligne est la valeur de cette feature pour une image)
-     *   * OrganizedSample   : (une ligne = une feature | chaque colonne dans cette ligne est l'index de l'image correspondante)
-     *
+     *      * OrganizedFeatures : (une ligne = une feature | chaque colonne dans cette ligne est la valeur de cette feature pour une image)
+     *      * OrganizedSample   : (une ligne = une feature | chaque colonne dans cette ligne est l'index de l'image correspondante)
+     * <p>
      * organizeFeatures works in-memory only if possible (enough heap memory), else on-disk (it could be extremely slow).
      */
-    public static void organizeFeatures(long featureCount, ArrayList<String> examples) {
+    public static void organizeFeatures(long featureCount, ArrayList<String> examples, String feature, String sample, boolean forceDisk) {
         System.out.println("Organizing features...");
 
         int trainN = examples.size();
 
-        if (fileExists(Conf.ORGANIZED_FEATURES)) {
-            if (!validSizeOfArray(Conf.ORGANIZED_FEATURES, trainN * featureCount))
-                deleteFile(Conf.ORGANIZED_FEATURES);
+        if (fileExists(feature)) {
+            if (!validSizeOfArray(feature, trainN * featureCount))
+                deleteFile(feature);
         }
-        if (fileExists(Conf.ORGANIZED_SAMPLE)) {
-            if (!validSizeOfArray(Conf.ORGANIZED_SAMPLE, trainN * featureCount))
-                deleteFile(Conf.ORGANIZED_SAMPLE);
+        if (fileExists(sample)) {
+            if (!validSizeOfArray(sample, trainN * featureCount))
+                deleteFile(sample);
         }
-        if (fileExists(Conf.ORGANIZED_FEATURES) && fileExists(Conf.ORGANIZED_SAMPLE)) { // Already exist & both good!
+        if (fileExists(feature) && fileExists(sample)) { // Already exist & both good!
             System.out.println("  - Already computed!");
             return;
         }
@@ -380,10 +377,13 @@ public class FeatureExtractor {
         final Comparator<Pair<Integer, Integer>> c = comparing(Pair::getValue);
         assert examples.size() == trainN;
 
-        long presumableFreeMemory = Runtime.getRuntime().maxMemory() - (Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory());
+        long presumableFreeMemory = Runtime.getRuntime().maxMemory() - (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory());
         long neededMemory = featureCount * Integer.BYTES * Integer.BYTES * trainN;
         System.out.println("  - Needed memory: " + neededMemory + " (presumable free memory: " + presumableFreeMemory + ")");
         boolean allInMemory = presumableFreeMemory > neededMemory;
+
+        if (forceDisk)
+            allInMemory = false;
 
         ArrayList<ArrayList<Integer>> allImagesFeatures = null;
         if (allInMemory) {
@@ -398,10 +398,9 @@ public class FeatureExtractor {
 
             if (allInMemory) {
                 for (int exampleIndex = 0; exampleIndex < trainN; exampleIndex++) {
-                    ascendingFeatures.add(new Pair<>(exampleIndex, allImagesFeatures.get(exampleIndex).get((int)featureIndex)));
+                    ascendingFeatures.add(new Pair<>(exampleIndex, allImagesFeatures.get(exampleIndex).get((int) featureIndex)));
                 }
-            }
-            else {
+            } else {
                 for (int exampleIndex = 0; exampleIndex < trainN; exampleIndex++) {
                     ascendingFeatures.add(new Pair<>(exampleIndex, readIntFromDisk(examples.get(exampleIndex) + Conf.FEATURE_EXTENSION, featureIndex)));
                 }
@@ -416,8 +415,22 @@ public class FeatureExtractor {
                 permutedFeatures.add(ascendingFeatures.get(k).getValue());
             }
 
-            appendArrayToDisk(Conf.ORGANIZED_SAMPLE, permutedSamples);
-            appendArrayToDisk(Conf.ORGANIZED_FEATURES, permutedFeatures);
+            appendArrayToDisk(sample, permutedSamples);
+            appendArrayToDisk(feature, permutedFeatures);
         }
+    }
+
+    /**
+     * Call with organizedSample
+     */
+    public static int getExampleIndex(long featureIndex, int iterator, int trainN, String organizedSample) {
+        return readIntFromDisk(organizedSample, featureIndex * trainN + iterator);
+    }
+
+    /**
+     * Call with organizedFeature
+     */
+    public static int getExampleFeature(long featureIndex, int iterator, int trainN, String organizedFeatures) {
+        return readIntFromDisk(organizedFeatures, featureIndex * trainN + iterator);
     }
 }
