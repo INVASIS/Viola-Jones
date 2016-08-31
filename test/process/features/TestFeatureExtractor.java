@@ -8,7 +8,7 @@ import utils.Utils;
 
 import java.util.ArrayList;
 
-import static org.testng.AssertJUnit.assertEquals;
+import static org.junit.Assert.assertEquals;
 import static process.features.FeatureExtractor.*;
 
 public class TestFeatureExtractor {
@@ -118,7 +118,7 @@ public class TestFeatureExtractor {
 
                 int feat = getExampleFeature(i, j, 4, ORGANIZED_FEATURES);
 
-                Assert.assertEquals(Long.valueOf(all.get(index).get(i)), Long.valueOf(feat));
+                assertEquals(Long.valueOf(all.get(index).get(i)), Long.valueOf(feat));
 
             }
         }
