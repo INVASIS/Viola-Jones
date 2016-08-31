@@ -1,7 +1,12 @@
 package utils;
+
+import process.Conf;
+import process.DecisionStump;
+
 import java.io.*;
 import java.nio.file.FileAlreadyExistsException;
 import java.util.ArrayList;
+import java.util.Scanner;
 
 import static javafx.application.Platform.exit;
 import static utils.Utils.fileExists;
@@ -68,7 +73,7 @@ public class Serializer {
 
         try {
             os = new DataInputStream(new FileInputStream(filePath));
-            skipBytesLong(os, Integer.BYTES *(expectedSize - 1));
+            skipBytesLong(os, Integer.BYTES * (expectedSize - 1));
             os.readInt(); // Read the last expected int
             try {
                 os.readInt(); // Should raise EOFException if expectedSize is right
@@ -101,5 +106,88 @@ public class Serializer {
         }
 
         return i;
+    }
+
+    public static void printRule(ArrayList<DecisionStump> committee, boolean firstRound, String fileName) {
+        try {
+
+            if (firstRound && Utils.fileExists(fileName))
+                Utils.deleteFile(fileName);
+
+            PrintWriter writer = new PrintWriter(new FileWriter(fileName, true));
+            int memberCount = committee.size();
+
+            if (firstRound)
+                writer.println("double stumps[][4]=");
+
+            for (int i = 0; i < memberCount; i++) {
+                DecisionStump decisionStump = committee.get(i);
+                writer.println(decisionStump.featureIndex + ";" + decisionStump.error + ";"
+                        + decisionStump.threshold + ";" + decisionStump.toggle);
+            }
+
+            writer.flush();
+            writer.close();
+
+        } catch (IOException e) {
+            System.err.println("Error : Could Not Write committe, aborting");
+            e.printStackTrace();
+        }
+    }
+
+    public static ArrayList<DecisionStump> readRule(String fileName) {
+        ArrayList<DecisionStump> result = new ArrayList<>();
+
+        try {
+            BufferedReader br = new BufferedReader(new FileReader(fileName));
+            String line = br.readLine();
+
+            while (line != null) {
+                line = br.readLine();
+                if (line == null || line.equals(""))
+                    break;
+
+                String[] parts = line.split(";");
+
+                DecisionStump decisionStump = new DecisionStump(Long.parseLong(parts[0]), Double.parseDouble(parts[1]),
+                        Double.parseDouble(parts[2]), -1, Integer.parseInt(parts[3]));
+
+                result.add(decisionStump);
+            }
+
+            br.close();
+
+        } catch (IOException e) {
+            System.err.println("Error while reading the list of decisionStumps");
+            e.printStackTrace();
+        }
+        return result;
+    }
+
+    public static void printLayerMemory(ArrayList<Integer> layerMemory, ArrayList<Float> tweaks, String fileName) {
+        try {
+
+            int layerCount = layerMemory.size();
+            PrintWriter writer = new PrintWriter(new FileWriter(fileName, true));
+
+            writer.println(System.lineSeparator());
+            writer.println("int layerCount=" + layerCount);
+            writer.println("int layerCommitteeSize[]=");
+
+            for (int i = 0; i < layerCount; i++) {
+                writer.println(layerMemory.get(i) + ";");
+            }
+
+            writer.println("float tweaks[]=");
+            for (int i = 0; i < layerCount; i++) {
+                writer.println(tweaks.get(i) + ";");
+            }
+
+            writer.close();
+
+        } catch (IOException e) {
+            System.err.println("Error : Could Not Write layer Memory or tweaks, aborting");
+            e.printStackTrace();
+        }
     }
 }

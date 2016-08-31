@@ -1,6 +1,7 @@
 package process;
 
 import jeigen.DenseMatrix;
+import utils.Serializer;
 
 import java.io.*;
 import java.util.*;
@@ -304,64 +305,13 @@ public class Classifier {
         }
     }
 
-    private void recordRule(ArrayList<DecisionStump> committee, boolean firstRound, boolean lastRound) {
 
-        try {
-            int memberCount = committee.size();
-
-            PrintWriter writer = new PrintWriter(new FileWriter(Conf.TRAIN_FEATURES, true));
-
-            if (firstRound)
-                writer.println(System.lineSeparator() + "double stumps[][4]={");
-
-            for (int i = 0; i < memberCount; i++) {
-                DecisionStump decisionStump = committee.get(i);
-                writer.print("{" + decisionStump.featureIndex + "," + decisionStump.error + ","
-                        + decisionStump.threshold + "," + decisionStump.toggle + "}");
-
-                if (i == memberCount - 1 && lastRound)
-                    writer.println(System.lineSeparator() + "};");
-                else
-                    writer.println(",");
-            }
-
-            writer.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+    private void recordRule(ArrayList<DecisionStump> committee, boolean firstRound) {
+        Serializer.printRule(committee, firstRound, Conf.TRAIN_FEATURES);
     }
 
     private void recordLayerMemory() {
-
-        try {
-            int layerCount = this.layerMemory.size();
-            PrintWriter writer = new PrintWriter(new FileWriter(Conf.TRAIN_FEATURES, true));
-
-            writer.println("int layerCount=" + layerCount + ";");
-            writer.print("int layerCommitteeSize[]={");
-
-            for (int i = 0; i < layerCount; i++) {
-                writer.print(this.layerMemory.get(i));
-                if (i < layerCount - 1)
-                    writer.print(",");
-                else
-                    writer.println("};");
-            }
-
-            writer.print("float tweaks[]={");
-            for (int i = 0; i < layerCount; i++) {
-                writer.print(this.tweaks.get(i));
-                if (i < layerCount - 1)
-                    writer.print(",");
-                else
-                    writer.println("};");
-            }
-
-            writer.close();
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        Serializer.printLayerMemory(this.layerMemory, this.tweaks, Conf.TRAIN_FEATURES);
     }
 
     private ArrayList<String> orderedExamples() {
@@ -460,13 +410,13 @@ public class Classifier {
             // TODO : blackList ??
 
             //record the boosted rule into a target file
-            recordRule(cascade[round], round == 0, round == boostingRounds - 1 || accumulatedFalsePositive <= GOAL);
+            recordRule(cascade[round], round == 0);
 
         }
-        recordLayerMemory();
-
 
         // Serialize training
+        recordLayerMemory();
+
         computed = true;
     }
 

@@ -17,7 +17,7 @@ public class DecisionStump { // == stumpRule
 
 
     // Initialisation
-    private DecisionStump(long featureIndex, double error, double threshold, double margin, int toggle) {
+    public DecisionStump(long featureIndex, double error, double threshold, double margin, int toggle) {
         this.featureIndex = featureIndex;
         this.error = error;
         this.threshold = threshold;
