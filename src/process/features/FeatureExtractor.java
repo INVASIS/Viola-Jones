@@ -426,11 +426,17 @@ public class FeatureExtractor {
     public static int getExampleIndex(long featureIndex, int iterator, int trainN, String organizedSample) {
         return readIntFromDisk(organizedSample, featureIndex * trainN + iterator);
     }
+    public static int getExampleIndex(long featureIndex, int iterator, int trainN) {
+        return getExampleIndex(featureIndex, iterator, trainN, Conf.ORGANIZED_FEATURES);
+    }
 
     /**
      * Call with organizedFeature
      */
     public static int getExampleFeature(long featureIndex, int iterator, int trainN, String organizedFeatures) {
         return readIntFromDisk(organizedFeatures, featureIndex * trainN + iterator);
+    }
+    public static int getExampleFeature(long featureIndex, int iterator, int trainN) {
+        return getExampleFeature(featureIndex, iterator, trainN, Conf.ORGANIZED_FEATURES);
     }
 }

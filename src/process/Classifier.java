@@ -101,9 +101,8 @@ public class Classifier {
             memberWeight.set(member, log((1.0d / cascade[round].get(member).error) - 1));
             long featureIndex = cascade[round].get(member).featureIndex;
             for (int i = 0; i < N; i++) {
-                // TODO
-//                int exampleIndex = getExampleIndex(featureId, i);
-//                memberVerdict.set(member, exampleIndex, (getExampleFeature(featureId, i) > committee.get(member).getThreshold() ? 1 : -1) * committee.get(member).getToggle()) + decisionTweak;
+                int exampleIndex = getExampleIndex(featureIndex, i, N);
+                memberVerdict.set(member, exampleIndex, ((getExampleFeature(featureIndex, i, N) > cascade[round].get(member).threshold ? 1 : -1) * cascade[round].get(member).toggle) + decisionTweak);
             }
         }
         if (!onlyMostRecent) {

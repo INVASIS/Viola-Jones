@@ -3,6 +3,8 @@ package process;
 import jeigen.DenseMatrix;
 
 import static javafx.application.Platform.exit;
+import static process.features.FeatureExtractor.getExampleFeature;
+import static process.features.FeatureExtractor.getExampleIndex;
 
 public class DecisionStump { // == stumpRule
 
@@ -11,11 +13,11 @@ public class DecisionStump { // == stumpRule
     public double error;
     public double threshold;
     public double margin;
-    public boolean toggle; // = polarity {-1; 1}
+    public int toggle; // = polarity {-1; 1}
 
 
     // Initialisation
-    private DecisionStump(long featureIndex, double error, double threshold, double margin, boolean toggle) {
+    private DecisionStump(long featureIndex, double error, double threshold, double margin, int toggle) {
         this.featureIndex = featureIndex;
         this.error = error;
         this.threshold = threshold;
@@ -39,7 +41,7 @@ public class DecisionStump { // == stumpRule
     }
 
     public static DecisionStump compute(DenseMatrix labels, DenseMatrix weights, long featureIndex, int N, double totalWeightPos, double totalWeightNeg, double minWeight) {
-        DecisionStump best = new DecisionStump(featureIndex, 2, 0/*FIXME: getExampleFeature(featureIndex, 0) - 1*/, -1, false);
+        DecisionStump best = new DecisionStump(featureIndex, 2, getExampleFeature(featureIndex, 0, N) - 1, -1, 0);
         DecisionStump current = deepCopy(best); // copy of best
 
         // Left & Right hand of the stump
@@ -60,10 +62,10 @@ public class DecisionStump { // == stumpRule
             double Epsilon_hat;
             if (errorPlus < errorMinus) {
                 Epsilon_hat = errorPlus;
-                current.toggle = true;
+                current.toggle = 1;
             } else {
                 Epsilon_hat = errorMinus;
-                current.toggle = false;
+                current.toggle = -1;
             }
 
             current.error = Epsilon_hat < minWeight * 0.9 ? 0 : Epsilon_hat;
@@ -82,7 +84,7 @@ public class DecisionStump { // == stumpRule
                 break;
 
             while (true) {
-                int exampleIndex = 0; /*FIXME: = getExampleIndex(featureIndex, iterator)*/
+                int exampleIndex = getExampleIndex(featureIndex, iterator, N);
                 double label = (int) labels.get(0, exampleIndex);
                 double weight = weights.get(0, exampleIndex);
 
@@ -101,22 +103,36 @@ public class DecisionStump { // == stumpRule
                 if (iterator == N - 1)
                     break;
                 //   - Or no duplicate. If there is a duplicate, repeat:
-                //TODO
+                if (getExampleFeature(featureIndex, iterator, N) != getExampleFeature(featureIndex, iterator + 1, N)) {
+                    double test = getExampleFeature(featureIndex, iterator, N) + getExampleFeature(featureIndex, iterator + 1, N);
+                    test /= 2;
+
+                    if (getExampleFeature(featureIndex, iterator, N) < test && test < getExampleFeature(featureIndex, iterator + 1, N))
+                        break;
+                    else {
+                        System.err.println("FATAL: Numerical precision breached: problem feature values " +
+                                getExampleFeature(featureIndex, iterator, N) + " : " +
+                                getExampleFeature(featureIndex, iterator + 1, N) + ". Problem feature " +
+                                featureIndex + " and problem example " + getExampleIndex(featureIndex, iterator, N) + " :" +
+                                getExampleIndex(featureIndex, iterator + 1, N));
+                        exit();
+                    }
+                }
 
                 iterator++;
             }
 
             if (iterator < N - 1) {
-                //TODO
+                current.threshold = ((double)getExampleFeature(featureIndex, iterator, N) + (double)getExampleFeature(featureIndex, iterator + 1, N)) / 2.0d ;
+                current.margin = getExampleFeature(featureIndex, iterator + 1, N) - getExampleFeature(featureIndex, iterator, N);
             } else {
-                //TODO
+                current.threshold = getExampleFeature(featureIndex, iterator, N) + 1;
+                current.margin = 0;
             }
         }
 
         return best;
     }
-
-
 
     /**
      * Algorithm 5 from the original paper
