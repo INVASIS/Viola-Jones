@@ -22,7 +22,7 @@ public class Main {
 
 
         Classifier classifier = new Classifier(19, 19);
-        classifier.train("data/trainset", overallTargetDetectionRate, overallTargetFalsePositiveRate, targetDetectionRate, targetFalsePositiveRate);
+        classifier.train("data/trainset", 0.5f, overallTargetDetectionRate, overallTargetFalsePositiveRate, targetDetectionRate, targetFalsePositiveRate);
         classifier.test("data/testset");
     }
 }

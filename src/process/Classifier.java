@@ -6,6 +6,8 @@ import java.io.*;
 import java.util.*;
 
 import static java.lang.Math.log;
+import static java.lang.Math.max;
+import static java.lang.Math.min;
 import static javafx.application.Platform.exit;
 import static process.features.FeatureExtractor.*;
 import static utils.Utils.*;
@@ -57,11 +59,17 @@ public class Classifier {
     private ArrayList<DecisionStump>[] cascade;
     private ArrayList<Float> tweaks;
 
-    // FIXME : the [] was removed
+    // FIXME: the [] was removed
     private DenseMatrix weightsTrain;
     private DenseMatrix weightsTest;
     private DenseMatrix labelsTrain;
     private DenseMatrix labelsTest;
+
+    double totalWeightPos; // total weight received by positive examples currently
+    double totalWeightNeg; // total weight received by negative examples currently
+
+    double minWeight; // minimum weight among all weights currently
+    double maxWeight; // maximum weight among all weights currently
 
     public Classifier(int width, int height) {
         this.width = width;
@@ -72,34 +80,41 @@ public class Classifier {
     }
 
     private void predictLabel(int round, int N, float decisionTweak, DenseMatrix prediction, boolean onlyMostRecent) {
-        // prediction = Matrix<int, 1,n >
+        // prediction = Matrix<int, 1,n > -> To be filled here
 
         int committeeSize = cascade[round].size();
         DenseMatrix memberVerdict = new DenseMatrix(committeeSize, N);
         DenseMatrix memberWeight = new DenseMatrix(1, committeeSize);
 
+        onlyMostRecent = committeeSize == 1 || onlyMostRecent;
+
         int start = onlyMostRecent ? committeeSize - 1 : 0;
 
         for (int member = start; member < committeeSize; member++) {
-            if (cascade[round].get(member).getError() == 0 && member != 0) {
+            if (cascade[round].get(member).error == 0 && member != 0) {
                 System.err.println("Boosting Error Occurred!");
                 exit();
             }
 
             // 0.5 does not count here
             // if member's weightedError is zero, member weight is nan, but it won't be used anyway
-            memberWeight.set(member, log((1.0 / cascade[round].get(member).getError()) - 1));
-            int featureIndex = cascade[round].get(member).getFeatureIndex();
+            memberWeight.set(member, log((1.0d / cascade[round].get(member).error) - 1));
+            long featureIndex = cascade[round].get(member).featureIndex;
             for (int i = 0; i < N; i++) {
                 // TODO
 //                int exampleIndex = getExampleIndex(featureId, i);
 //                memberVerdict.set(member, exampleIndex, (getExampleFeature(featureId, i) > committee.get(member).getThreshold() ? 1 : -1) * committee.get(member).getToggle()) + decisionTweak;
             }
         }
-
-        DenseMatrix finalVerdict = memberWeight.mul(memberVerdict);
-        for (int exampleIndex = 0; exampleIndex < N; exampleIndex++)
-            prediction.set(1, exampleIndex, finalVerdict.get(1, exampleIndex) > 0 ? 1 : -1);
+        if (!onlyMostRecent) {
+            DenseMatrix finalVerdict = memberWeight.mul(memberVerdict);
+            for (int i = 0; i < N; i++)
+                prediction.set(1, i, finalVerdict.get(1, i) > 0 ? 1 : -1);
+        }
+        else {
+            for (int i = 0; i < N; i++)
+                prediction.set(1, i, memberVerdict.get(start, i) > 0 ? 1 : -1);
+        }
 
     }
 
@@ -109,49 +124,54 @@ public class Classifier {
      * Here, weak classifier are called "Stumps", see: https://en.wikipedia.org/wiki/Decision_stump
      */
     private ArrayList<DecisionStump> adaboost(int round) {
+        // STATE: OK & CHECKED 16/31/08
 
         // The result to be filled & returned
         ArrayList<DecisionStump> committee = new ArrayList<>();
 
-        // TODO : when we have the list of list of features and the weights
-//        DecisionStump bestDS = DecisionStump.bestStump(features, weightsTrain);
-//        committee.add(bestDS);
+        DecisionStump bestDS = DecisionStump.bestStump(labelsTrain, weightsTrain, featureCount, trainN, totalWeightPos, totalWeightPos, minWeight);
+        committee.add(bestDS);
         adaboostPasses++;
 
         DenseMatrix prediction = new DenseMatrix(1, trainN);
         predictLabel(round, trainN, 0, prediction, true);
 
-        // cwise product = mul
-        //DenseMatrix agree = labelsTrain[round].mul(prediction.t());
         DenseMatrix agree = labelsTrain.mul(prediction.t());
-
         DenseMatrix weightUpdate = DenseMatrix.ones(1, trainN);
 
         boolean werror = false;
 
-        for (int index = 0; index < trainN; index++) {
-            if (agree.get(0, index) < 0) {
-                // TODO : uncomment when the decisionStump is computed
-                //weightUpdate[index] = 1 / bestDS.getError() - 1;
+        for (int i = 0; i < trainN; i++) {
+            if (agree.get(0, i) < 0) {
+                weightUpdate.set(0, i, 1.0d / bestDS.error - 1);
                 werror = true;
             }
         }
 
+        //update weights only if there is an error
         if (werror) {
-            // Update weights
             weightsTrain = weightsTrain.mul(weightUpdate);
-            DecisionStump.positiveTotalWeights = 0;
-
-            for (int i = 0; i < weightsTrain.cols; i++) {
-                weightsTrain.set(0, i, weightsTrain.get(0, i) / weightsTrain.s());
-
-                // Update pos weight
-                if (i < countTrainPos)
-                    DecisionStump.positiveTotalWeights += weightsTrain.get(0, i);
+            double sum = 0;
+            for (int i = 0; i < trainN; i++)
+                sum += weightsTrain.get(0, i);
+            double sumPos = 0;
+            for (int i = 0; i < trainN; i++) {
+                double newVal = weightsTrain.get(0, i) / sum;
+                weightsTrain.set(0, i, newVal);
+                sumPos += newVal;
             }
+            totalWeightPos = sumPos;
+            totalWeightNeg = 1 - sumPos;
 
-            // Update positiveTotalWeights
-            // minWeight ?
+            minWeight = weightsTrain.get(0, 0);
+            maxWeight = weightsTrain.get(0, 0);
+            for (int i = 1; i < trainN; i++) {
+                double currentVal = weightsTrain.get(0, i);
+                if (minWeight > currentVal)
+                    minWeight = currentVal;
+                if (maxWeight < currentVal)
+                    maxWeight = currentVal;
+            }
         }
 
         System.out.println("Adaboost passes : " + adaboostPasses);
@@ -194,16 +214,16 @@ public class Classifier {
     /**
      * Algorithm 10 from the original paper
      */
-    public void attentionalCascade(int round,
-                                   float overallTargetDetectionRate, float overallTargetFalsePositiveRate) {
-        // STATE: OK & CHECKED 16/26/08
-        boolean layerMissionAccomplished = false;
+    private void attentionalCascade(int round, float overallTargetDetectionRate, float overallTargetFalsePositiveRate) {
+        // STATE: OK & CHECKED 16/31/08
 
         int committeeSizeGuide = Math.min(20 + round * 10, 200);
         System.out.println("    - CommitteeSizeGuide = " + committeeSizeGuide);
+
+        boolean layerMissionAccomplished = false;
         while (!layerMissionAccomplished) {
 
-            // Run algorithm N°6 to produce a classifier
+            // Run algorithm N°6 (adaboost) to produce a classifier (which is in fact a committee == ArrayList<DecisionStump>)
             cascade[round] = adaboost(round);
 
             boolean overSized = cascade[round].size() > committeeSizeGuide;
@@ -216,32 +236,32 @@ public class Classifier {
             if (finalTweak)
                 tweak = -1;
             float tweakUnit = TWEAK_UNIT;
-            float ctrlFalsePositive, ctrlDetectionRate, falsePositive, detectionRate;
+            float falsePositive, detectionRate;
 
             while (Math.abs(tweak) < 1.1) {
                 tweaks.set(round, tweak);
 
                 float tmp[] = calcEmpiricalError(round, trainN, countTrainPos, labelsTrain);
-                ctrlFalsePositive = tmp[0];
-                ctrlDetectionRate = tmp[1];
-
-                /*
-                // FIXME : train without using the test values... maybe less detection rate doing that ?
-                tmp = calcEmpiricalError(round, testN, countTestPos, labelsTest);
                 falsePositive = tmp[0];
                 detectionRate = tmp[1];
+
+                /*
+                FIXME : train without using the test values... maybe less detection rate doing that ?
+                tmp = calcEmpiricalError(round, testN, countTestPos, labelsTest);
+                ctrlFalsePositive = tmp[0];
+                ctrlDetectionRate = tmp[1];
 
 
                 float worstFalsePositive = Math.max(falsePositive, ctrlFalsePositive);
                 float worstDetectionRate = Math.min(detectionRate, ctrlDetectionRate);
                 */
 
-                float worstFalsePositive = ctrlFalsePositive;
-                float worstDetectionRate = ctrlDetectionRate;
+                float worstFalsePositive = falsePositive;
+                float worstDetectionRate = detectionRate;
 
                 if (finalTweak) {
                     if (worstDetectionRate >= 0.99) {
-                        System.out.println(" final tweak settles to " + tweak);
+                        System.out.println("    - Final tweak settles to " + tweak);
                         break;
                     } else {
                         tweak += TWEAK_UNIT;
@@ -262,18 +282,21 @@ public class Classifier {
                     oscillationObserver[tweakCounter % 2] = 1;
                 } else {
                     finalTweak = true;
-                    System.out.println("INFO: no way out at this point. tweak goes from " + tweak);
+                    System.out.println("    - No way out at this point. tweak goes from " + tweak);
                     continue;
                 }
 
-                if (!finalTweak && tweakCounter > 1 && oscillationObserver[0] + oscillationObserver[1] == 0) {
+                // It is possible that tweak vacillates
+                if (!finalTweak && tweakCounter > 1 && (oscillationObserver[0] + oscillationObserver[1]) == 0) {
+                    // One solution is to reduce tweakUnit
                     tweakUnit /= 2;
+                    tweak += oscillationObserver[tweakCounter % 2] == 1 ? -1 * tweakUnit : tweakUnit;
 
-                    System.out.println("backtracked at " + tweakCounter + " ! Modify tweakUnit to " + tweakUnit);
+                    System.out.println("    - Backtracked at " + tweakCounter + "! Modify tweakUnit to " + tweakUnit);
 
                     if (tweakUnit < MIN_TWEAK) {
                         finalTweak = true;
-                        System.out.println("tweakUnit too small. tweak goes from " + tweak);
+                        System.out.println("    - TweakUnit too small. Tweak goes from " + tweak);
                     }
                 }
             }
@@ -294,8 +317,8 @@ public class Classifier {
 
             for (int i = 0; i < memberCount; i++) {
                 DecisionStump decisionStump = committee.get(i);
-                writer.print("{" + decisionStump.getFeatureIndex() + "," + decisionStump.getError() + ","
-                        + decisionStump.getThreshold() + "," + decisionStump.getToggle() + "}");
+                writer.print("{" + decisionStump.featureIndex + "," + decisionStump.error + ","
+                        + decisionStump.threshold + "," + decisionStump.toggle + "}");
 
                 if (i == memberCount - 1 && lastRound)
                     writer.println(System.lineSeparator() + "};");
@@ -349,7 +372,7 @@ public class Classifier {
         return examples;
     }
 
-    public void train(String dir, float overallTargetDetectionRate, float overallTargetFalsePositiveRate,
+    public void train(String dir, float initialPositiveWeight, float overallTargetDetectionRate, float overallTargetFalsePositiveRate,
                       float targetDetectionRate, float targetFalsePositiveRate) {
         if (computed) {
             System.out.println("Training already done!");
@@ -388,10 +411,22 @@ public class Classifier {
         for (int i = 0; i < boostingRounds; i++)
             cascade[i] = new ArrayList<>();
 
-        // Init labels
+
+        // Updating weights
+        totalWeightPos = initialPositiveWeight;
+        totalWeightNeg = 1 - initialPositiveWeight;
+        double averageWeightPos = totalWeightPos / countTrainPos;
+        double averageWeightNeg = totalWeightNeg / countTrainNeg;
+        minWeight = min(averageWeightPos, averageWeightNeg);
+        maxWeight = max(averageWeightPos, averageWeightNeg);
+
+        // Init labels & weights
         labelsTrain = new DenseMatrix(1, trainN);
-        for (int i = 0; i < trainN; i++)
+        weightsTrain = new DenseMatrix(1, trainN);
+        for (int i = 0; i < trainN; i++) {
             labelsTrain.set(0, i, i < countTrainPos ? 1 : -1);
+            weightsTrain.set(0, i, i < countTrainPos ? averageWeightPos : averageWeightNeg);
+        }
 
         double accumulatedFalsePositive = 1;
 
@@ -399,22 +434,10 @@ public class Classifier {
         for (int round = 0; round < boostingRounds && accumulatedFalsePositive > GOAL; round++) {
             System.out.println("  - Round N." + round + ":");
 
-            DecisionStump.positiveTotalWeights = 0.5;
-
-            // TODO : for now only for train
-            double posAverageWeight = DecisionStump.positiveTotalWeights / countTrainPos;
-            double negAverageWeight = (1 - DecisionStump.positiveTotalWeights) / countTrainNeg;
-
-            weightsTrain = new DenseMatrix(1, trainN);
-            for (int i = 0; i < trainN; i++)
-                weightsTrain.set(0, i, i < countTrainPos ? posAverageWeight : negAverageWeight);
-
-
             attentionalCascade(round, overallTargetDetectionRate, overallTargetFalsePositiveRate);
+            System.out.println("    - Attentional Cascade computed!");
 
             // -- Display results for this round --
-
-            System.out.println("    - Layer " + round + 1 + " done!");
 
             //layerMemory.add(trainSet.committee.size());
             layerMemory.add(cascade[round].size());

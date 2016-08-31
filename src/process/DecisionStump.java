@@ -1,162 +1,153 @@
 package process;
 
-import javafx.util.Pair;
 import jeigen.DenseMatrix;
 
-import java.util.ArrayList;
-import java.util.Objects;
+import static javafx.application.Platform.exit;
 
 public class DecisionStump { // == stumpRule
 
-    public static double positiveTotalWeights = 0.5;
-
     // Values that will be used to find the best DecisionStump
-    private int featureIndex;
-    private double error;
-    private double threshold;
-    private double margin;
-    private boolean toggle; // = polarity {-1; 1}
-
-    private double rPos;
-    private double rNeg;
-    private double lPos;
-    private double lNeg;
-
-    private ArrayList<Pair<Integer, Boolean>> features;
-    private DenseMatrix weights;
+    public long featureIndex;
+    public double error;
+    public double threshold;
+    public double margin;
+    public boolean toggle; // = polarity {-1; 1}
 
 
     // Initialisation
-    public DecisionStump(ArrayList<Pair<Integer, Boolean>> features, DenseMatrix w, int featureIndex) {
+    private DecisionStump(long featureIndex, double error, double threshold, double margin, boolean toggle) {
         this.featureIndex = featureIndex;
-        this.error = 2;
-        this.threshold = this.features.get(0).getKey() - 1; // FIXME with organized features
-        this.margin = -1; // Like that in the paper implem...
-        this.toggle = false;
-
-        this.rPos = positiveTotalWeights;
-        this.rNeg = 1 - positiveTotalWeights;
-
-        this.lPos = 0;
-        this.lNeg = 0;
-
-        // Should be arranged in ascending order
-        this.features = (ArrayList<Pair<Integer, Boolean>>) features.clone();
-        this.weights =  w;
-
+        this.error = error;
+        this.threshold = threshold;
+        this.margin = margin;
+        this.toggle = toggle;
     }
 
-    public void compute(DenseMatrix labels) {
+    private static DecisionStump deepCopy(DecisionStump other) {
+        return new DecisionStump(
+                other.featureIndex,
+                other.error,
+                other.threshold,
+                other.margin,
+                other.toggle
+        );
+    }
 
-        int num_features = this.features.size() - 1;
-        int iter = -1;
+    private static boolean compare(DecisionStump first, DecisionStump second) {
+        return (first.error < second.error ||
+                (first.error == second.error && first.margin > second.margin));
+    }
 
+    public static DecisionStump compute(DenseMatrix labels, DenseMatrix weights, long featureIndex, int N, double totalWeightPos, double totalWeightNeg, double minWeight) {
+        DecisionStump best = new DecisionStump(featureIndex, 2, 0/*FIXME: getExampleFeature(featureIndex, 0) - 1*/, -1, false);
+        DecisionStump current = deepCopy(best); // copy of best
 
-        double tmp_threshold = this.threshold;
-        double tmp_margin = this.margin;
-        double small_error = 0;
-        boolean tmp_togle = false;
+        // Left & Right hand of the stump
+        double leftWeightPos = 0;
+        double leftWeightNeg = 0;
+        double rightWeightPos = totalWeightPos;
+	    double rightWeightNeg = totalWeightNeg;
 
+        // Go through all these observations one after another
+        int iterator = -1;
+
+        // To build a decision stump, you need a toggle and an admissible threshold
+        // which doesn't coincide with any of the observations
         while (true) {
-            double errorPlus = lPos + rNeg;
-            double errorMin = rPos + lNeg;
+            double errorPlus = leftWeightPos + rightWeightNeg;
+            double errorMinus = rightWeightPos + leftWeightNeg;
 
-            if (errorPlus < errorMin) {
-                small_error = errorPlus;
-                tmp_togle = true;
+            double Epsilon_hat;
+            if (errorPlus < errorMinus) {
+                Epsilon_hat = errorPlus;
+                current.toggle = true;
             } else {
-                small_error = errorMin;
-                tmp_togle = false;
+                Epsilon_hat = errorMinus;
+                current.toggle = false;
             }
 
-            if (small_error < this.error || small_error == this.error && tmp_margin > this.margin) {
-                this.error = small_error;
-                this.threshold = tmp_threshold;
-                this.margin = tmp_margin;
-                this.toggle = tmp_togle;
-            }
+            current.error = Epsilon_hat < minWeight * 0.9 ? 0 : Epsilon_hat;
 
-            iter++;
+            if (compare(current, best))
+                best = deepCopy(current);
 
-            // Pas sur si c'est toutes les features ou pas... mais ça doit etre bon...
-            if (iter == num_features)
+            iterator++;
+
+
+            // We don't actually need to look at the sample with the largest feature
+            // because its rule is exactly equivalent to those produced
+            // by the sample with the smallest feature on training observations
+            // but it won't do any harm anyway
+            if (iterator == N)
                 break;
 
             while (true) {
+                int exampleIndex = 0; /*FIXME: = getExampleIndex(featureIndex, iterator)*/
+                double label = (int) labels.get(0, exampleIndex);
+                double weight = weights.get(0, exampleIndex);
 
-                // int exampleIndex = getExampleIndex();
-                // int label = labels[exampleIndex];
-
-                if (!this.features.get(iter).getValue()) {
-                    this.lNeg += this.weights.get(0, iter);
-                    this.rNeg -= this.weights.get(0, iter);
-                } else {
-                    this.lPos += this.weights.get(0, iter);
-                    this.rPos -= this.weights.get(0, iter);
+                if (label < 0) {
+                    leftWeightNeg += weight;
+                    rightWeightNeg -= weight;
+                }
+                else {
+                    leftWeightPos += weight;
+                    rightWeightPos -= weight;
                 }
 
-                if (iter == num_features || Objects.equals(this.features.get(iter).getKey(), this.features.get(iter + 1).getKey()))
+                // if a new threshold can be found, break
+                // two cases are possible:
+                //   - Either it is the last observation:
+                if (iterator == N - 1)
                     break;
+                //   - Or no duplicate. If there is a duplicate, repeat:
+                //TODO
 
-                iter++;
+                iterator++;
             }
 
-            if (iter < num_features - 1) {
-                tmp_threshold = (this.features.get(iter).getKey() + this.features.get(iter + 1).getKey()) / 2;
-                tmp_margin = this.features.get(iter + 1).getKey() - this.features.get(iter).getKey();
+            if (iterator < N - 1) {
+                //TODO
             } else {
-                tmp_threshold = this.features.get(iter).getKey() + 1;
-                tmp_margin = 0;
+                //TODO
             }
         }
+
+        return best;
     }
+
+
 
     /**
-     * <Integer i, Boolean b> indicates whether feature i is a face (b=true) or not (b=false)
+     * Algorithm 5 from the original paper
+     *
+     * Return the most discriminative feature and its rule
+     * We compute each DecisionStump, and find the one with:
+     *   - the lower weighted error first
+     *   - the wider margin
+     *
+     *
+     * Pair<Integer i, Boolean b> indicates whether feature i is a face (b=true) or not (b=false)
      */
-    public static DecisionStump bestStump(ArrayList<Pair<Integer, Boolean>> candidatesFeatures, DenseMatrix w) {
-        // STATE: OK & CHECKED 16/26/08
+    public static DecisionStump bestStump(DenseMatrix labels, DenseMatrix weights, long featureCount, int N, double totalWeightPos, double totalWeightNeg, double minWeight) {
 
-        // FIXME
-        // Recuperer les features triées
-        // Pour les mettre dans une arrayList de int
-        // DecisionStump best = new DecisionStump(features.get(0), w, 0);
-        // best.compute(labels);
+        // Compare each DecisionStump and find the best by following this algorithm:
+        //   if (current.weightedError < best.weightedError) -> best = current
+        //   else if (current.weightedError == best.weightedError && current.margin > best.margin) -> best = current
 
-        // for (int i = 0/* maybe opti with 1... */; i < featureCount; i++) {
-        //    DecisionStump decisionStump = new DecisionStump(features.get(i), w, i);
-        //    decisionStump.compute(labels);
+        DecisionStump best = compute(labels, weights, 0, N, totalWeightPos, totalWeightNeg, minWeight);
+        for (long i = 1; i < featureCount; i++) {
+            DecisionStump current = compute(labels, weights, i, N, totalWeightPos, totalWeightNeg, minWeight);
+            if (compare(current, best))
+                best = current;
+        }
 
-        // if (decisionStump.error < best.error || decisionStump.error == best.error && decisionStump.margin > best.margin) {
-        //        best = decisionStump;
-        //    }
-        // }
+        if (best.error >= 0.5) {
+            System.out.println("Failed best stump, error : " + best.error + " >= 0.5 !");
+            exit();
+        }
 
-        // if (best.error >= 0.5)
-        //     System.err.println("Failed best stump, error : " + best.error + " >= 0.5 ! (not good but we still continue)");
-
-        // return best;
-        return null;
-    }
-
-    public double getMargin() {
-        return margin;
-    }
-
-    public double getThreshold() {
-        return threshold;
-    }
-
-    public boolean getToggle() {
-        return toggle;
-    }
-
-    public double getError() {
-        return error;
-    }
-
-    public int getFeatureIndex() {
-        return featureIndex;
+        return best;
     }
 }
 
