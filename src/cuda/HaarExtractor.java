@@ -85,6 +85,7 @@ public class HaarExtractor implements AutoCloseable {
         this.tmpDataPtr = new CUdeviceptr[width];
 
         // TODO: possible optimization: do not use all rectangles, as we train on simple x*x squares already centered on faces, we don't need all rectangles.
+        // TODO: + we will only need certains haar-feature, not all, so why not compute only those needed ?
         listAllTypeN(this.NUM_FEATURES_A, FeatureExtractor.widthTypeA, FeatureExtractor.heightTypeA, 'A');
         listAllTypeN(this.NUM_FEATURES_B, FeatureExtractor.widthTypeB, FeatureExtractor.heightTypeB, 'B');
         listAllTypeN(this.NUM_FEATURES_C, FeatureExtractor.widthTypeC, FeatureExtractor.heightTypeC, 'C');

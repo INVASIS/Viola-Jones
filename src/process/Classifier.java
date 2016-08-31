@@ -58,7 +58,6 @@ public class Classifier {
     private ArrayList<DecisionStump>[] cascade;
     private ArrayList<Float> tweaks;
 
-    // FIXME: the [] was removed
     private DenseMatrix weightsTrain;
     private DenseMatrix weightsTest;
     private DenseMatrix labelsTrain;
@@ -115,7 +114,6 @@ public class Classifier {
         }
 
     }
-
 
     /**
      * Strong classifier based on multiple weak classifiers.
@@ -336,7 +334,6 @@ public class Classifier {
         train_nonfaces = listFiles(train_dir + "/non-faces", Conf.IMAGES_EXTENSION);
 
 
-        // FIXME: What is that? - Used later
         layerMemory = new ArrayList<>();
 
         // Compute all features for train & test set
