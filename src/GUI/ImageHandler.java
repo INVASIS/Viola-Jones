@@ -10,10 +10,10 @@ import java.awt.image.BufferedImage;
 import java.io.*;
 import java.util.*;
 
-import static javafx.application.Platform.exit;
 import static process.features.FeatureExtractor.computeImageFeatures;
 import static utils.Serializer.readArrayFromDisk;
 import static utils.Utils.fileExists;
+
 
 public class ImageHandler {
 

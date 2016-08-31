@@ -62,6 +62,34 @@ public class Serializer {
         return result;
     }
 
+    public static ArrayList<Integer> readArrayFromDisk(String filePath, long fromIndex, long toIndex) {
+        ArrayList<Integer> result = new ArrayList<>();
+
+        DataInputStream os;
+        try {
+            os = new DataInputStream(new BufferedInputStream(new FileInputStream(filePath)));
+            skipBytesLong(os, Integer.BYTES * fromIndex);
+            long i = 0;
+            while (true) {
+                try {
+                    result.add(os.readInt());
+                    i++;
+                } catch (EOFException e) {
+                    break;
+                }
+                if (i == (toIndex - fromIndex))
+                    break;
+            }
+            os.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.exit(1);
+        }
+        assert result.size() == (toIndex - fromIndex);
+        return result;
+    }
+
+
     /**
      * Checks if filePath contains exactly expectedSize values.
      */

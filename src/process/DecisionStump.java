@@ -2,8 +2,9 @@ package process;
 
 import jeigen.DenseMatrix;
 
-import static process.features.FeatureExtractor.getExampleFeature;
-import static process.features.FeatureExtractor.getExampleIndex;
+import java.util.ArrayList;
+
+import static process.features.FeatureExtractor.*;
 
 public class DecisionStump { // == stumpRule
 
@@ -54,6 +55,12 @@ public class DecisionStump { // == stumpRule
 
         // To build a decision stump, you need a toggle and an admissible threshold
         // which doesn't coincide with any of the observations
+
+        ArrayList<Integer> featureExampleIndexes = getFeatureExamplesIndexes(featureIndex, N);
+        ArrayList<Integer> featureValues = getFeatureValues(featureIndex, N);
+        assert featureExampleIndexes.size() == N;
+        assert featureValues.size() == N;
+
         while (true) {
             double errorPlus = leftWeightPos + rightWeightNeg;
             double errorMinus = rightWeightPos + leftWeightNeg;
@@ -84,6 +91,7 @@ public class DecisionStump { // == stumpRule
 
             while (true) {
                 int exampleIndex = getExampleIndex(featureIndex, iterator, N);
+                assert featureExampleIndexes.get(iterator) == exampleIndex;
                 double label = (int) labels.get(0, exampleIndex);
                 double weight = weights.get(0, exampleIndex);
 
@@ -102,22 +110,27 @@ public class DecisionStump { // == stumpRule
                 if (iterator == N - 1)
                     break;
                 //   - Or no duplicate. If there is a duplicate, repeat:
-                if (getExampleFeature(featureIndex, iterator, N) != getExampleFeature(featureIndex, iterator + 1, N)) {
-                    double test = getExampleFeature(featureIndex, iterator, N) + getExampleFeature(featureIndex, iterator + 1, N);
+
+                int featureValue = getExampleFeature(featureIndex, iterator, N);
+                int nextFeatureValue = getExampleFeature(featureIndex, iterator + 1, N);
+                assert featureValues.get(iterator) == featureValue;
+                assert featureValues.get(iterator + 1) == nextFeatureValue;
+
+                if (featureValue != nextFeatureValue) {
+                    double test = featureValue + nextFeatureValue;
                     test /= 2;
 
-                    if (getExampleFeature(featureIndex, iterator, N) < test && test < getExampleFeature(featureIndex, iterator + 1, N))
+                    if (featureValue < test && test < nextFeatureValue)
                         break;
-                    else {
-                        System.err.println("FATAL: Numerical precision breached: problem feature values " +
-                                getExampleFeature(featureIndex, iterator, N) + " : " +
-                                getExampleFeature(featureIndex, iterator + 1, N) + ". Problem feature " +
-                                featureIndex + " and problem example " + getExampleIndex(featureIndex, iterator, N) + " :" +
-                                getExampleIndex(featureIndex, iterator + 1, N));
-                        System.exit(1);
-                    }
+//                    else { FIXME: useful?
+//                        System.err.println("FATAL: Numerical precision breached: problem feature values " +
+//                                getExampleFeature(featureIndex, iterator, N) + " : " +
+//                                getExampleFeature(featureIndex, iterator + 1, N) + ". Problem feature " +
+//                                featureIndex + " and problem example " + getExampleIndex(featureIndex, iterator, N) + " :" +
+//                                getExampleIndex(featureIndex, iterator + 1, N));
+//                        System.exit(1);
+//                    }
                 }
-
                 iterator++;
             }
 

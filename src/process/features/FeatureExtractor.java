@@ -5,9 +5,7 @@ import javafx.util.Pair;
 import process.Conf;
 import utils.yield.Yielderable;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.Date;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static java.util.Comparator.comparing;
@@ -374,7 +372,6 @@ public class FeatureExtractor {
             return;
         }
 
-        final Comparator<Pair<Integer, Integer>> c = comparing(Pair::getValue);
         assert examples.size() == trainN;
 
         long presumableFreeMemory = Runtime.getRuntime().maxMemory() - (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory());
@@ -405,7 +402,11 @@ public class FeatureExtractor {
                     ascendingFeatures.add(new Pair<>(exampleIndex, readIntFromDisk(examples.get(exampleIndex) + Conf.FEATURE_EXTENSION, featureIndex)));
                 }
             }
-            ascendingFeatures.stream().sorted(c);
+            Collections.sort(ascendingFeatures, (o1, o2) -> o1.getValue().compareTo(o2.getValue()));
+
+            if (featureIndex == 0)
+                for (int z = 1; z < trainN; z++)
+                    assert ascendingFeatures.get(z-1).getValue() < ascendingFeatures.get(z).getValue();
 
             ArrayList<Integer> permutedSamples = new ArrayList<>(trainN);
             ArrayList<Integer> permutedFeatures = new ArrayList<>(trainN);
@@ -429,6 +430,9 @@ public class FeatureExtractor {
     public static int getExampleIndex(long featureIndex, int iterator, int trainN) {
         return getExampleIndex(featureIndex, iterator, trainN, Conf.ORGANIZED_SAMPLE);
     }
+    public static ArrayList<Integer> getFeatureExamplesIndexes(long featureIndex, int trainN) {
+        return readArrayFromDisk(Conf.ORGANIZED_SAMPLE, featureIndex * trainN, trainN);
+    }
 
     /**
      * Call with organizedFeature
@@ -438,5 +442,8 @@ public class FeatureExtractor {
     }
     public static int getExampleFeature(long featureIndex, int iterator, int trainN) {
         return getExampleFeature(featureIndex, iterator, trainN, Conf.ORGANIZED_FEATURES);
+    }
+    public static ArrayList<Integer> getFeatureValues(long featureIndex, int trainN) {
+        return readArrayFromDisk(Conf.ORGANIZED_FEATURES, featureIndex * trainN, trainN);
     }
 }
