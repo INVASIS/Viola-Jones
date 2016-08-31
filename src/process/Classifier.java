@@ -1,19 +1,13 @@
 package process;
 
-import javafx.util.Pair;
 import jeigen.DenseMatrix;
 
 import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.*;
 
 import static java.lang.Math.log;
-import static java.util.Comparator.comparing;
 import static javafx.application.Platform.exit;
-import static process.features.FeatureExtractor.computeSetFeatures;
-import static process.features.FeatureExtractor.countAllFeatures;
-import static utils.Serializer.*;
+import static process.features.FeatureExtractor.*;
 import static utils.Utils.*;
 
 public class Classifier {
@@ -74,14 +68,12 @@ public class Classifier {
         this.height = height;
 
         this.featureCount = countAllFeatures(width, height);
-
-        System.out.println("Feature count: " + featureCount);
+        System.out.println("Feature count for " + width + "x" + height + ": " + featureCount);
     }
 
     private void predictLabel(int round, int N, float decisionTweak, DenseMatrix prediction, boolean onlyMostRecent) {
-        /**
-         * prediction = Vector (Matrix< 1,n >)
-         */
+        // prediction = Matrix<int, 1,n >
+
         int committeeSize = cascade[round].size();
         DenseMatrix memberVerdict = new DenseMatrix(committeeSize, N);
         DenseMatrix memberWeight = new DenseMatrix(1, committeeSize);
@@ -112,31 +104,32 @@ public class Classifier {
     }
 
 
-    private ArrayList<DecisionStump> adaboost(int round, int N) {
-        /**
-         * Strong classifier based on multiple weak classifiers.
-         * Here, weak classifier are called "Stumps", see: https://en.wikipedia.org/wiki/Decision_stump
-         */
+    /**
+     * Strong classifier based on multiple weak classifiers.
+     * Here, weak classifier are called "Stumps", see: https://en.wikipedia.org/wiki/Decision_stump
+     */
+    private ArrayList<DecisionStump> adaboost(int round) {
 
+        // The result to be filled & returned
         ArrayList<DecisionStump> committee = new ArrayList<>();
 
         // TODO : when we have the list of list of features and the weights
-        //DecisionStump bestDS = DecisionStump.bestStump(features, weightsTrain);
-        //committee.add(bestDS);
+//        DecisionStump bestDS = DecisionStump.bestStump(features, weightsTrain);
+//        committee.add(bestDS);
         adaboostPasses++;
 
-        DenseMatrix prediction = new DenseMatrix(1, N);
-        predictLabel(round, N, 0, prediction, true);
+        DenseMatrix prediction = new DenseMatrix(1, trainN);
+        predictLabel(round, trainN, 0, prediction, true);
 
         // cwise product = mul
         //DenseMatrix agree = labelsTrain[round].mul(prediction.t());
         DenseMatrix agree = labelsTrain.mul(prediction.t());
 
-        DenseMatrix weightUpdate = DenseMatrix.ones(1, N);
+        DenseMatrix weightUpdate = DenseMatrix.ones(1, trainN);
 
         boolean werror = false;
 
-        for (int index = 0; index < N; index++) {
+        for (int index = 0; index < trainN; index++) {
             if (agree.get(0, index) < 0) {
                 // TODO : uncomment when the decisionStump is computed
                 //weightUpdate[index] = 1 / bestDS.getError() - 1;
@@ -201,15 +194,17 @@ public class Classifier {
     /**
      * Algorithm 10 from the original paper
      */
-    public void attentionalCascade(int round, int committeeSizeGuide,
+    public void attentionalCascade(int round,
                                    float overallTargetDetectionRate, float overallTargetFalsePositiveRate) {
         // STATE: OK & CHECKED 16/26/08
         boolean layerMissionAccomplished = false;
 
+        int committeeSizeGuide = Math.min(20 + round * 10, 200);
+        System.out.println("    - CommitteeSizeGuide = " + committeeSizeGuide);
         while (!layerMissionAccomplished) {
 
             // Run algorithm N°6 to produce a classifier
-            cascade[round] = adaboost(round, trainN);
+            cascade[round] = adaboost(round);
 
             boolean overSized = cascade[round].size() > committeeSizeGuide;
             boolean finalTweak = overSized;
@@ -287,210 +282,6 @@ public class Classifier {
         }
     }
 
-    /**
-     * Pour chaque feature:
-     *      vector<pair<valeur-de-la-feature, l'index de l'exemple (image)>> ascendingFeatures;
-     *      Pour chaque exemple:
-     *          ascendingFeatures.add(<valeur-de-cette-feature-pour-cet-example, index-de-l'exemple>)
-     *          trier ascendingFeatures en fonction de pair.first
-     *          Write sur disque:
-     *              * OrganizedFeatures (à l'index de la feature actuelle le ascendingFeatures.first en entier) tmp/training
-     *              * OrganizedSample (à l'index de la feature actuelle le ascendingFeatures.second en entier)
-     *
-     * Le résultat est le suivant:
-     *   * OrganizedFeatures : (une ligne = une feature | chaque colonne dans cette ligne est la valeur de cette feature pour une image)
-     *   * OrganizedSample   : (une ligne = une feature | chaque colonne dans cette ligne est l'index de l'image correspondante)
-     */
-    private void organizeFeatures() {
-        System.out.println("Organizing features...");
-
-        if (fileExists(Conf.ORGANIZED_FEATURES)) {
-            if (validSizeOfArray(Conf.ORGANIZED_FEATURES, trainN * featureCount))
-                return;
-            deleteFile(Conf.ORGANIZED_FEATURES);
-        }
-        if (fileExists(Conf.ORGANIZED_SAMPLE)) {
-            if (validSizeOfArray(Conf.ORGANIZED_SAMPLE, trainN * featureCount))
-                return;
-            deleteFile(Conf.ORGANIZED_SAMPLE);
-        }
-
-        final Comparator<Pair<Integer, Integer>> c = comparing(Pair::getValue);
-
-        ArrayList<String> examples = new ArrayList<>(trainN);
-        examples.addAll(train_faces);
-        examples.addAll(train_nonfaces);
-
-        assert examples.size() == trainN;
-
-        long presumableFreeMemory = Runtime.getRuntime().maxMemory() - (Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory());
-        long neededMemory = featureCount * Integer.BYTES * Integer.BYTES * trainN;
-        System.out.println("  - Needed memory: " + neededMemory + " (presumable free memory: " + presumableFreeMemory + ")");
-        boolean allInMemory = presumableFreeMemory > neededMemory;
-
-        ArrayList<ArrayList<Integer>> allImagesFeatures = null;
-        if (allInMemory) {
-            allImagesFeatures = new ArrayList<>();
-            for (String e : examples)
-                allImagesFeatures.add(readArrayFromDisk(e + Conf.FEATURE_EXTENSION));
-            System.out.println("  - Prefetched all images features");
-        }
-        for (long featureIndex = 0; featureIndex < featureCount; featureIndex++) {
-            // <exampleIndex, value>
-            ArrayList<Pair<Integer, Integer>> ascendingFeatures = new ArrayList<>();
-
-            if (allInMemory) {
-                for (int exampleIndex = 0; exampleIndex < trainN; exampleIndex++) {
-                    ascendingFeatures.add(new Pair<>(exampleIndex, allImagesFeatures.get(exampleIndex).get((int)featureIndex)));
-                }
-            }
-            else {
-                for (int exampleIndex = 0; exampleIndex < trainN; exampleIndex++) {
-                    ascendingFeatures.add(new Pair<>(exampleIndex, readIntFromDisk(examples.get(exampleIndex) + Conf.FEATURE_EXTENSION, featureIndex)));
-                }
-            }
-            ascendingFeatures.stream().sorted(c);
-
-            ArrayList<Integer> permutedSamples = new ArrayList<>(trainN);
-            ArrayList<Integer> permutedFeatures = new ArrayList<>(trainN);
-
-            for (int k = 0; k < trainN; k++) {
-                permutedSamples.add(ascendingFeatures.get(k).getKey());
-                permutedFeatures.add(ascendingFeatures.get(k).getValue());
-            }
-
-            appendArrayToDisk(Conf.ORGANIZED_SAMPLE, permutedSamples);
-            appendArrayToDisk(Conf.ORGANIZED_FEATURES, permutedFeatures);
-        }
-    }
-
-    private void computeFeaturesTimed(String path) {
-        System.out.println("Computing features for:");
-        System.out.println("  - " + path);
-        int count = 0;
-        long startTime = System.currentTimeMillis();
-        count += computeSetFeatures(path + "/faces", path + "/non-faces", true);
-        if (count > 0) {
-            long elapsedTimeMS = (new Date()).getTime() - startTime;
-            System.out.println("  Statistics:");
-            System.out.println("    - Elapsed time: " + elapsedTimeMS / 1000 + "s");
-            System.out.println("    - Images computed: " + count);
-            System.out.println("    - image/seconds: " + count / (elapsedTimeMS / 1000));
-        }
-        else
-            System.out.println("  - All features already computed!");
-    }
-
-    public void train(String dir, float overallTargetDetectionRate, float overallTargetFalsePositiveRate,
-                      float targetDetectionRate, float targetFalsePositiveRate) {
-        /**
-         * In order to avoid excessive memory usage, this training temporary stores metadata on disk.         *
-         */
-
-        if (computed) {
-            System.out.println("Training already done!");
-            return;
-        }
-
-        train_dir = dir;
-        countTrainPos = countFiles(train_dir + "/faces", Conf.IMAGES_EXTENSION);
-        countTrainNeg = countFiles(train_dir + "/non-faces", Conf.IMAGES_EXTENSION);
-        trainN = countTrainPos + countTrainNeg;
-        System.out.println("Total number of training images: " + trainN +
-                " (pos: " + countTrainPos + ", neg: " + countTrainNeg + ")");
-
-        train_faces = new ArrayList<>(countTestPos);
-        train_nonfaces = new ArrayList<>(countTestNeg);
-
-        train_faces = listFiles(train_dir + "/faces", Conf.IMAGES_EXTENSION);
-        train_nonfaces = listFiles(train_dir + "/non-faces", Conf.IMAGES_EXTENSION);
-
-
-        // FIXME: What is that? - Used later
-        layerMemory = new ArrayList<>();
-
-        // Compute all features for train & test set
-        computeFeaturesTimed(train_dir);
-
-        // Now organize all those features, so that it is easier to make requests on it
-        organizeFeatures();
-
-        // Estimated number of rounds needed
-        int boostingRounds = (int) (Math.ceil(Math.log(overallTargetFalsePositiveRate) / Math.log(targetFalsePositiveRate)) + 20);
-        System.out.println("Boosting rounds : " + boostingRounds);
-
-        // Initialization
-        tweaks = new ArrayList<>(boostingRounds);
-        cascade = new ArrayList[boostingRounds];
-        for (int i = 0; i < boostingRounds; i++)
-            cascade[i] = new ArrayList<>();
-
-        // Init weights & labels
-        // FIXME : already init later in the next for
-
-        double accumulatedFalsePositive = 1;
-
-        // Training: run Cascade until we arrive to a certain wanted rate of success
-        for (int round = 0; round < boostingRounds && accumulatedFalsePositive > GOAL; round++) {
-
-            DecisionStump.positiveTotalWeights = 0.5;
-
-            // TODO : for now only for train
-            double posAverageWeight = DecisionStump.positiveTotalWeights / countTrainPos;
-            double negAverageWeight = (1 - DecisionStump.positiveTotalWeights) / countTrainNeg;
-
-            labelsTrain = new DenseMatrix(1, trainN);
-            weightsTrain = new DenseMatrix(1, trainN);
-
-            // FIXME : sould it be sorted in ascending order ?
-            // IMPORTANT : Images should be set as follow : first the countTrainPos first positive images, and then the negative images
-            for (int i = 0; i < trainN; i++) {
-                labelsTrain.set(0, i, i < countTrainPos ? 1 : -1);
-                weightsTrain.set(0, i, i < countTrainPos ? posAverageWeight : negAverageWeight);
-            }
-
-            int committeeSizeGuide = Math.min(20 + round * 10, 200);
-            System.out.println("CommitteeSizeGuide = " + committeeSizeGuide);
-
-            attentionalCascade(round, committeeSizeGuide, overallTargetDetectionRate, overallTargetFalsePositiveRate);
-
-
-            // -- Display results for this round --
-
-            System.out.println("Layer " + round + 1 + " done!");
-
-            //layerMemory.add(trainSet.committee.size());
-            layerMemory.add(cascade[round].size());
-            System.out.println("The committee size is " + cascade[round].size());
-
-            float detectionRate, falsePositive;
-            float[] tmp = calcEmpiricalError(round, trainN, countTrainPos, labelsTrain);
-            falsePositive = tmp[0];
-            detectionRate = tmp[1];
-            System.out.println("The current tweak " + tweaks.get(round) + " has falsePositive " + falsePositive + " and detectionRate " + detectionRate + " on the training examples.");
-
-            /*
-            tmp = calcEmpiricalError(round, testN, countTestPos, labelsTest);
-            falsePositive = tmp[0];
-            detectionRate = tmp[1];
-            System.out.println("The current tweak " + tweaks.get(round) + " has falsePositive " + falsePositive + " and detectionRate " + detectionRate + " on the validation examples.");
-            */
-            accumulatedFalsePositive *= falsePositive;
-            System.out.println("Accumulated False Positive Rate is around " + accumulatedFalsePositive);
-
-            // TODO : blackList ??
-
-            //record the boosted rule into a target file
-            recordRule(cascade[round], round == 0, round == boostingRounds - 1 || accumulatedFalsePositive <= GOAL);
-
-        }
-        recordLayerMemory();
-
-
-        // Serialize training
-        computed = true;
-    }
-
     private void recordRule(ArrayList<DecisionStump> committee, boolean firstRound, boolean lastRound) {
 
         try {
@@ -549,6 +340,112 @@ public class Classifier {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    private ArrayList<String> orderedExamples() {
+        ArrayList<String> examples = new ArrayList<>(trainN);
+        examples.addAll(train_faces);
+        examples.addAll(train_nonfaces);
+        return examples;
+    }
+
+    public void train(String dir, float overallTargetDetectionRate, float overallTargetFalsePositiveRate,
+                      float targetDetectionRate, float targetFalsePositiveRate) {
+        if (computed) {
+            System.out.println("Training already done!");
+            return;
+        }
+
+        train_dir = dir;
+        countTrainPos = countFiles(train_dir + "/faces", Conf.IMAGES_EXTENSION);
+        countTrainNeg = countFiles(train_dir + "/non-faces", Conf.IMAGES_EXTENSION);
+        trainN = countTrainPos + countTrainNeg;
+        System.out.println("Total number of training images: " + trainN + " (pos: " + countTrainPos + ", neg: " + countTrainNeg + ")");
+
+        train_faces = listFiles(train_dir + "/faces", Conf.IMAGES_EXTENSION);
+        train_nonfaces = listFiles(train_dir + "/non-faces", Conf.IMAGES_EXTENSION);
+
+
+        // FIXME: What is that? - Used later
+        layerMemory = new ArrayList<>();
+
+        // Compute all features for train & test set
+        computeFeaturesTimed(train_dir);
+
+        // Now organize all those features, so that it is easier to make requests on it
+        organizeFeatures(featureCount, orderedExamples());
+
+
+        System.out.println("Training classifier:");
+
+        // Estimated number of rounds needed
+        int boostingRounds = (int) (Math.ceil(Math.log(overallTargetFalsePositiveRate) / Math.log(targetFalsePositiveRate)) + 20);
+        System.out.println("  - Estimated needed boosting rounds: " + boostingRounds);
+
+        // Initialization
+        tweaks = new ArrayList<>(boostingRounds);
+        cascade = new ArrayList[boostingRounds];
+        for (int i = 0; i < boostingRounds; i++)
+            cascade[i] = new ArrayList<>();
+
+        // Init labels
+        labelsTrain = new DenseMatrix(1, trainN);
+        for (int i = 0; i < trainN; i++)
+            labelsTrain.set(0, i, i < countTrainPos ? 1 : -1);
+
+        double accumulatedFalsePositive = 1;
+
+        // Training: run Cascade until we arrive to a certain wanted rate of success
+        for (int round = 0; round < boostingRounds && accumulatedFalsePositive > GOAL; round++) {
+            System.out.println("  - Round N." + round + ":");
+
+            DecisionStump.positiveTotalWeights = 0.5;
+
+            // TODO : for now only for train
+            double posAverageWeight = DecisionStump.positiveTotalWeights / countTrainPos;
+            double negAverageWeight = (1 - DecisionStump.positiveTotalWeights) / countTrainNeg;
+
+            weightsTrain = new DenseMatrix(1, trainN);
+            for (int i = 0; i < trainN; i++)
+                weightsTrain.set(0, i, i < countTrainPos ? posAverageWeight : negAverageWeight);
+
+
+            attentionalCascade(round, overallTargetDetectionRate, overallTargetFalsePositiveRate);
+
+            // -- Display results for this round --
+
+            System.out.println("    - Layer " + round + 1 + " done!");
+
+            //layerMemory.add(trainSet.committee.size());
+            layerMemory.add(cascade[round].size());
+            System.out.println("    - The committee size is " + cascade[round].size());
+
+            float detectionRate, falsePositive;
+            float[] tmp = calcEmpiricalError(round, trainN, countTrainPos, labelsTrain);
+            falsePositive = tmp[0];
+            detectionRate = tmp[1];
+            System.out.println("    - The current tweak " + tweaks.get(round) + " has falsePositive " + falsePositive + " and detectionRate " + detectionRate + " on the training examples.");
+
+            /*
+            tmp = calcEmpiricalError(round, testN, countTestPos, labelsTest);
+            falsePositive = tmp[0];
+            detectionRate = tmp[1];
+            System.out.println("The current tweak " + tweaks.get(round) + " has falsePositive " + falsePositive + " and detectionRate " + detectionRate + " on the validation examples.");
+            */
+            accumulatedFalsePositive *= falsePositive;
+            System.out.println("    - Accumulated False Positive Rate is around " + accumulatedFalsePositive);
+
+            // TODO : blackList ??
+
+            //record the boosted rule into a target file
+            recordRule(cascade[round], round == 0, round == boostingRounds - 1 || accumulatedFalsePositive <= GOAL);
+
+        }
+        recordLayerMemory();
+
+
+        // Serialize training
+        computed = true;
     }
 
     public float test(String dir) {

@@ -1,16 +1,20 @@
 package process.features;
 
 import GUI.ImageHandler;
+import javafx.util.Pair;
 import process.Conf;
 import utils.yield.Yielderable;
 
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Date;
 import java.util.stream.Collectors;
 
+import static java.util.Comparator.comparing;
 import static process.IntegralImage.rectangleSum;
-import static utils.Serializer.writeArrayToDisk;
+import static utils.Serializer.*;
+import static utils.Serializer.appendArrayToDisk;
+import static utils.Utils.deleteFile;
 import static utils.Utils.fileExists;
 import static utils.Utils.streamFiles;
 
@@ -297,11 +301,10 @@ public class FeatureExtractor {
         return result;
     }
 
+    /**
+     * returns: the number of features computed
+     */
     private static int computeImagesFeatures(String dir, boolean writeToDisk) {
-        /**
-         * returns: the number of features computed
-         */
-
         int count = 0;
         for (String imagePath : streamFiles(dir, Conf.IMAGES_EXTENSION)) {
             if (!fileExists(imagePath + Conf.FEATURE_EXTENSION))
@@ -313,14 +316,108 @@ public class FeatureExtractor {
         return count;
     }
 
+    /**
+     * returns: the number of features computed
+     */
     public static int computeSetFeatures(String faces_dir, String nonfaces_dir, boolean writeToDisk) { // Set = faces + non-faces
-        /**
-         * returns: the number of features computed
-         */
-
         int count = 0;
         count += computeImagesFeatures(faces_dir, writeToDisk);
         count += computeImagesFeatures(nonfaces_dir, writeToDisk);
         return count;
+    }
+
+    public static void computeFeaturesTimed(String path) {
+        System.out.println("Computing features for:");
+        System.out.println("  - " + path);
+        int count = 0;
+        long startTime = System.currentTimeMillis();
+        count += computeSetFeatures(path + "/faces", path + "/non-faces", true);
+        if (count > 0) {
+            long elapsedTimeMS = (new Date()).getTime() - startTime;
+            System.out.println("  Statistics:");
+            System.out.println("    - Elapsed time: " + elapsedTimeMS / 1000 + "s");
+            System.out.println("    - Images computed: " + count);
+            System.out.println("    - image/seconds: " + count / (elapsedTimeMS / 1000));
+        }
+        else
+            System.out.println("  - All features already computed!");
+    }
+
+    /**
+     * Pour chaque feature:
+     *      vector<pair<valeur-de-la-feature, l'index de l'exemple (image)>> ascendingFeatures;
+     *      Pour chaque exemple:
+     *          ascendingFeatures.add(<valeur-de-cette-feature-pour-cet-example, index-de-l'exemple>)
+     *          trier ascendingFeatures en fonction de pair.first
+     *          Write sur disque:
+     *              * OrganizedFeatures (à l'index de la feature actuelle le ascendingFeatures.first en entier) tmp/training
+     *              * OrganizedSample (à l'index de la feature actuelle le ascendingFeatures.second en entier)
+     *
+     * Le résultat est le suivant:
+     *   * OrganizedFeatures : (une ligne = une feature | chaque colonne dans cette ligne est la valeur de cette feature pour une image)
+     *   * OrganizedSample   : (une ligne = une feature | chaque colonne dans cette ligne est l'index de l'image correspondante)
+     *
+     * organizeFeatures works in-memory only if possible (enough heap memory), else on-disk (it could be extremely slow).
+     */
+    public static void organizeFeatures(long featureCount, ArrayList<String> examples) {
+        System.out.println("Organizing features...");
+
+        int trainN = examples.size();
+
+        if (fileExists(Conf.ORGANIZED_FEATURES)) {
+            if (!validSizeOfArray(Conf.ORGANIZED_FEATURES, trainN * featureCount))
+                deleteFile(Conf.ORGANIZED_FEATURES);
+        }
+        if (fileExists(Conf.ORGANIZED_SAMPLE)) {
+            if (!validSizeOfArray(Conf.ORGANIZED_SAMPLE, trainN * featureCount))
+                deleteFile(Conf.ORGANIZED_SAMPLE);
+        }
+        if (fileExists(Conf.ORGANIZED_FEATURES) && fileExists(Conf.ORGANIZED_SAMPLE)) { // Already exist & both good!
+            System.out.println("  - Already computed!");
+            return;
+        }
+
+        final Comparator<Pair<Integer, Integer>> c = comparing(Pair::getValue);
+        assert examples.size() == trainN;
+
+        long presumableFreeMemory = Runtime.getRuntime().maxMemory() - (Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory());
+        long neededMemory = featureCount * Integer.BYTES * Integer.BYTES * trainN;
+        System.out.println("  - Needed memory: " + neededMemory + " (presumable free memory: " + presumableFreeMemory + ")");
+        boolean allInMemory = presumableFreeMemory > neededMemory;
+
+        ArrayList<ArrayList<Integer>> allImagesFeatures = null;
+        if (allInMemory) {
+            allImagesFeatures = new ArrayList<>();
+            for (String e : examples)
+                allImagesFeatures.add(readArrayFromDisk(e + Conf.FEATURE_EXTENSION));
+            System.out.println("  - Prefetched all images features");
+        }
+        for (long featureIndex = 0; featureIndex < featureCount; featureIndex++) {
+            // <exampleIndex, value>
+            ArrayList<Pair<Integer, Integer>> ascendingFeatures = new ArrayList<>();
+
+            if (allInMemory) {
+                for (int exampleIndex = 0; exampleIndex < trainN; exampleIndex++) {
+                    ascendingFeatures.add(new Pair<>(exampleIndex, allImagesFeatures.get(exampleIndex).get((int)featureIndex)));
+                }
+            }
+            else {
+                for (int exampleIndex = 0; exampleIndex < trainN; exampleIndex++) {
+                    ascendingFeatures.add(new Pair<>(exampleIndex, readIntFromDisk(examples.get(exampleIndex) + Conf.FEATURE_EXTENSION, featureIndex)));
+                }
+            }
+            ascendingFeatures.stream().sorted(c);
+
+            ArrayList<Integer> permutedSamples = new ArrayList<>(trainN);
+            ArrayList<Integer> permutedFeatures = new ArrayList<>(trainN);
+
+            for (int k = 0; k < trainN; k++) {
+                permutedSamples.add(ascendingFeatures.get(k).getKey());
+                permutedFeatures.add(ascendingFeatures.get(k).getValue());
+            }
+
+            appendArrayToDisk(Conf.ORGANIZED_SAMPLE, permutedSamples);
+            appendArrayToDisk(Conf.ORGANIZED_FEATURES, permutedFeatures);
+        }
     }
 }

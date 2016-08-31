@@ -60,6 +60,9 @@ public class Serializer {
         return result;
     }
 
+    /**
+     * Checks if filePath contains exactly expectedSize values.
+     */
     public static boolean validSizeOfArray(String filePath, long expectedSize) {
         DataInputStream os;
 

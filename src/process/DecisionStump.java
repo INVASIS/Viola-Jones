@@ -29,7 +29,6 @@ public class DecisionStump { // == stumpRule
 
     // Initialisation
     public DecisionStump(ArrayList<Pair<Integer, Boolean>> features, DenseMatrix w, int featureIndex) {
-
         this.featureIndex = featureIndex;
         this.error = 2;
         this.threshold = this.features.get(0).getKey() - 1; // FIXME with organized features
@@ -111,25 +110,22 @@ public class DecisionStump { // == stumpRule
     }
 
     /**
-     * <Integer, Boolean> indique pour chaque feature (qui normalement doivent etre triées), si c'est un face ou non-face
+     * <Integer i, Boolean b> indicates whether feature i is a face (b=true) or not (b=false)
      */
-    public static DecisionStump bestStump(ArrayList<ArrayList<Pair<Integer, Boolean>>> features, DenseMatrix w) {
-        /**
-         * VERIF OK
-         * Not exactly like in the implem, but improved a bit...
-         */
+    public static DecisionStump bestStump(ArrayList<Pair<Integer, Boolean>> candidatesFeatures, DenseMatrix w) {
+        // STATE: OK & CHECKED 16/26/08
 
-        DecisionStump best = new DecisionStump(features.get(0), w, 0);
+        // FIXME
+        DecisionStump best = new DecisionStump(candidatesFeatures, w, 0);
         best.compute();
 
-        for (int i = 1; i < features.size(); i++) {
-            DecisionStump decisionStump = new DecisionStump(features.get(i), w, i);
-            decisionStump.compute();
-
-            if (decisionStump.error < best.error || decisionStump.error == best.error && decisionStump.margin > best.margin) {
-                best = decisionStump;
-            }
-        }
+        // FIXME
+//        DecisionStump decisionStump = new DecisionStump(candidatesFeatures, w, i);
+//        decisionStump.compute();
+//
+//        if (decisionStump.error < best.error || decisionStump.error == best.error && decisionStump.margin > best.margin) {
+//            best = decisionStump;
+//        }
 
         if (best.error >= 0.5)
             System.err.println("Failed best stump, error : " + best.error + " >= 0.5 ! (not good but we still continue)");
