@@ -373,7 +373,7 @@ public class Classifier {
         computeFeaturesTimed(train_dir);
 
         // Now organize all those features, so that it is easier to make requests on it
-        organizeFeatures(featureCount, orderedExamples(), Conf.ORGANIZED_FEATURES, Conf.ORGANIZED_SAMPLE);
+        organizeFeatures(featureCount, orderedExamples(), Conf.ORGANIZED_FEATURES, Conf.ORGANIZED_SAMPLE, false);
 
 
         System.out.println("Training classifier:");

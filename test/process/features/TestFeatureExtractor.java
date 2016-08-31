@@ -7,12 +7,9 @@ import process.Conf;
 import utils.Utils;
 
 import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.concurrent.atomic.LongAccumulator;
 
 import static org.testng.AssertJUnit.assertEquals;
 import static process.features.FeatureExtractor.*;
-import static utils.Serializer.readArrayFromDisk;
 
 public class TestFeatureExtractor {
 
@@ -72,19 +69,23 @@ public class TestFeatureExtractor {
     }
 
     @Test
-    public void getExampleIndexTest() throws NoSuchFieldException {
+    public void getExampleIndexAllRAMTest() {
+        getExampleIndexTest(false);
+    }
 
+    @Test
+    public void getExampleIndexForceDiskTest() {
+        getExampleIndexTest(true);
+    }
+
+    private void getExampleIndexTest(boolean forceDisk) {
         if (Conf.USE_CUDA)
             Conf.haarExtractor.setUp(19, 19);
 
         String img1 = "data/trainset/faces/face00001.png";
-        String haar1 = img1 + Conf.FEATURE_EXTENSION;
         String img2 = "data/trainset/faces/face00002.png";
-        String haar2 = img2 + Conf.FEATURE_EXTENSION;
         String img3 = "data/trainset/faces/face00003.png";
-        String haar3 = img3 + Conf.FEATURE_EXTENSION;
         String img4 = "data/trainset/faces/face00004.png";
-        String haar4 = img4 + Conf.FEATURE_EXTENSION;
 
         ArrayList<String> files = new ArrayList();
         files.add(img1);
@@ -106,7 +107,7 @@ public class TestFeatureExtractor {
         Utils.deleteFile(ORGANIZED_FEATURES);
         Utils.deleteFile(ORGANIZED_SAMPLE);
 
-        organizeFeatures(features1.size(), files, ORGANIZED_FEATURES, ORGANIZED_SAMPLE);
+        organizeFeatures(features1.size(), files, ORGANIZED_FEATURES, ORGANIZED_SAMPLE, forceDisk);
 
         for (int i = 0; i < features1.size(); i++) {
             for (int j = 0; j < 4; j++) {
@@ -121,7 +122,5 @@ public class TestFeatureExtractor {
 
             }
         }
-
-
     }
 }

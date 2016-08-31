@@ -356,7 +356,7 @@ public class FeatureExtractor {
      * <p>
      * organizeFeatures works in-memory only if possible (enough heap memory), else on-disk (it could be extremely slow).
      */
-    public static void organizeFeatures(long featureCount, ArrayList<String> examples, String feature, String sample) {
+    public static void organizeFeatures(long featureCount, ArrayList<String> examples, String feature, String sample, boolean forceDisk) {
         System.out.println("Organizing features...");
 
         int trainN = examples.size();
@@ -381,6 +381,9 @@ public class FeatureExtractor {
         long neededMemory = featureCount * Integer.BYTES * Integer.BYTES * trainN;
         System.out.println("  - Needed memory: " + neededMemory + " (presumable free memory: " + presumableFreeMemory + ")");
         boolean allInMemory = presumableFreeMemory > neededMemory;
+
+        if (forceDisk)
+            allInMemory = false;
 
         ArrayList<ArrayList<Integer>> allImagesFeatures = null;
         if (allInMemory) {
