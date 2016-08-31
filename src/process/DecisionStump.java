@@ -17,7 +17,6 @@ public class DecisionStump { // == stumpRule
     private double margin;
     private boolean toggle; // = polarity {-1; 1}
 
-
     private double rPos;
     private double rNeg;
     private double lPos;
@@ -47,7 +46,7 @@ public class DecisionStump { // == stumpRule
 
     }
 
-    public void compute() {
+    public void compute(DenseMatrix labels) {
 
         int num_features = this.features.size() - 1;
         int iter = -1;
@@ -85,6 +84,9 @@ public class DecisionStump { // == stumpRule
 
             while (true) {
 
+                // int exampleIndex = getExampleIndex();
+                // int label = labels[exampleIndex];
+
                 if (!this.features.get(iter).getValue()) {
                     this.lNeg += this.weights.get(0, iter);
                     this.rNeg -= this.weights.get(0, iter);
@@ -116,21 +118,25 @@ public class DecisionStump { // == stumpRule
         // STATE: OK & CHECKED 16/26/08
 
         // FIXME
-        DecisionStump best = new DecisionStump(candidatesFeatures, w, 0);
-        best.compute();
+        // Recuperer les features triées
+        // Pour les mettre dans une arrayList de int
+        // DecisionStump best = new DecisionStump(features.get(0), w, 0);
+        // best.compute(labels);
 
-        // FIXME
-//        DecisionStump decisionStump = new DecisionStump(candidatesFeatures, w, i);
-//        decisionStump.compute();
-//
-//        if (decisionStump.error < best.error || decisionStump.error == best.error && decisionStump.margin > best.margin) {
-//            best = decisionStump;
-//        }
+        // for (int i = 0/* maybe opti with 1... */; i < featureCount; i++) {
+        //    DecisionStump decisionStump = new DecisionStump(features.get(i), w, i);
+        //    decisionStump.compute(labels);
 
-        if (best.error >= 0.5)
-            System.err.println("Failed best stump, error : " + best.error + " >= 0.5 ! (not good but we still continue)");
+        // if (decisionStump.error < best.error || decisionStump.error == best.error && decisionStump.margin > best.margin) {
+        //        best = decisionStump;
+        //    }
+        // }
 
-        return best;
+        // if (best.error >= 0.5)
+        //     System.err.println("Failed best stump, error : " + best.error + " >= 0.5 ! (not good but we still continue)");
+
+        // return best;
+        return null;
     }
 
     public double getMargin() {
