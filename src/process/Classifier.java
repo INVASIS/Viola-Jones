@@ -106,11 +106,11 @@ public class Classifier {
         if (!onlyMostRecent) {
             DenseMatrix finalVerdict = memberWeight.mul(memberVerdict);
             for (int i = 0; i < N; i++)
-                prediction.set(1, i, finalVerdict.get(1, i) > 0 ? 1 : -1);
+                prediction.set(0, i, finalVerdict.get(1, i) > 0 ? 1 : -1);
         }
         else {
             for (int i = 0; i < N; i++)
-                prediction.set(1, i, memberVerdict.get(start, i) > 0 ? 1 : -1);
+                prediction.set(0, i, memberVerdict.get(start, i) > 0 ? 1 : -1);
         }
 
     }
