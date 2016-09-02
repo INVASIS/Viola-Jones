@@ -61,7 +61,7 @@ public class DecisionStump { // == stumpRule
                 listThreads.add(threadManager);
                 threadManager.start();
             }
-            i += j;
+            i += (j - 1);
             for (int k = 0; k < j; k++) {
                 try {
                     listThreads.get(k).join();

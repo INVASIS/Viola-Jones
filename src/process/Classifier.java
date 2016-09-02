@@ -330,6 +330,7 @@ public class Classifier {
         trainN = countTrainPos + countTrainNeg;
         System.out.println("Total number of training images: " + trainN + " (pos: " + countTrainPos + ", neg: " + countTrainNeg + ")");
 
+        // FIXME : alwys in the same order ??? Could be a problem ??
         train_faces = listFiles(train_dir + "/faces", Conf.IMAGES_EXTENSION);
         train_nonfaces = listFiles(train_dir + "/non-faces", Conf.IMAGES_EXTENSION);
 

@@ -431,7 +431,7 @@ public class FeatureExtractor {
         return getExampleIndex(featureIndex, iterator, trainN, Conf.ORGANIZED_SAMPLE);
     }
     public static ArrayList<Integer> getFeatureExamplesIndexes(long featureIndex, int trainN) {
-        return readArrayFromDisk(Conf.ORGANIZED_SAMPLE, featureIndex * trainN, trainN);
+        return readArrayFromDisk(Conf.ORGANIZED_SAMPLE, featureIndex * trainN, trainN * (featureIndex + 1));
     }
 
     /**
@@ -444,6 +444,6 @@ public class FeatureExtractor {
         return getExampleFeature(featureIndex, iterator, trainN, Conf.ORGANIZED_FEATURES);
     }
     public static ArrayList<Integer> getFeatureValues(long featureIndex, int trainN) {
-        return readArrayFromDisk(Conf.ORGANIZED_FEATURES, featureIndex * trainN, trainN);
+        return readArrayFromDisk(Conf.ORGANIZED_FEATURES, featureIndex * trainN, trainN * (featureIndex + 1));
     }
 }
