@@ -48,6 +48,8 @@ public class DecisionStump { // == stumpRule
         //   if (current.weightedError < best.weightedError) -> best = current
         //   else if (current.weightedError == best.weightedError && current.margin > best.margin) -> best = current
 
+        System.out.println("[BestStump] Calling bestStump with : ");
+        System.out.println("[BestStump] featureCount : " + featureCount + " N : " + N + " totalWeightsPos : " + totalWeightPos + " totalWeightNeg : " + totalWeightNeg + " minWeight : " + minWeight);
         int nb_threads = Runtime.getRuntime().availableProcessors();
         ThreadManager managerFor0 = new ThreadManager(labels, weights, 0, N, totalWeightPos, totalWeightNeg, minWeight);
         managerFor0.run();
@@ -77,6 +79,9 @@ public class DecisionStump { // == stumpRule
             }
         }
 
+        System.out.println("[BestStump] BestStump : ");
+        System.out.println("[BestStump] FeatureIndex : " + best.featureIndex + " error : " + best.error + " Threshold : "
+                + best.threshold + " margin : " + best.margin + " toggle : " + best.toggle);
         if (best.error >= 0.5) {
             System.out.println("Failed best stump, error : " + best.error + " >= 0.5 !");
             System.exit(1);

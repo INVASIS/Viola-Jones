@@ -70,17 +70,19 @@ public class TestSerializer {
         assertEquals(result.get(8), new Integer(6));
         assertEquals(result.get(9), new Integer(10));
         assertEquals(readIntFromDisk(filePath, 8), 6);
+
+        result = readArrayFromDisk(filePath, 3, 6);
+        assertEquals(result.size(), 3);
+        assertEquals(result.get(0), new Integer(5));
+        assertEquals(result.get(1), new Integer(7));
+        assertEquals(result.get(2), new Integer(8));
+        //assertEquals(result.get(3), new Integer(9));
+
         try {
             Files.delete(Paths.get(filePath));
         } catch (IOException e) {
             assertEquals(false, true);
         }
-        result = readArrayFromDisk(filePath, 3, 6);
-        assertEquals(result.size(), 4);
-        assertEquals(result.get(0), new Integer(5));
-        assertEquals(result.get(1), new Integer(7));
-        assertEquals(result.get(2), new Integer(8));
-        assertEquals(result.get(3), new Integer(9));
     }
 
     @Test
