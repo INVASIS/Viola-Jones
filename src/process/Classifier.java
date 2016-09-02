@@ -133,7 +133,7 @@ public class Classifier {
         DenseMatrix prediction = new DenseMatrix(1, trainN);
         predictLabel(round, trainN, 0, prediction, true);
 
-        DenseMatrix agree = labelsTrain.mul(prediction.t());
+        DenseMatrix agree = labelsTrain.mul(prediction);
         DenseMatrix weightUpdate = DenseMatrix.ones(1, trainN);
 
         boolean werror = false;
