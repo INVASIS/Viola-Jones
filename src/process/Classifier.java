@@ -125,7 +125,7 @@ public class Classifier {
         // The result to be filled & returned
         ArrayList<DecisionStump> committee = new ArrayList<>();
 
-        DecisionStump bestDS = DecisionStump.bestStump(labelsTrain, weightsTrain, featureCount, trainN, totalWeightPos, totalWeightPos, minWeight);
+        DecisionStump bestDS = DecisionStump.bestStump(labelsTrain, weightsTrain, featureCount, trainN, totalWeightPos, totalWeightNeg, minWeight);
         committee.add(bestDS);
         cascade[round] = committee;
         adaboostPasses++;
@@ -190,7 +190,7 @@ public class Classifier {
             verdicts = verdicts.min(layerPrediction);
         }
 
-        DenseMatrix agree = labels.mul(verdicts.t());
+        DenseMatrix agree = labels.mul(verdicts);
         for (int exampleIndex = 0; exampleIndex < N; exampleIndex++) {
             if (agree.get(0, exampleIndex) < 0) {
                 if (exampleIndex < countPos) {
@@ -352,6 +352,8 @@ public class Classifier {
 
         // Initialization
         tweaks = new ArrayList<>(boostingRounds);
+        for (int i = 0; i < boostingRounds; i++)
+            tweaks.add(0f);
         cascade = new ArrayList[boostingRounds];
 
         // Updating weights
