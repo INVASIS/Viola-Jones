@@ -11,7 +11,6 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 
 import static junit.framework.TestCase.assertEquals;
-import static junit.framework.TestCase.assertTrue;
 import static process.features.FeatureExtractor.computeImageFeatures;
 import static utils.Serializer.*;
 

@@ -12,8 +12,6 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 
-import static javafx.application.Platform.exit;
-
 public class Utils {
     public static ArrayList<String> scanDir(String dir) { // Already recursive
         ArrayList<String> results = new ArrayList<>();
@@ -93,11 +91,13 @@ public class Utils {
         String[] fileListPos = directoryPos.list();
         String[] fileListNeg = directoryNeg.list();
         ArrayList<String> fileList = new ArrayList<>();
+        assert fileListNeg != null;
         for (String aFileListNeg : fileListNeg) {
             if (!aFileListNeg.endsWith(Conf.FEATURE_EXTENSION)) {
                 fileList.add("non-faces/" + aFileListNeg);
             }
         }
+        assert fileListPos != null;
         for (String fileListPo : fileListPos) {
             if (!fileListPo.endsWith(Conf.FEATURE_EXTENSION)) {
                 fileList.add("faces/" + fileListPo);

@@ -3,7 +3,6 @@ package utils;
 import process.StumpRule;
 
 import java.io.*;
-import java.math.BigDecimal;
 import java.nio.file.FileAlreadyExistsException;
 import java.util.ArrayList;
 
@@ -13,7 +12,7 @@ import static utils.Utils.fileExists;
 public class Serializer {
     private static void skipBytesLong(DataInputStream dis, long skip) throws IOException {
         long total = 0;
-        long cur = 0;
+        long cur;
 
         while ((total < skip) && ((cur = dis.skip(skip - total)) > 0)) {
             total += cur;
@@ -141,13 +140,11 @@ public class Serializer {
                 Utils.deleteFile(fileName);
 
             PrintWriter writer = new PrintWriter(new FileWriter(fileName, true));
-            int memberCount = committee.size();
 
             if (firstRound)
                 writer.println("double stumps[][4]=");
 
-            for (int i = 0; i < memberCount; i++) {
-                StumpRule stumpRule = committee.get(i);
+            for (StumpRule stumpRule : committee) {
                 writer.println(stumpRule.featureIndex + ";" + stumpRule.error + ";"
                         + stumpRule.threshold + ";" + stumpRule.toggle);
             }
@@ -156,7 +153,7 @@ public class Serializer {
             writer.close();
 
         } catch (IOException e) {
-            System.err.println("Error : Could Not Write committe, aborting");
+            System.err.println("Error : Could Not Write committee, aborting");
             e.printStackTrace();
             System.exit(1);
         }
@@ -205,8 +202,8 @@ public class Serializer {
             writer.println("int layerCount=" + layerCount);
             writer.println("int layerCommitteeSize[]=");
 
-            for (int i = 0; i < layerCount; i++) {
-                writer.println(layerMemory.get(i) + ";");
+            for (Integer aLayerMemory : layerMemory) {
+                writer.println(aLayerMemory + ";");
             }
 
             writer.println("float tweaks[]=");

@@ -98,7 +98,7 @@ public class ThreadManager extends Thread {
                     rightWeightNeg = rightWeightNeg.subtract(new BigDecimal(weight)); // rightWeightNeg -= weight
                 } else {
                     leftWeightPos = leftWeightPos.add(new BigDecimal(weight)); // leftWeightPos += weight
-                    rightWeightPos = rightWeightPos.subtract(new BigDecimal(weight)); // ightWeightPos -= weight
+                    rightWeightPos = rightWeightPos.subtract(new BigDecimal(weight)); // rightWeightPos -= weight
                 }
 
                 // if a new threshold can be found, break

@@ -4,7 +4,7 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 
 public class Filters {
-    public static int[][] grayscale(BufferedImage bi) {
+    public static int[][] greyscale(BufferedImage bi) {
         int[][] result = new int[bi.getWidth()][bi.getHeight()];
 
         for (int x = 0; x < bi.getWidth(); x++) {
@@ -19,9 +19,9 @@ public class Filters {
         return result;
     }
 
-    public static int[][] crGrayscale(BufferedImage bi) {
-        // FIXME: diff between grayscale & crGrayscale?
-        int[][] result = Filters.grayscale(bi);
+    public static int[][] crGreyscale(BufferedImage bi) {
+        // FIXME: diff between greyscale & crGreyscale?
+        int[][] result = Filters.greyscale(bi);
 
         /*
         double nb_pixels = bi.getWidth() * bi.getHeight();

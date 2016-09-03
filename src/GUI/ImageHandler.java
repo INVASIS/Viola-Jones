@@ -1,14 +1,15 @@
 package GUI;
 
 import process.Conf;
-import utils.Converters;
 import process.Filters;
 import process.IntegralImage;
+import utils.Converters;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
-import java.io.*;
-import java.util.*;
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
 
 import static process.features.FeatureExtractor.computeImageFeatures;
 import static utils.Serializer.readArrayFromDisk;
@@ -25,7 +26,7 @@ public class ImageHandler {
     private final String filePath;
 
     private void init() {
-        this.crGrayImage = Filters.crGrayscale(this.bufferedImage);
+        this.crGrayImage = Filters.crGreyscale(this.bufferedImage);
         this.integralImage = IntegralImage.summedAreaTable(this.crGrayImage, this.width, this.height);
     }
 

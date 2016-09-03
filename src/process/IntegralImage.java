@@ -30,12 +30,12 @@ public class IntegralImage {
 
     // Warning : this does not compute the mean of the image, just the sum of pixels
     // To have the mean you must divide by the number of pixels in your rectangle
-    public static int rectangleSum(int[][] summedAeraTable, int x, int y, int width, int height) {
+    public static int rectangleSum(int[][] summedAreaTable, int x, int y, int width, int height) {
 
-        int A = x > 0 && y > 0 ? summedAeraTable[x - 1][y - 1] : 0;
-        int B = x + width > 0 && y > 0 ? summedAeraTable[x + width - 1][y - 1] : 0;
-        int C = x > 0 && y + height > 0 ? summedAeraTable[x - 1][y + height - 1] : 0;
-        int D = x + width > 0 && y + height > 0 ? summedAeraTable[x + width - 1][y + height - 1] : 0;
+        int A = x > 0 && y > 0 ? summedAreaTable[x - 1][y - 1] : 0;
+        int B = x + width > 0 && y > 0 ? summedAreaTable[x + width - 1][y - 1] : 0;
+        int C = x > 0 && y + height > 0 ? summedAreaTable[x - 1][y + height - 1] : 0;
+        int D = x + width > 0 && y + height > 0 ? summedAreaTable[x + width - 1][y + height - 1] : 0;
 
         return A + D - B - C;
     }
@@ -44,8 +44,8 @@ public class IntegralImage {
         return rectangleSum(image.getIntegralImage(), x, y, width, height);
     }
 
-    public static int rectangleMean(int[][] summedAeraTable, int x, int y, int width, int height) {
-        int sum = rectangleSum(summedAeraTable, x, y, width, height);
+    public static int rectangleMean(int[][] summedAreaTable, int x, int y, int width, int height) {
+        int sum = rectangleSum(summedAreaTable, x, y, width, height);
         int size = (width - x) * (height - y);
         return sum / size;
     }

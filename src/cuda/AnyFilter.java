@@ -4,7 +4,9 @@ import GUI.Display;
 import GUI.ImageHandler;
 import jcuda.Pointer;
 import jcuda.Sizeof;
-import jcuda.driver.*;
+import jcuda.driver.CUdeviceptr;
+import jcuda.driver.CUfunction;
+import jcuda.driver.CUmodule;
 
 import static jcuda.driver.JCudaDriver.*;
 

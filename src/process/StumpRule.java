@@ -1,9 +1,6 @@
 package process;
 
-import jeigen.DenseMatrix;
-
 import java.math.BigDecimal;
-import java.util.ArrayList;
 
 public class StumpRule { // == stumpRule
 

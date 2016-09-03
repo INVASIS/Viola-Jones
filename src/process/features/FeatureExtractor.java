@@ -5,16 +5,14 @@ import javafx.util.Pair;
 import process.Conf;
 import utils.yield.Yielderable;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
 import java.util.stream.Collectors;
 
-import static java.util.Comparator.comparing;
 import static process.IntegralImage.rectangleSum;
 import static utils.Serializer.*;
-import static utils.Serializer.appendArrayToDisk;
-import static utils.Utils.deleteFile;
-import static utils.Utils.fileExists;
-import static utils.Utils.streamFiles;
+import static utils.Utils.*;
 
 
 public class FeatureExtractor {
@@ -23,14 +21,14 @@ public class FeatureExtractor {
     public static final int widthTypeA = 2;
     public static final int heightTypeA = 1;
 
+    /**
+     * a ------- b ------- c
+     * -         -         -
+     * -   R1    -    R2   -
+     * -         -         -
+     * d ------- e ------- f
+     */
     public static int computeTypeA(ImageHandler image, Rectangle r) {
-        /**
-         * a ------- b ------- c
-         * -         -         -
-         * -   R1    -    R2   -
-         * -         -         -
-         * d ------- e ------- f
-         */
 
         int w = r.getWidth() / widthTypeA;
         int h = r.getHeight();
@@ -58,14 +56,14 @@ public class FeatureExtractor {
     public static final int widthTypeB = 3;
     public static final int heightTypeB = 1;
 
+    /**
+     * a ------- b ------- c ------- d
+     * -         -         -         -
+     * -   R1    -    R2   -    R3   -
+     * -         -         -         -
+     * e ------- f ------- g ------- h
+     */
     public static int computeTypeB(ImageHandler image, Rectangle r) {
-        /**
-         * a ------- b ------- c ------- d
-         * -         -         -         -
-         * -   R1    -    R2   -    R3   -
-         * -         -         -         -
-         * e ------- f ------- g ------- h
-         */
 
         int w = r.getWidth() / widthTypeB;
         int h = r.getHeight();
@@ -94,18 +92,18 @@ public class FeatureExtractor {
     public static final int widthTypeC = 1;
     public static final int heightTypeC = 2;
 
+    /**
+     * a ------- b
+     * -         -
+     * -   R1    -
+     * -         -
+     * c ------- d
+     * -         -
+     * -   R2    -
+     * -         -
+     * e ------- f
+     */
     public static int computeTypeC(ImageHandler image, Rectangle r) {
-        /**
-         * a ------- b
-         * -         -
-         * -   R1    -
-         * -         -
-         * c ------- d
-         * -         -
-         * -   R2    -
-         * -         -
-         * e ------- f
-         */
 
         int w = r.getWidth();
         int h = r.getHeight() / heightTypeC;
@@ -133,22 +131,22 @@ public class FeatureExtractor {
     public static final int widthTypeD = 1;
     public static final int heightTypeD = 3;
 
+    /**
+     * a ------- b
+     * -         -
+     * -   R1    -
+     * -         -
+     * c ------- d
+     * -         -
+     * -   R2    -
+     * -         -
+     * e ------- f
+     * -         -
+     * -   R3    -
+     * -         -
+     * g ------- h
+     */
     public static int computeTypeD(ImageHandler image, Rectangle r) {
-        /**
-         * a ------- b
-         * -         -
-         * -   R1    -
-         * -         -
-         * c ------- d
-         * -         -
-         * -   R2    -
-         * -         -
-         * e ------- f
-         * -         -
-         * -   R3    -
-         * -         -
-         * g ------- h
-         */
 
         int w = r.getWidth();
         int h = r.getHeight() / heightTypeD;
@@ -177,18 +175,18 @@ public class FeatureExtractor {
     public static final int widthTypeE = 2;
     public static final int heightTypeE = 2;
 
+    /**
+     * a ------- b ------- c
+     * -         -         -
+     * -   R1    -    R2   -
+     * -         -         -
+     * d ------- e ------- f
+     * -         -         -
+     * -   R3    -    R4   -
+     * -         -         -
+     * g ------- h ------- i
+     */
     public static int computeTypeE(ImageHandler image, Rectangle r) {
-        /**
-         * a ------- b ------- c
-         * -         -         -
-         * -   R1    -    R2   -
-         * -         -         -
-         * d ------- e ------- f
-         * -         -         -
-         * -   R3    -    R4   -
-         * -         -         -
-         * g ------- h ------- i
-         */
 
         int w = r.getWidth() / widthTypeE;
         int h = r.getHeight() / heightTypeE;

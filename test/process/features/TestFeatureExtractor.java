@@ -88,7 +88,7 @@ public class TestFeatureExtractor {
         String img3 = "data/trainset/faces/face00003.png";
         String img4 = "data/trainset/faces/face00004.png";
 
-        ArrayList<String> files = new ArrayList();
+        ArrayList<String> files = new ArrayList<>();
         files.add(img1);
         files.add(img2);
         files.add(img3);
