@@ -145,7 +145,10 @@ public class Classifier {
 
         for (int i = 0; i < trainN; i++) {
             if (agree.get(0, i) < 0) {
-                weightUpdate.add(new BigDecimal(1).divide(bestDS.error, MathContext.DECIMAL128).subtract(new BigDecimal(1))); // 1.0d / bestDS.error - 1
+                if (!Objects.equals(BigDecimal.ZERO, bestDS.error))
+                    weightUpdate.add(new BigDecimal(1).divide(bestDS.error, MathContext.DECIMAL128).subtract(new BigDecimal(1))); // 1.0d / bestDS.error - 1
+                else
+                    weightUpdate.add(BigDecimal.valueOf(Double.MAX_VALUE - 1));
                 werror = true;
             } else {
                 weightUpdate.add(new BigDecimal(1));
