@@ -99,10 +99,6 @@ public class Classifier {
             assert Double.isFinite(err.doubleValue()); // <=> !NaN && !Infinity
 
             memberWeight.set(member, log(DoubleDouble.ONE.divideBy(err).doubleValue() - 1)); // log((1 / commitee[member].error) - 1)
-            if (!Objects.equals(err, DoubleDouble.ZERO)) // Do not divide by zero
-                memberWeight.set(member, log(DoubleDouble.ONE.divideBy(err).subtract(DoubleDouble.ONE).doubleValue())); // log((1 / commitee[member].error) - 1)
-            else
-                memberWeight.set(member, Double.MAX_VALUE - 1); // instead, replace by Max of double
 
             long featureIndex = cascade[round].get(member).featureIndex;
             for (int i = 0; i < N; i++) {
