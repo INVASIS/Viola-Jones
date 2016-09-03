@@ -1,10 +1,9 @@
 package process;
 
 import jeigen.DenseMatrix;
+import utils.DoubleDouble;
 import utils.Serializer;
 
-import java.math.BigDecimal;
-import java.math.MathContext;
 import java.util.ArrayList;
 import java.util.Objects;
 
@@ -58,16 +57,16 @@ public class Classifier {
     private ArrayList<StumpRule>[] cascade;
     private ArrayList<Float> tweaks;
 
-    private ArrayList<BigDecimal> weightsTrain;
-    private ArrayList<BigDecimal> weightsTest;
+    private ArrayList<DoubleDouble> weightsTrain;
+    private ArrayList<DoubleDouble> weightsTest;
     private DenseMatrix labelsTrain;
     private DenseMatrix labelsTest;
 
-    private BigDecimal totalWeightPos; // total weight received by positive examples currently
-    private BigDecimal totalWeightNeg; // total weight received by negative examples currently
+    private DoubleDouble totalWeightPos; // total weight received by positive examples currently
+    private DoubleDouble totalWeightNeg; // total weight received by negative examples currently
 
-    private BigDecimal minWeight; // minimum weight among all weights currently
-    private BigDecimal maxWeight; // maximum weight among all weights currently
+    private DoubleDouble minWeight; // minimum weight among all weights currently
+    private DoubleDouble maxWeight; // maximum weight among all weights currently
 
     public Classifier(int width, int height) {
         this.width = width;
@@ -89,20 +88,20 @@ public class Classifier {
         int start = onlyMostRecent ? committeeSize - 1 : 0;
 
         for (int member = start; member < committeeSize; member++) {
-            if (cascade[round].get(member).error.compareTo(new BigDecimal(0)) == 0 && member != 0) { // commitee[member].error == 0
+            if (cascade[round].get(member).error.eq(0) && member != 0) {
                 System.err.println("Boosting Error Occurred!");
                 System.exit(1);
             }
 
             // 0.5 does not count here
             // if member's weightedError is zero, member weight is nan, but it won't be used anyway
-            BigDecimal err = cascade[round].get(member).error;
+            DoubleDouble err = cascade[round].get(member).error;
             assert Double.isFinite(err.doubleValue()); // <=> !NaN && !Infinity
 
-            if (!Objects.equals(err, BigDecimal.ZERO))
-                memberWeight.set(member, log(BigDecimal.ONE.divide(err, MathContext.DECIMAL128).subtract(BigDecimal.ONE).doubleValue())); // log((1.0d / commitee[member].error) - 1)
+            if (!Objects.equals(err, DoubleDouble.ZERO)) // Do not divide by zero
+                memberWeight.set(member, log(DoubleDouble.ONE.divideBy(err).subtract(DoubleDouble.ONE).doubleValue())); // log((1 / commitee[member].error) - 1)
             else
-                memberWeight.set(member, Double.MAX_VALUE - 1); // Fixme: correct?
+                memberWeight.set(member, Double.MAX_VALUE - 1); // instead, replace by Max of double
 
             long featureIndex = cascade[round].get(member).featureIndex;
             for (int i = 0; i < N; i++) {
@@ -173,7 +172,7 @@ public class Classifier {
         System.out.println("[BestStump] BestStump : ");
         System.out.println("[BestStump] FeatureIndex : " + best.featureIndex + " error : " + best.error + " Threshold : "
                 + best.threshold + " margin : " + best.margin + " toggle : " + best.toggle);
-        if (best.error.compareTo(new BigDecimal(0.5)) >= 0) { // if (best.error >= 0.5)
+        if (best.error.gte(0.5)) {
             System.out.println("Failed best stump, error : " + best.error + " >= 0.5 !");
             System.exit(1);
         }
@@ -203,45 +202,42 @@ public class Classifier {
         predictLabel(round, trainN, 0, prediction, true);
 
         DenseMatrix agree = labelsTrain.mul(prediction);
-        ArrayList<BigDecimal> weightUpdate = new ArrayList<>(trainN);
+        ArrayList<DoubleDouble> weightUpdate = new ArrayList<>(trainN);
 
         boolean werror = false;
 
         for (int i = 0; i < trainN; i++) {
             if (agree.get(0, i) < 0) {
-                if (Objects.equals(bestDS.error, BigDecimal.ZERO))
-                    weightUpdate.add(BigDecimal.valueOf(Double.MAX_VALUE - 1)); // 1.0d / bestDS.error - 1
-                else
-                    weightUpdate.add(BigDecimal.ONE.divide(bestDS.error, MathContext.DECIMAL128).subtract(BigDecimal.ONE));
+                weightUpdate.add(DoubleDouble.ONE.divideBy(bestDS.error).subtract(1)); // (1 / bestDS.error) - 1
                 werror = true;
             } else {
-                weightUpdate.add(BigDecimal.ONE);
+                weightUpdate.add(DoubleDouble.ONE);
             }
         }
 
         //update weights only if there is an error
         if (werror) {
             for (int i = 0; i < trainN; i++)
-                weightsTrain.set(i, weightsTrain.get(i).multiply(weightUpdate.get(i))); // <=> weightsTrain = weightsTrain.mul(weightUpdate)
-            BigDecimal sum = new BigDecimal(0);
+                weightsTrain.set(i, weightsTrain.get(i).multiplyBy(weightUpdate.get(i))); // <=> weightsTrain = weightsTrain.mul(weightUpdate)
+            DoubleDouble sum = DoubleDouble.ZERO;
             for (int i = 0; i < trainN; i++)
                 sum = sum.add(weightsTrain.get(i));
-            BigDecimal sumPos = new BigDecimal(0);
+            DoubleDouble sumPos = DoubleDouble.ZERO;
             for (int i = 0; i < trainN; i++) {
-                BigDecimal newVal = weightsTrain.get(i).divide(sum, MathContext.DECIMAL128);
+                DoubleDouble newVal = weightsTrain.get(i).divideBy(sum);
                 weightsTrain.set(i, newVal);
                 sumPos = sumPos.add(newVal);
             }
             totalWeightPos = sumPos;
-            totalWeightNeg = new BigDecimal(1).subtract(sumPos); // 1 - sumPos
+            totalWeightNeg = new DoubleDouble(1).subtract(sumPos); // 1 - sumPos
 
             minWeight = weightsTrain.get(0);
             maxWeight = weightsTrain.get(0);
             for (int i = 1; i < trainN; i++) {
-                BigDecimal currentVal = weightsTrain.get(i);
-                if (minWeight.compareTo(currentVal) == 1) // minWeight > currentVal
+                DoubleDouble currentVal = weightsTrain.get(i);
+                if (minWeight.gt(currentVal))
                     minWeight = currentVal;
-                if (maxWeight.compareTo(currentVal) == -1) // maxWeight < currentVal
+                if (maxWeight.lt(currentVal))
                     maxWeight = currentVal;
             }
         }
@@ -420,10 +416,10 @@ public class Classifier {
         cascade = new ArrayList[boostingRounds];
 
         // Updating weights
-        totalWeightPos = new BigDecimal(initialPositiveWeight);
-        totalWeightNeg = new BigDecimal(1 - initialPositiveWeight);
-        BigDecimal averageWeightPos = totalWeightPos.divide(new BigDecimal(countTrainPos), MathContext.DECIMAL128);
-        BigDecimal averageWeightNeg = totalWeightNeg.divide(new BigDecimal(countTrainNeg), MathContext.DECIMAL128);
+        totalWeightPos = new DoubleDouble(initialPositiveWeight);
+        totalWeightNeg = new DoubleDouble(1 - initialPositiveWeight);
+        DoubleDouble averageWeightPos = totalWeightPos.divideBy(countTrainPos);
+        DoubleDouble averageWeightNeg = totalWeightNeg.divideBy(countTrainNeg);
         minWeight = averageWeightPos.min(averageWeightNeg);
         maxWeight = averageWeightPos.max(averageWeightNeg);
 
