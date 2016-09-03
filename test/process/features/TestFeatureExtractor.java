@@ -95,25 +95,25 @@ public class TestFeatureExtractor {
         files.add(img4);
 
         ArrayList<Integer> features1;
-        if (Utils.fileExists(img1))
+        if (Utils.fileExists(img1 + Conf.FEATURE_EXTENSION))
             features1 = Serializer.readArrayFromDisk(img1 + Conf.FEATURE_EXTENSION);
         else
             features1 = computeImageFeatures(img1, true);
 
         ArrayList<Integer> features2;
-        if (Utils.fileExists(img2))
+        if (Utils.fileExists(img2 + Conf.FEATURE_EXTENSION))
             features2 = Serializer.readArrayFromDisk(img2 + Conf.FEATURE_EXTENSION);
         else
             features2 = computeImageFeatures(img2, true);
 
         ArrayList<Integer> features3;
-        if (Utils.fileExists(img3))
+        if (Utils.fileExists(img3 + Conf.FEATURE_EXTENSION))
             features3 = Serializer.readArrayFromDisk(img3 + Conf.FEATURE_EXTENSION);
         else
             features3 = computeImageFeatures(img3, true);
 
         ArrayList<Integer> features4;
-        if (Utils.fileExists(img4))
+        if (Utils.fileExists(img4 + Conf.FEATURE_EXTENSION))
             features4 = Serializer.readArrayFromDisk(img4 + Conf.FEATURE_EXTENSION);
         else
             features4 = computeImageFeatures(img4, true);
