@@ -4,6 +4,7 @@ import jeigen.DenseMatrix;
 import utils.Serializer;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
 
 import static java.lang.Math.log;
@@ -54,7 +55,7 @@ public class Classifier {
     private boolean computed = false;
 
     private ArrayList<Integer> layerMemory;
-    private ArrayList<DecisionStump>[] cascade;
+    private ArrayList<StumpRule>[] cascade;
     private ArrayList<Float> tweaks;
 
     private ArrayList<BigDecimal> weightsTrain;
@@ -95,7 +96,11 @@ public class Classifier {
 
             // 0.5 does not count here
             // if member's weightedError is zero, member weight is nan, but it won't be used anyway
-            memberWeight.set(member, log((new BigDecimal(1).divide(cascade[round].get(member).error)).subtract(new BigDecimal(1)).doubleValue())); // log((1.0d / commitee[member].error) - 1) // FIXME: .doubleValue() ok or not?
+
+            double tmp = (new BigDecimal(1).divide(cascade[round].get(member).error, 20, RoundingMode.CEILING)).subtract(new BigDecimal(1)).doubleValue();
+            assert Double.isFinite(tmp); // .doubleValue() ok or not?
+            memberWeight.set(member, log(tmp)); // log((1.0d / commitee[member].error) - 1)
+
             long featureIndex = cascade[round].get(member).featureIndex;
             for (int i = 0; i < N; i++) {
                 int exampleIndex = getExampleIndex(featureIndex, i, N);
@@ -115,6 +120,67 @@ public class Classifier {
     }
 
     /**
+     * Algorithm 5 from the original paper
+     * <p>
+     * Return the most discriminative feature and its rule
+     * We compute each StumpRule, and find the one with:
+     * - the lower weighted error first
+     * - the wider margin
+     * <p>
+     * <p>
+     * Pair<Integer i, Boolean b> indicates whether feature i is a face (b=true) or not (b=false)
+     */
+    private StumpRule bestStump() {
+
+        // Compare each StumpRule and find the best by following this algorithm:
+        //   if (current.weightedError < best.weightedError) -> best = current
+        //   else if (current.weightedError == best.weightedError && current.margin > best.margin) -> best = current
+
+        System.out.println("[BestStump] Calling bestStump with : ");
+        System.out.println("[BestStump] featureCount : " + featureCount + " N : " + trainN + " totalWeightsPos : " + totalWeightPos + " totalWeightNeg : " + totalWeightNeg + " minWeight : " + minWeight);
+        int nb_threads = Runtime.getRuntime().availableProcessors();
+        ThreadManager managerFor0 = new ThreadManager(labelsTrain, weightsTrain, 0, trainN, totalWeightPos, totalWeightNeg, minWeight);
+        managerFor0.run();
+        StumpRule best = managerFor0.getBest();
+        for (long i = 1; i < featureCount; i++) {
+
+            ArrayList<ThreadManager> listThreads = new ArrayList<>(nb_threads);
+            long j = 0;
+            for (j = 0; j < nb_threads && j + i < featureCount; j++) {
+                ThreadManager threadManager = new ThreadManager(labelsTrain, weightsTrain, i + j, trainN, totalWeightPos, totalWeightNeg, minWeight);
+                listThreads.add(threadManager);
+                threadManager.start();
+            }
+            i += (j - 1);
+            for (int k = 0; k < j; k++) {
+                try {
+                    listThreads.get(k).join();
+                } catch (InterruptedException e) {
+                    System.err.println("Error in thread while computing bestStump - i = " + i + " k = " + k + " j = " + j);
+                    e.printStackTrace();
+                }
+            }
+
+            for (int k = 0; k < j; k++) {
+                if (StumpRule.compare(listThreads.get(k).getBest(), best))
+                    best = listThreads.get(k).getBest();
+            }
+        }
+
+        System.out.println("[BestStump] BestStump : ");
+        System.out.println("[BestStump] FeatureIndex : " + best.featureIndex + " error : " + best.error + " Threshold : "
+                + best.threshold + " margin : " + best.margin + " toggle : " + best.toggle);
+        if (best.error.compareTo(new BigDecimal(0.5)) >= 0) { // if (best.error >= 0.5)
+            System.out.println("Failed best stump, error : " + best.error + " >= 0.5 !");
+            System.exit(1);
+        }
+
+        System.out.println("      - Found best stump: (featureIdx: " + best.featureIndex + ", threshold: " + best.threshold + ", margin:" + best.margin + ", toggle:" + best.toggle + ", error:" + best.error + ")");
+
+        return best;
+    }
+
+    /**
      * Strong classifier based on multiple weak classifiers.
      * Here, weak classifier are called "Stumps", see: https://en.wikipedia.org/wiki/Decision_stump
      */
@@ -123,9 +189,9 @@ public class Classifier {
         // STATE: OK & CHECKED 16/31/08
 
         // The result to be filled & returned
-        ArrayList<DecisionStump> committee = new ArrayList<>();
+        ArrayList<StumpRule> committee = new ArrayList<>();
 
-        DecisionStump bestDS = DecisionStump.bestStump(labelsTrain, weightsTrain, featureCount, trainN, totalWeightPos, totalWeightNeg, minWeight);
+        StumpRule bestDS = bestStump();
         committee.add(bestDS);
         cascade[round] = committee;
         adaboostPasses++;
@@ -133,14 +199,14 @@ public class Classifier {
         DenseMatrix prediction = new DenseMatrix(1, trainN);
         predictLabel(round, trainN, 0, prediction, true);
 
-        DenseMatrix agree = labelsTrain.mul(prediction); // FIXME
+        DenseMatrix agree = labelsTrain.mul(prediction);
         ArrayList<BigDecimal> weightUpdate = new ArrayList<>(trainN);
 
         boolean werror = false;
 
         for (int i = 0; i < trainN; i++) {
             if (agree.get(0, i) < 0) {
-                weightUpdate.set(i, new BigDecimal(1).divide(bestDS.error).subtract(new BigDecimal(1))); // 1.0d / bestDS.error - 1
+                weightUpdate.set(i, new BigDecimal(1).divide(bestDS.error, 20, RoundingMode.CEILING).subtract(new BigDecimal(1))); // 1.0d / bestDS.error - 1
                 werror = true;
             }
         }
@@ -154,7 +220,7 @@ public class Classifier {
                 sum = sum.add(weightsTrain.get(i));
             BigDecimal sumPos = new BigDecimal(0);
             for (int i = 0; i < trainN; i++) {
-                BigDecimal newVal = weightsTrain.get(i).divide(sum);
+                BigDecimal newVal = weightsTrain.get(i).divide(sum, 20, RoundingMode.CEILING);
                 weightsTrain.set(i, newVal);
                 sumPos = sumPos.add(newVal);
             }
@@ -220,7 +286,7 @@ public class Classifier {
         boolean layerMissionAccomplished = false;
         while (!layerMissionAccomplished) {
 
-            // Run algorithm N°6 (adaboost) to produce a classifier (which is in fact a committee == ArrayList<DecisionStump>)
+            // Run algorithm N°6 (adaboost) to produce a classifier (which is in fact a committee == ArrayList<StumpRule>)
             adaboost(round);
 
             boolean overSized = cascade[round].size() > committeeSizeGuide;
@@ -309,8 +375,7 @@ public class Classifier {
         return examples;
     }
 
-    public void train(String dir, float initialPositiveWeight, float overallTargetDetectionRate, float overallTargetFalsePositiveRate,
-                      float targetDetectionRate, float targetFalsePositiveRate) {
+    public void train(String dir, float initialPositiveWeight, float overallTargetDetectionRate, float overallTargetFalsePositiveRate, float targetFalsePositiveRate) {
         if (computed) {
             System.out.println("Training already done!");
             return;
@@ -322,10 +387,8 @@ public class Classifier {
         trainN = countTrainPos + countTrainNeg;
         System.out.println("Total number of training images: " + trainN + " (pos: " + countTrainPos + ", neg: " + countTrainNeg + ")");
 
-        // FIXME : alwys in the same order ??? Could be a problem ??
         train_faces = listFiles(train_dir + "/faces", Conf.IMAGES_EXTENSION);
         train_nonfaces = listFiles(train_dir + "/non-faces", Conf.IMAGES_EXTENSION);
-
 
         layerMemory = new ArrayList<>();
 
@@ -351,8 +414,8 @@ public class Classifier {
         // Updating weights
         totalWeightPos = new BigDecimal(initialPositiveWeight);
         totalWeightNeg = new BigDecimal(1 - initialPositiveWeight);
-        BigDecimal averageWeightPos = totalWeightPos.divide(new BigDecimal(countTrainPos));
-        BigDecimal averageWeightNeg = totalWeightNeg.divide(new BigDecimal(countTrainNeg));
+        BigDecimal averageWeightPos = totalWeightPos.divide(new BigDecimal(countTrainPos), 20, RoundingMode.CEILING);
+        BigDecimal averageWeightNeg = totalWeightNeg.divide(new BigDecimal(countTrainNeg), 20, RoundingMode.CEILING);
         minWeight = averageWeightPos.min(averageWeightNeg);
         maxWeight = averageWeightPos.max(averageWeightNeg);
 
@@ -361,7 +424,7 @@ public class Classifier {
         weightsTrain = new ArrayList<>(trainN);
         for (int i = 0; i < trainN; i++) {
             labelsTrain.set(0, i, i < countTrainPos ? 1 : -1);
-            weightsTrain.set(i, i < countTrainPos ? averageWeightPos : averageWeightNeg);
+            weightsTrain.add(i < countTrainPos ? averageWeightPos : averageWeightNeg);
         }
 
         double accumulatedFalsePositive = 1;

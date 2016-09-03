@@ -1,8 +1,9 @@
 package utils;
 
-import process.DecisionStump;
+import process.StumpRule;
 
 import java.io.*;
+import java.math.BigDecimal;
 import java.nio.file.FileAlreadyExistsException;
 import java.util.ArrayList;
 
@@ -133,7 +134,7 @@ public class Serializer {
         return i;
     }
 
-    public static void writeRule(ArrayList<DecisionStump> committee, boolean firstRound, String fileName) {
+    public static void writeRule(ArrayList<StumpRule> committee, boolean firstRound, String fileName) {
         try {
 
             if (firstRound && Utils.fileExists(fileName))
@@ -146,9 +147,9 @@ public class Serializer {
                 writer.println("double stumps[][4]=");
 
             for (int i = 0; i < memberCount; i++) {
-                DecisionStump decisionStump = committee.get(i);
-                writer.println(decisionStump.featureIndex + ";" + decisionStump.error + ";"
-                        + decisionStump.threshold + ";" + decisionStump.toggle);
+                StumpRule stumpRule = committee.get(i);
+                writer.println(stumpRule.featureIndex + ";" + stumpRule.error + ";"
+                        + stumpRule.threshold + ";" + stumpRule.toggle);
             }
 
             writer.flush();
@@ -161,8 +162,8 @@ public class Serializer {
         }
     }
 
-    public static ArrayList<DecisionStump> readRule(String fileName) {
-        ArrayList<DecisionStump> result = new ArrayList<>();
+    public static ArrayList<StumpRule> readRule(String fileName) {
+        ArrayList<StumpRule> result = new ArrayList<>();
 
         try {
             BufferedReader br = new BufferedReader(new FileReader(fileName));
@@ -175,10 +176,13 @@ public class Serializer {
 
                 String[] parts = line.split(";");
 
-                DecisionStump decisionStump = new DecisionStump(Long.parseLong(parts[0]), Double.parseDouble(parts[1]),
-                        Double.parseDouble(parts[2]), -1, Integer.parseInt(parts[3]));
+                StumpRule stumpRule = new StumpRule(Long.parseLong(parts[0]),
+                                                    Double.parseDouble(parts[1]),
+                                                    Double.parseDouble(parts[2]),
+                                                    -1,
+                                                    Integer.parseInt(parts[3]));
 
-                result.add(decisionStump);
+                result.add(stumpRule);
             }
 
             br.close();

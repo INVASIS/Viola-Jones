@@ -404,13 +404,6 @@ public class FeatureExtractor {
             }
             Collections.sort(ascendingFeatures, (o1, o2) -> o1.getValue().compareTo(o2.getValue()));
 
-            // TODO : remove unnecessary asserts / computation ?
-            // FIXME : j'ai pas l'impression que les asserts comme ça soient appellés quand on run, mais just quand on
-            // FIXME : run les tests... A verif que ça marche vraiment...
-            if (featureIndex == 0)
-                for (int z = 1; z < trainN; z++)
-                    assert ascendingFeatures.get(z-1).getValue() <= ascendingFeatures.get(z).getValue();
-
             ArrayList<Integer> permutedSamples = new ArrayList<>(trainN);
             ArrayList<Integer> permutedFeatures = new ArrayList<>(trainN);
 

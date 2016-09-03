@@ -2,7 +2,7 @@ package process.features;
 
 import org.junit.Test;
 import process.Conf;
-import process.DecisionStump;
+import process.StumpRule;
 import utils.Serializer;
 
 import java.io.*;
@@ -111,19 +111,19 @@ public class TestSerializer {
     public void printRuleTest() {
         String tmp_file = "tmp/test/featuresValues.data";
 
-        ArrayList<DecisionStump> committee = new ArrayList<>();
+        ArrayList<StumpRule> committee = new ArrayList<>();
 
-        DecisionStump decisionStump = new DecisionStump(1, 1, 1, 1, 1);
-        committee.add(decisionStump);
+        StumpRule stumpRule = new StumpRule(1, 1, 1, 1, 1);
+        committee.add(stumpRule);
 
         Serializer.writeRule(committee, true, tmp_file);
 
-        DecisionStump decisionStump2 = new DecisionStump(2, 2, 2, 2, -1);
-        committee.add(decisionStump2);
+        StumpRule stumpRule2 = new StumpRule(2, 2, 2, 2, -1);
+        committee.add(stumpRule2);
 
         Serializer.writeRule(committee, false, tmp_file);
 
-        ArrayList<DecisionStump> read = Serializer.readRule(tmp_file);
+        ArrayList<StumpRule> read = Serializer.readRule(tmp_file);
 
         assertEquals(committee.size() + 1, read.size());
 

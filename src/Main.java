@@ -4,7 +4,11 @@ import process.Conf;
 
 public class Main {
     public static void main(String[] args) {
-        Conf.haarExtractor.setUp(19, 19);
+        // Training image size
+        int width = 19;
+        int height = 19;
+
+        Conf.haarExtractor.setUp(width, height);
 
         // TODO : TO CONSTANTS
         float overallTargetDetectionRate = 0.80f;
@@ -13,7 +17,7 @@ public class Main {
         float targetFalsePositiveRate = 0.5f;
 
         if (Conf.USE_CUDA)
-            Conf.haarExtractor.setUp(19, 19);
+            Conf.haarExtractor.setUp(width, height);
 
         System.out.println("Max memory : " + Runtime.getRuntime().maxMemory());
         System.out.println("Free memory : " + Runtime.getRuntime().freeMemory());
@@ -21,8 +25,8 @@ public class Main {
         System.out.println("Available Processors (num of max threads) : " + Runtime.getRuntime().availableProcessors());
 
 
-        Classifier classifier = new Classifier(19, 19);
-        classifier.train("data/trainset", 0.5f, overallTargetDetectionRate, overallTargetFalsePositiveRate, targetDetectionRate, targetFalsePositiveRate);
+        Classifier classifier = new Classifier(width, height);
+        classifier.train("data/trainset", 0.5f, overallTargetDetectionRate, overallTargetFalsePositiveRate, targetFalsePositiveRate);
         classifier.test("data/testset");
     }
 }

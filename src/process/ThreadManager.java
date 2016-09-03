@@ -6,7 +6,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Objects;
 
-import static process.DecisionStump.compare;
+import static process.StumpRule.compare;
 import static process.features.FeatureExtractor.*;
 
 public class ThreadManager extends Thread {
@@ -19,7 +19,7 @@ public class ThreadManager extends Thread {
     private BigDecimal totalWeightNeg;
     private BigDecimal minWeight;
 
-    private DecisionStump best;
+    private StumpRule best;
 
     public ThreadManager(DenseMatrix labels, ArrayList<BigDecimal> weights, long featureCount, int N, BigDecimal totalWeightPos, BigDecimal totalWeightNeg, BigDecimal minWeight) {
         this.labels = labels;
@@ -31,15 +31,15 @@ public class ThreadManager extends Thread {
         this.minWeight = minWeight;
     }
 
-    public DecisionStump getBest() {
+    public StumpRule getBest() {
         return best;
     }
 
     @Override
     public void run() {
 
-        DecisionStump best = new DecisionStump(featureIndex, new BigDecimal(2), getExampleFeature(featureIndex, 0, N) - 1, -1, 0);
-        DecisionStump current = deepCopy(best); // copy of best
+        StumpRule best = new StumpRule(featureIndex, 2, getExampleFeature(featureIndex, 0, N) - 1, -1, 0);
+        StumpRule current = deepCopy(best); // copy of best
 
         // Left & Right hand of the stump
         BigDecimal leftWeightPos = new BigDecimal(0);
@@ -90,7 +90,7 @@ public class ThreadManager extends Thread {
 
             while (true) {
                 int exampleIndex = featureExampleIndexes.get(iterator);
-                double label = (int) labels.get(0, exampleIndex); // FIXME: why wasting to int?
+                double label = (int) labels.get(0, exampleIndex); // FIXME: why casting to int?
                 double weight = weights.get(exampleIndex).doubleValue();
 
                 if (label < 0) {
@@ -122,8 +122,8 @@ public class ThreadManager extends Thread {
         this.best = best;
     }
 
-    private static DecisionStump deepCopy(DecisionStump other) {
-        return new DecisionStump(
+    private static StumpRule deepCopy(StumpRule other) {
+        return new StumpRule(
                 other.featureIndex,
                 other.error,
                 other.threshold,
