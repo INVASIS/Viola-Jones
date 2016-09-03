@@ -5,7 +5,6 @@ import utils.DoubleDouble;
 import utils.Serializer;
 
 import java.util.ArrayList;
-import java.util.Objects;
 
 import static java.lang.Math.log;
 import static process.features.FeatureExtractor.*;
@@ -135,8 +134,7 @@ public class Classifier {
         //   if (current.weightedError < best.weightedError) -> best = current
         //   else if (current.weightedError == best.weightedError && current.margin > best.margin) -> best = current
 
-        System.out.println("[BestStump] Calling bestStump with : ");
-        System.out.println("[BestStump] featureCount : " + featureCount + " N : " + trainN + " totalWeightsPos : " + totalWeightPos + " totalWeightNeg : " + totalWeightNeg + " minWeight : " + minWeight);
+        System.out.println("      - Calling bestStump with totalWeightsPos : " + totalWeightPos + " totalWeightNeg : " + totalWeightNeg + " minWeight : " + minWeight);
         int nb_threads = Runtime.getRuntime().availableProcessors();
         ThreadManager managerFor0 = new ThreadManager(labelsTrain, weightsTrain, 0, trainN, totalWeightPos, totalWeightNeg, minWeight);
         managerFor0.run();
@@ -155,7 +153,7 @@ public class Classifier {
                 try {
                     listThreads.get(k).join();
                 } catch (InterruptedException e) {
-                    System.err.println("Error in thread while computing bestStump - i = " + i + " k = " + k + " j = " + j);
+                    System.err.println("      - Error in thread while computing bestStump - i = " + i + " k = " + k + " j = " + j);
                     e.printStackTrace();
                 }
             }
@@ -166,16 +164,12 @@ public class Classifier {
             }
         }
 
-        System.out.println("[BestStump] BestStump : ");
-        System.out.println("[BestStump] FeatureIndex : " + best.featureIndex + " error : " + best.error + " Threshold : "
-                + best.threshold + " margin : " + best.margin + " toggle : " + best.toggle);
         if (best.error.gte(0.5)) {
-            System.out.println("Failed best stump, error : " + best.error + " >= 0.5 !");
+            System.out.println("      - Failed best stump, error : " + best.error + " >= 0.5 !");
             System.exit(1);
         }
 
-        System.out.println("      - Found best stump: (featureIdx: " + best.featureIndex + ", threshold: " + best.threshold + ", margin:" + best.margin + ", toggle:" + best.toggle + ", error:" + best.error + ")");
-
+        System.out.println("      - Found best stump: (featureIdx: " + best.featureIndex + ", threshold: " + best.threshold + ", margin:" + best.margin + ", error:" + best.error + ", toggle:" + best.toggle + ")");
         return best;
     }
 
