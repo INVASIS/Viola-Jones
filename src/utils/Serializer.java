@@ -3,7 +3,9 @@ package utils;
 import process.DecisionStump;
 
 import java.io.*;
+import java.math.BigDecimal;
 import java.nio.file.FileAlreadyExistsException;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 
 import static utils.Utils.fileExists;
@@ -175,7 +177,8 @@ public class Serializer {
 
                 String[] parts = line.split(";");
 
-                DecisionStump decisionStump = new DecisionStump(Long.parseLong(parts[0]), Double.parseDouble(parts[1]),
+                BigDecimal error = new BigDecimal(parts[1]);
+                DecisionStump decisionStump = new DecisionStump(Long.parseLong(parts[0]), error,
                         Double.parseDouble(parts[2]), -1, Integer.parseInt(parts[3]));
 
                 result.add(decisionStump);

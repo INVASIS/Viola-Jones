@@ -6,6 +6,7 @@ import process.DecisionStump;
 import utils.Serializer;
 
 import java.io.*;
+import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -113,12 +114,12 @@ public class TestSerializer {
 
         ArrayList<DecisionStump> committee = new ArrayList<>();
 
-        DecisionStump decisionStump = new DecisionStump(1, 1, 1, 1, 1);
+        DecisionStump decisionStump = new DecisionStump(1, BigDecimal.ONE, 1, 1, 1);
         committee.add(decisionStump);
 
         Serializer.writeRule(committee, true, tmp_file);
 
-        DecisionStump decisionStump2 = new DecisionStump(2, 2, 2, 2, -1);
+        DecisionStump decisionStump2 = new DecisionStump(2, new BigDecimal(2), 2, 2, -1);
         committee.add(decisionStump2);
 
         Serializer.writeRule(committee, false, tmp_file);

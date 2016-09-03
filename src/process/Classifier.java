@@ -4,9 +4,11 @@ import jeigen.DenseMatrix;
 import utils.Serializer;
 
 import java.math.BigDecimal;
+import java.math.MathContext;
 import java.util.*;
 
 import static java.lang.Math.log;
+import static java.lang.Math.negateExact;
 import static process.features.FeatureExtractor.*;
 import static utils.Utils.*;
 
@@ -95,7 +97,10 @@ public class Classifier {
 
             // 0.5 does not count here
             // if member's weightedError is zero, member weight is nan, but it won't be used anyway
-            memberWeight.set(member, log((new BigDecimal(1).divide(cascade[round].get(member).error)).subtract(new BigDecimal(1)).doubleValue())); // log((1.0d / commitee[member].error) - 1) // FIXME: .doubleValue() ok or not?
+            if (!Objects.equals(cascade[round].get(member).error, BigDecimal.ZERO))
+                memberWeight.set(member, log((BigDecimal.ONE.divide(cascade[round].get(member).error, MathContext.DECIMAL128)).subtract(new BigDecimal(1)).doubleValue())); // log((1.0d / commitee[member].error) - 1) // FIXME: .doubleValue() ok or not?
+            else
+                memberWeight.set(member, Double.MAX_VALUE - 1);
             long featureIndex = cascade[round].get(member).featureIndex;
             for (int i = 0; i < N; i++) {
                 int exampleIndex = getExampleIndex(featureIndex, i, N);
@@ -140,8 +145,10 @@ public class Classifier {
 
         for (int i = 0; i < trainN; i++) {
             if (agree.get(0, i) < 0) {
-                weightUpdate.set(i, new BigDecimal(1).divide(bestDS.error).subtract(new BigDecimal(1))); // 1.0d / bestDS.error - 1
+                weightUpdate.add(new BigDecimal(1).divide(bestDS.error, MathContext.DECIMAL128).subtract(new BigDecimal(1))); // 1.0d / bestDS.error - 1
                 werror = true;
+            } else {
+                weightUpdate.add(new BigDecimal(1));
             }
         }
 
@@ -154,7 +161,7 @@ public class Classifier {
                 sum = sum.add(weightsTrain.get(i));
             BigDecimal sumPos = new BigDecimal(0);
             for (int i = 0; i < trainN; i++) {
-                BigDecimal newVal = weightsTrain.get(i).divide(sum);
+                BigDecimal newVal = weightsTrain.get(i).divide(sum, MathContext.DECIMAL128);
                 weightsTrain.set(i, newVal);
                 sumPos = sumPos.add(newVal);
             }
@@ -351,8 +358,8 @@ public class Classifier {
         // Updating weights
         totalWeightPos = new BigDecimal(initialPositiveWeight);
         totalWeightNeg = new BigDecimal(1 - initialPositiveWeight);
-        BigDecimal averageWeightPos = totalWeightPos.divide(new BigDecimal(countTrainPos));
-        BigDecimal averageWeightNeg = totalWeightNeg.divide(new BigDecimal(countTrainNeg));
+        BigDecimal averageWeightPos = totalWeightPos.divide(new BigDecimal(countTrainPos), MathContext.DECIMAL128);
+        BigDecimal averageWeightNeg = totalWeightNeg.divide(new BigDecimal(countTrainNeg), MathContext.DECIMAL128);
         minWeight = averageWeightPos.min(averageWeightNeg);
         maxWeight = averageWeightPos.max(averageWeightNeg);
 
@@ -361,7 +368,7 @@ public class Classifier {
         weightsTrain = new ArrayList<>(trainN);
         for (int i = 0; i < trainN; i++) {
             labelsTrain.set(0, i, i < countTrainPos ? 1 : -1);
-            weightsTrain.set(i, i < countTrainPos ? averageWeightPos : averageWeightNeg);
+            weightsTrain.add(i < countTrainPos ? averageWeightPos : averageWeightNeg);
         }
 
         double accumulatedFalsePositive = 1;
