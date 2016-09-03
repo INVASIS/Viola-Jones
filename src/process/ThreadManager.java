@@ -2,6 +2,7 @@ package process;
 
 import jeigen.DenseMatrix;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Objects;
 
@@ -11,16 +12,16 @@ import static process.features.FeatureExtractor.*;
 public class ThreadManager extends Thread {
 
     private DenseMatrix labels;
-    private DenseMatrix weights;
+    private ArrayList<BigDecimal> weights;
     private long featureIndex;
     private int N;
-    private double totalWeightPos;
-    private double totalWeightNeg;
-    private double minWeight;
+    private BigDecimal totalWeightPos;
+    private BigDecimal totalWeightNeg;
+    private BigDecimal minWeight;
 
     private DecisionStump best;
 
-    public ThreadManager(DenseMatrix labels, DenseMatrix weights, long featureCount, int N, double totalWeightPos, double totalWeightNeg, double minWeight) {
+    public ThreadManager(DenseMatrix labels, ArrayList<BigDecimal> weights, long featureCount, int N, BigDecimal totalWeightPos, BigDecimal totalWeightNeg, BigDecimal minWeight) {
         this.labels = labels;
         this.weights = weights;
         this.featureIndex = featureCount;
@@ -37,14 +38,14 @@ public class ThreadManager extends Thread {
     @Override
     public void run() {
 
-        DecisionStump best = new DecisionStump(featureIndex, 2, getExampleFeature(featureIndex, 0, N) - 1, -1, 0);
+        DecisionStump best = new DecisionStump(featureIndex, new BigDecimal(2), getExampleFeature(featureIndex, 0, N) - 1, -1, 0);
         DecisionStump current = deepCopy(best); // copy of best
 
         // Left & Right hand of the stump
-        double leftWeightPos = 0;
-        double leftWeightNeg = 0;
-        double rightWeightPos = totalWeightPos;
-        double rightWeightNeg = totalWeightNeg;
+        BigDecimal leftWeightPos = new BigDecimal(0);
+        BigDecimal leftWeightNeg = new BigDecimal(0);
+        BigDecimal rightWeightPos = totalWeightPos;
+        BigDecimal rightWeightNeg = totalWeightNeg;
 
         // Go through all these observations one after another
         int iterator = -1;
@@ -60,11 +61,11 @@ public class ThreadManager extends Thread {
         assert getExampleFeature(featureIndex, 0, N) == featureValues.get(0);
 
         while (true) {
-            double errorPlus = leftWeightPos + rightWeightNeg;
-            double errorMinus = rightWeightPos + leftWeightNeg;
+            BigDecimal errorPlus = leftWeightPos.add(rightWeightNeg);
+            BigDecimal errorMinus = rightWeightPos.add(leftWeightNeg);
 
-            double Epsilon_hat;
-            if (errorPlus < errorMinus) {
+            BigDecimal Epsilon_hat;
+            if (errorPlus.compareTo(errorMinus) == -1) { // <=> if (errorPlus < errorMinus)
                 Epsilon_hat = errorPlus;
                 current.toggle = 1;
             } else {
@@ -72,7 +73,7 @@ public class ThreadManager extends Thread {
                 current.toggle = -1;
             }
 
-            current.error = Epsilon_hat < minWeight * 0.9 ? 0 : Epsilon_hat;
+            current.error = Epsilon_hat.compareTo(minWeight.multiply(new BigDecimal(0.9))) == -1 ? new BigDecimal(0) : Epsilon_hat; // <=> Epsilon_hat < minWeight * 0.9
 
             if (compare(current, best))
                 best = deepCopy(current);
@@ -89,15 +90,15 @@ public class ThreadManager extends Thread {
 
             while (true) {
                 int exampleIndex = featureExampleIndexes.get(iterator);
-                double label = (int) labels.get(0, exampleIndex);
-                double weight = weights.get(0, exampleIndex);
+                double label = (int) labels.get(0, exampleIndex); // FIXME: why wasting to int?
+                double weight = weights.get(exampleIndex).doubleValue();
 
                 if (label < 0) {
-                    leftWeightNeg += weight;
-                    rightWeightNeg -= weight;
+                    leftWeightNeg = leftWeightNeg.add(new BigDecimal(weight)); // leftWeightNeg += weight
+                    rightWeightNeg = rightWeightNeg.subtract(new BigDecimal(weight)); // rightWeightNeg -= weight
                 } else {
-                    leftWeightPos += weight;
-                    rightWeightPos -= weight;
+                    leftWeightPos = leftWeightPos.add(new BigDecimal(weight)); // leftWeightPos += weight
+                    rightWeightPos = rightWeightPos.subtract(new BigDecimal(weight)); // ightWeightPos -= weight
                 }
 
                 // if a new threshold can be found, break

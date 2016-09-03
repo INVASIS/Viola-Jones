@@ -3,11 +3,10 @@ package process;
 import jeigen.DenseMatrix;
 import utils.Serializer;
 
+import java.math.BigDecimal;
 import java.util.*;
 
 import static java.lang.Math.log;
-import static java.lang.Math.max;
-import static java.lang.Math.min;
 import static process.features.FeatureExtractor.*;
 import static utils.Utils.*;
 
@@ -58,16 +57,16 @@ public class Classifier {
     private ArrayList<DecisionStump>[] cascade;
     private ArrayList<Float> tweaks;
 
-    private DenseMatrix weightsTrain;
-    private DenseMatrix weightsTest;
+    private ArrayList<BigDecimal> weightsTrain;
+    private ArrayList<BigDecimal> weightsTest;
     private DenseMatrix labelsTrain;
     private DenseMatrix labelsTest;
 
-    double totalWeightPos; // total weight received by positive examples currently
-    double totalWeightNeg; // total weight received by negative examples currently
+    BigDecimal totalWeightPos; // total weight received by positive examples currently
+    BigDecimal totalWeightNeg; // total weight received by negative examples currently
 
-    double minWeight; // minimum weight among all weights currently
-    double maxWeight; // maximum weight among all weights currently
+    BigDecimal minWeight; // minimum weight among all weights currently
+    BigDecimal maxWeight; // maximum weight among all weights currently
 
     public Classifier(int width, int height) {
         this.width = width;
@@ -89,14 +88,14 @@ public class Classifier {
         int start = onlyMostRecent ? committeeSize - 1 : 0;
 
         for (int member = start; member < committeeSize; member++) {
-            if (cascade[round].get(member).error == 0 && member != 0) {
+            if (cascade[round].get(member).error.compareTo(new BigDecimal(0)) == 0 && member != 0) { // commitee[member].error == 0
                 System.err.println("Boosting Error Occurred!");
                 System.exit(1);
             }
 
             // 0.5 does not count here
             // if member's weightedError is zero, member weight is nan, but it won't be used anyway
-            memberWeight.set(member, log((1.0d / cascade[round].get(member).error) - 1));
+            memberWeight.set(member, log((new BigDecimal(1).divide(cascade[round].get(member).error)).subtract(new BigDecimal(1)).doubleValue())); // log((1.0d / commitee[member].error) - 1) // FIXME: .doubleValue() ok or not?
             long featureIndex = cascade[round].get(member).featureIndex;
             for (int i = 0; i < N; i++) {
                 int exampleIndex = getExampleIndex(featureIndex, i, N);
@@ -120,6 +119,7 @@ public class Classifier {
      * Here, weak classifier are called "Stumps", see: https://en.wikipedia.org/wiki/Decision_stump
      */
     private void adaboost(int round) {
+        System.out.println();
         // STATE: OK & CHECKED 16/31/08
 
         // The result to be filled & returned
@@ -133,40 +133,41 @@ public class Classifier {
         DenseMatrix prediction = new DenseMatrix(1, trainN);
         predictLabel(round, trainN, 0, prediction, true);
 
-        DenseMatrix agree = labelsTrain.mul(prediction);
-        DenseMatrix weightUpdate = DenseMatrix.ones(1, trainN);
+        DenseMatrix agree = labelsTrain.mul(prediction); // FIXME
+        ArrayList<BigDecimal> weightUpdate = new ArrayList<>(trainN);
 
         boolean werror = false;
 
         for (int i = 0; i < trainN; i++) {
             if (agree.get(0, i) < 0) {
-                weightUpdate.set(0, i, 1.0d / bestDS.error - 1);
+                weightUpdate.set(i, new BigDecimal(1).divide(bestDS.error).subtract(new BigDecimal(1))); // 1.0d / bestDS.error - 1
                 werror = true;
             }
         }
 
         //update weights only if there is an error
         if (werror) {
-            weightsTrain = weightsTrain.mul(weightUpdate);
-            double sum = 0;
             for (int i = 0; i < trainN; i++)
-                sum += weightsTrain.get(0, i);
-            double sumPos = 0;
+                weightsTrain.set(i, weightsTrain.get(i).multiply(weightUpdate.get(i))); // <=> weightsTrain = weightsTrain.mul(weightUpdate)
+            BigDecimal sum = new BigDecimal(0);
+            for (int i = 0; i < trainN; i++)
+                sum = sum.add(weightsTrain.get(i));
+            BigDecimal sumPos = new BigDecimal(0);
             for (int i = 0; i < trainN; i++) {
-                double newVal = weightsTrain.get(0, i) / sum;
-                weightsTrain.set(0, i, newVal);
-                sumPos += newVal;
+                BigDecimal newVal = weightsTrain.get(i).divide(sum);
+                weightsTrain.set(i, newVal);
+                sumPos = sumPos.add(newVal);
             }
             totalWeightPos = sumPos;
-            totalWeightNeg = 1 - sumPos;
+            totalWeightNeg = new BigDecimal(1).subtract(sumPos); // 1 - sumPos
 
-            minWeight = weightsTrain.get(0, 0);
-            maxWeight = weightsTrain.get(0, 0);
+            minWeight = weightsTrain.get(0);
+            maxWeight = weightsTrain.get(0);
             for (int i = 1; i < trainN; i++) {
-                double currentVal = weightsTrain.get(0, i);
-                if (minWeight > currentVal)
+                BigDecimal currentVal = weightsTrain.get(i);
+                if (minWeight.compareTo(currentVal) == 1) // minWeight > currentVal
                     minWeight = currentVal;
-                if (maxWeight < currentVal)
+                if (maxWeight.compareTo(currentVal) == -1) // maxWeight < currentVal
                     maxWeight = currentVal;
             }
         }
@@ -301,15 +302,6 @@ public class Classifier {
         }
     }
 
-
-    private void recordRule(ArrayList<DecisionStump> committee, boolean firstRound) {
-        Serializer.printRule(committee, firstRound, Conf.TRAIN_FEATURES);
-    }
-
-    private void recordLayerMemory() {
-        Serializer.printLayerMemory(this.layerMemory, this.tweaks, Conf.TRAIN_FEATURES);
-    }
-
     private ArrayList<String> orderedExamples() {
         ArrayList<String> examples = new ArrayList<>(trainN);
         examples.addAll(train_faces);
@@ -357,19 +349,19 @@ public class Classifier {
         cascade = new ArrayList[boostingRounds];
 
         // Updating weights
-        totalWeightPos = initialPositiveWeight;
-        totalWeightNeg = 1 - initialPositiveWeight;
-        double averageWeightPos = totalWeightPos / countTrainPos;
-        double averageWeightNeg = totalWeightNeg / countTrainNeg;
-        minWeight = min(averageWeightPos, averageWeightNeg);
-        maxWeight = max(averageWeightPos, averageWeightNeg);
+        totalWeightPos = new BigDecimal(initialPositiveWeight);
+        totalWeightNeg = new BigDecimal(1 - initialPositiveWeight);
+        BigDecimal averageWeightPos = totalWeightPos.divide(new BigDecimal(countTrainPos));
+        BigDecimal averageWeightNeg = totalWeightNeg.divide(new BigDecimal(countTrainNeg));
+        minWeight = averageWeightPos.min(averageWeightNeg);
+        maxWeight = averageWeightPos.max(averageWeightNeg);
 
         // Init labels & weights
         labelsTrain = new DenseMatrix(1, trainN);
-        weightsTrain = new DenseMatrix(1, trainN);
+        weightsTrain = new ArrayList<>(trainN);
         for (int i = 0; i < trainN; i++) {
             labelsTrain.set(0, i, i < countTrainPos ? 1 : -1);
-            weightsTrain.set(0, i, i < countTrainPos ? averageWeightPos : averageWeightNeg);
+            weightsTrain.set(i, i < countTrainPos ? averageWeightPos : averageWeightNeg);
         }
 
         double accumulatedFalsePositive = 1;
@@ -405,12 +397,12 @@ public class Classifier {
             // TODO : blackList ??
 
             //record the boosted rule into a target file
-            recordRule(cascade[round], round == 0);
+            Serializer.writeRule(cascade[round], round == 0, Conf.TRAIN_FEATURES);
 
         }
 
         // Serialize training
-        recordLayerMemory();
+        Serializer.writeLayerMemory(this.layerMemory, this.tweaks, Conf.TRAIN_FEATURES);
 
         computed = true;
     }

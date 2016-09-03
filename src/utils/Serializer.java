@@ -133,7 +133,7 @@ public class Serializer {
         return i;
     }
 
-    public static void printRule(ArrayList<DecisionStump> committee, boolean firstRound, String fileName) {
+    public static void writeRule(ArrayList<DecisionStump> committee, boolean firstRound, String fileName) {
         try {
 
             if (firstRound && Utils.fileExists(fileName))
@@ -157,6 +157,7 @@ public class Serializer {
         } catch (IOException e) {
             System.err.println("Error : Could Not Write committe, aborting");
             e.printStackTrace();
+            System.exit(1);
         }
     }
 
@@ -185,11 +186,12 @@ public class Serializer {
         } catch (IOException e) {
             System.err.println("Error while reading the list of decisionStumps");
             e.printStackTrace();
+            System.exit(1);
         }
         return result;
     }
 
-    public static void printLayerMemory(ArrayList<Integer> layerMemory, ArrayList<Float> tweaks, String fileName) {
+    public static void writeLayerMemory(ArrayList<Integer> layerMemory, ArrayList<Float> tweaks, String fileName) {
         try {
 
             int layerCount = layerMemory.size();
@@ -213,6 +215,7 @@ public class Serializer {
         } catch (IOException e) {
             System.err.println("Error : Could Not Write layer Memory or tweaks, aborting");
             e.printStackTrace();
+            System.exit(1);
         }
     }
 }

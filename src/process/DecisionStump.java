@@ -2,23 +2,21 @@ package process;
 
 import jeigen.DenseMatrix;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
-
-import static process.features.FeatureExtractor.getExampleFeature;
-import static process.features.FeatureExtractor.getExampleIndex;
 
 public class DecisionStump { // == stumpRule
 
     // Values that will be used to find the best DecisionStump
     public long featureIndex;
-    public double error;
+    public BigDecimal error;
     public double threshold;
     public double margin;
     public int toggle; // = polarity {-1; 1}
 
 
     // Initialisation
-    public DecisionStump(long featureIndex, double error, double threshold, double margin, int toggle) {
+    public DecisionStump(long featureIndex, BigDecimal error, double threshold, double margin, int toggle) {
         this.featureIndex = featureIndex;
         this.error = error;
         this.threshold = threshold;
@@ -27,8 +25,8 @@ public class DecisionStump { // == stumpRule
     }
 
     public static boolean compare(DecisionStump first, DecisionStump second) {
-        return (first.error < second.error ||
-                (first.error == second.error && first.margin > second.margin));
+        return (first.error.compareTo(second.error) == -1 || // <=> first.error < second.error
+                (first.error.compareTo(second.error) == 0 && first.margin > second.margin)); // <=> first.error == second.error
     }
 
     /**
@@ -42,7 +40,7 @@ public class DecisionStump { // == stumpRule
      * <p>
      * Pair<Integer i, Boolean b> indicates whether feature i is a face (b=true) or not (b=false)
      */
-    public static DecisionStump bestStump(DenseMatrix labels, DenseMatrix weights, long featureCount, int N, double totalWeightPos, double totalWeightNeg, double minWeight) {
+    public static DecisionStump bestStump(DenseMatrix labels, ArrayList<BigDecimal> weights, long featureCount, int N, BigDecimal totalWeightPos, BigDecimal totalWeightNeg, BigDecimal minWeight) {
 
         // Compare each DecisionStump and find the best by following this algorithm:
         //   if (current.weightedError < best.weightedError) -> best = current
@@ -82,10 +80,12 @@ public class DecisionStump { // == stumpRule
         System.out.println("[BestStump] BestStump : ");
         System.out.println("[BestStump] FeatureIndex : " + best.featureIndex + " error : " + best.error + " Threshold : "
                 + best.threshold + " margin : " + best.margin + " toggle : " + best.toggle);
-        if (best.error >= 0.5) {
+        if (best.error.compareTo(new BigDecimal(0.5)) >= 0) { // if (best.error >= 0.5)
             System.out.println("Failed best stump, error : " + best.error + " >= 0.5 !");
             System.exit(1);
         }
+
+        System.out.println("      - Found best stump: (featureIdx: " + best.featureIndex + ", threshold: " + best.threshold + ", margin:" + best.margin + ", toggle:" + best.toggle + ", error:" + best.error + ")");
 
         return best;
     }

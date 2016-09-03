@@ -1,17 +1,14 @@
 package process.features;
 
-import javafx.util.Pair;
 import org.junit.Test;
 import process.Conf;
 import process.DecisionStump;
 import utils.Serializer;
-import utils.Utils;
 
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Scanner;
 
 import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertTrue;
@@ -119,12 +116,12 @@ public class TestSerializer {
         DecisionStump decisionStump = new DecisionStump(1, 1, 1, 1, 1);
         committee.add(decisionStump);
 
-        Serializer.printRule(committee, true, tmp_file);
+        Serializer.writeRule(committee, true, tmp_file);
 
         DecisionStump decisionStump2 = new DecisionStump(2, 2, 2, 2, -1);
         committee.add(decisionStump2);
 
-        Serializer.printRule(committee, false, tmp_file);
+        Serializer.writeRule(committee, false, tmp_file);
 
         ArrayList<DecisionStump> read = Serializer.readRule(tmp_file);
 
