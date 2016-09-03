@@ -98,6 +98,7 @@ public class Classifier {
             DoubleDouble err = cascade[round].get(member).error;
             assert Double.isFinite(err.doubleValue()); // <=> !NaN && !Infinity
 
+            memberWeight.set(member, log(DoubleDouble.ONE.divideBy(err).doubleValue() - 1)); // log((1 / commitee[member].error) - 1)
             if (!Objects.equals(err, DoubleDouble.ZERO)) // Do not divide by zero
                 memberWeight.set(member, log(DoubleDouble.ONE.divideBy(err).subtract(DoubleDouble.ONE).doubleValue())); // log((1 / commitee[member].error) - 1)
             else

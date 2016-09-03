@@ -12,8 +12,12 @@ public class DoubleDouble extends BigDecimal {
         super(val, MathContext.DECIMAL128);
     }
 
+    public DoubleDouble(BigDecimal val) {
+        super(val.toString());
+    }
+
     public DoubleDouble multiplyBy(DoubleDouble val) {
-        return (DoubleDouble) this.multiply(val, MathContext.DECIMAL128);
+        return new DoubleDouble(this.multiply(val, MathContext.DECIMAL128));
     }
 
     public DoubleDouble multiplyBy(double val) {
@@ -24,7 +28,7 @@ public class DoubleDouble extends BigDecimal {
         // Handles NaN
         if (val.eq(0))
             return new DoubleDouble(Double.MAX_VALUE);
-        return (DoubleDouble) super.divide(val, MathContext.DECIMAL128);
+        return new DoubleDouble(super.divide(val, MathContext.DECIMAL128));
     }
 
     public DoubleDouble divideBy(int val) {
@@ -32,7 +36,7 @@ public class DoubleDouble extends BigDecimal {
     }
 
     public DoubleDouble add(DoubleDouble val) {
-        return (DoubleDouble) super.add(val, MathContext.DECIMAL128);
+        return new DoubleDouble(super.add(val, MathContext.DECIMAL128));
     }
 
     public DoubleDouble add(double val) {
@@ -40,7 +44,7 @@ public class DoubleDouble extends BigDecimal {
     }
 
     public DoubleDouble subtract(DoubleDouble val) {
-        return (DoubleDouble) super.subtract(val, MathContext.DECIMAL128);
+        return new DoubleDouble(super.subtract(val, MathContext.DECIMAL128));
     }
 
     public DoubleDouble subtract(double val) {
@@ -76,10 +80,10 @@ public class DoubleDouble extends BigDecimal {
     }
 
     public DoubleDouble min(DoubleDouble other) {
-        return (DoubleDouble) super.min(other);
+        return new DoubleDouble(super.min(other));
     }
 
     public DoubleDouble max(DoubleDouble other) {
-        return (DoubleDouble) super.max(other);
+        return new DoubleDouble(super.max(other));
     }
 }
