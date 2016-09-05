@@ -554,7 +554,7 @@ public class Classifier {
                 sum += toggle * (haar.get((int) featureIndex) < threshold ? 1 : -1 * alpha);
             }
 
-            if (sum >= 0)
+            if (sum < 0)
                 goodNon++;
         }
 
