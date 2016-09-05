@@ -11,7 +11,7 @@ public class StumpRule { // == Weak classifier
     public double error;
     public double threshold;
     public double margin; // = The margin between the feature values of the two examples
-    public int toggle; // = polarity {-1; 1}
+    public int toggle; // = polarity {-1; 1} = if (Your feature value > this.threshold ? toggle : -toggle)
 
 
     // Initialisation
@@ -23,12 +23,14 @@ public class StumpRule { // == Weak classifier
         this.toggle = toggle;
     }
 
-
-    public boolean compare(StumpRule other) {
+    public boolean compare(double otherError, double otherMargin) {
         // We want the threshold which best separate positive & negative examples, this is equivalent to find the
         // StumpRule with the lowest error. When error is the same, a larger margin means a larger separation between
         // positive and negative examples, so it's a better choice.
-        return (this.error < other.error || (this.error == other.error && this.margin > other.margin));
+        return (this.error < otherError || (this.error == otherError && this.margin > otherMargin));
+    }
+
+    public boolean compare(StumpRule other) {
+        return this.compare(other.error, other.margin);
     }
 }
-

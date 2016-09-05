@@ -136,7 +136,7 @@ public class Classifier {
         //   if (current.weightedError < best.weightedError) -> best = current
         //   else if (current.weightedError == best.weightedError && current.margin > best.margin) -> best = current
 
-        System.out.println("      - Calling bestStump with totalWeightsPos : " + totalWeightPos + " totalWeightNeg : " + totalWeightNeg + " minWeight : " + minWeight);
+        System.out.println("      - Calling bestStump with totalWeightsPos: " + totalWeightPos + " totalWeightNeg: " + totalWeightNeg + " minWeight: " + minWeight);
         int nb_threads = Runtime.getRuntime().availableProcessors();
         DecisionStump managerFor0 = new DecisionStump(labelsTrain, weightsTrain, 0, trainN, totalWeightPos, totalWeightNeg, minWeight);
         managerFor0.run();
@@ -173,9 +173,9 @@ public class Classifier {
         System.out.println("      - Found best stump in " + ((new Date()).getTime() - startTime)/1000 + "s" +
                 " : (featureIdx: " + best.featureIndex +
                 ", threshold: " + best.threshold +
-                ", margin:" + best.margin +
-                ", error:" + best.error +
-                ", toggle:" + best.toggle + ")");
+                ", margin: " + best.margin +
+                ", error: " + best.error +
+                ", toggle: " + best.toggle + ")");
         return best;
     }
 
@@ -222,7 +222,7 @@ public class Classifier {
             for (int i = 0; i < trainN; i++)
                 sum += weightsTrain.get(0, i);
             double sumPos = 0;
-            for (int i = 0; i < trainN; i++) {
+            for (int i = 0; i < countTrainPos; i++) {
                 double newVal = weightsTrain.get(0, i) / sum;
                 weightsTrain.set(0, i, newVal);
                 sumPos += newVal;
@@ -342,7 +342,7 @@ public class Classifier {
                     }
                 }
 
-                System.out.println("    - worstDetectionRate: " + worstDetectionRate + ">= overallTargetDetectionRate: " + overallTargetDetectionRate + " && worstFalsePositive: " + worstFalsePositive + "<= overallTargetFalsePositiveRate: " + overallTargetFalsePositiveRate);
+//                System.out.println("    - worstDetectionRate: " + worstDetectionRate + ">= overallTargetDetectionRate: " + overallTargetDetectionRate + " && worstFalsePositive: " + worstFalsePositive + "<= overallTargetFalsePositiveRate: " + overallTargetFalsePositiveRate);
                 if (worstDetectionRate >= overallTargetDetectionRate && worstFalsePositive <= overallTargetFalsePositiveRate) {
                     layerMissionAccomplished = true;
                     break;
