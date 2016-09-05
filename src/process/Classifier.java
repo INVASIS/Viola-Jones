@@ -6,6 +6,7 @@ import utils.Serializer;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 
 import static java.lang.Math.log;
 import static process.features.FeatureExtractor.*;
@@ -29,8 +30,6 @@ public class Classifier {
     private static final float TWEAK_UNIT = 1e-2f;      // initial tweak unit
     private static final double MIN_TWEAK = 1e-5;       // tweak unit cannot go lower than this
     private static final double GOAL = 1e-7;
-
-    private static int adaboostPasses = 0;
 
     /* --- CLASS VARIABLES --- */
     private int countTrainPos;
@@ -120,16 +119,18 @@ public class Classifier {
 
     /**
      * Algorithm 5 from the original paper
-     * <p>
+     *
+     * Explication: We want to find the feature that gives the lowest error when separating positive and negative examples with that feature's threshold!
+     *
      * Return the most discriminative feature and its rule
      * We compute each StumpRule, and find the one with:
      * - the lower weighted error first
      * - the wider margin
-     * <p>
-     * <p>
+     *
      * Pair<Integer i, Boolean b> indicates whether feature i is a face (b=true) or not (b=false)
      */
     private StumpRule bestStump() {
+        long startTime = System.currentTimeMillis();
 
         // Compare each StumpRule and find the best by following this algorithm:
         //   if (current.weightedError < best.weightedError) -> best = current
@@ -140,8 +141,7 @@ public class Classifier {
         DecisionStump managerFor0 = new DecisionStump(labelsTrain, weightsTrain, 0, trainN, totalWeightPos, totalWeightNeg, minWeight);
         managerFor0.run();
         StumpRule best = managerFor0.getBest();
-        for (long i = 1; i < featureCount; i++) {
-
+        for (long i = 1; i < featureCount; i++) { // TODO: Replace by threadPoolExecutor
             ArrayList<DecisionStump> listThreads = new ArrayList<>(nb_threads);
             long j;
             for (j = 0; j < nb_threads && j + i < featureCount; j++) {
@@ -170,21 +170,28 @@ public class Classifier {
             System.exit(1);
         }
 
-        System.out.println("      - Found best stump: (featureIdx: " + best.featureIndex + ", threshold: " + best.threshold + ", margin:" + best.margin + ", error:" + best.error + ", toggle:" + best.toggle + ")");
+        System.out.println("      - Found best stump in " + ((new Date()).getTime() - startTime)/1000 + "s" +
+                " : (featureIdx: " + best.featureIndex +
+                ", threshold: " + best.threshold +
+                ", margin:" + best.margin +
+                ", error:" + best.error +
+                ", toggle:" + best.toggle + ")");
         return best;
     }
 
     /**
+     * Algorithm 6 from the original paper
+     *
      * Strong classifier based on multiple weak classifiers.
      * Here, weak classifier are called "Stumps", see: https://en.wikipedia.org/wiki/Decision_stump
+     *
+     * Explication: The training aims to find the feature with the threshold that will allows to separate positive & negative examples in the best way possible!
      */
     private void adaboost(int round) {
-        System.out.println();
         // STATE: OK & CHECKED 16/31/08
 
-        StumpRule bestDS = bestStump();
-        cascade[round].add(bestDS);
-        adaboostPasses++;
+        StumpRule bestDS = bestStump(); // A new weak classifier
+        cascade[round].add(bestDS); // Add this weak classifier to our current strong classifier to get better results
 
         DenseMatrix prediction = new DenseMatrix(1, trainN);
         predictLabel(round, trainN, 0, prediction, true);
@@ -228,8 +235,6 @@ public class Classifier {
             minWeight = Collections.min(weightsTrain);
             maxWeight = Collections.max(weightsTrain);
         }
-
-        System.out.println("Adaboost passes : " + adaboostPasses);
     }
 
     // p141 in paper?
@@ -268,18 +273,19 @@ public class Classifier {
     /**
      * Algorithm 10 from the original paper
      */
-    private void attentionalCascade(int round, float overallTargetDetectionRate, float overallTargetFalsePositiveRate) {
+    private int attentionalCascade(int round, float overallTargetDetectionRate, float overallTargetFalsePositiveRate) {
         // STATE: OK & CHECKED 16/31/08
 
         int committeeSizeGuide = Math.min(20 + round * 10, 200);
         System.out.println("    - CommitteeSizeGuide = " + committeeSizeGuide);
 
-        cascade[round] = new ArrayList<>(); // Add a new committee == ArrayList<StumpRule>
+        cascade[round] = new ArrayList<>();
 
+        int nbWeakClassifier = 0;
         boolean layerMissionAccomplished = false;
         while (!layerMissionAccomplished) {
 
-            // Run algorithm N°6 (adaboost) to produce a classifier (which is in fact a committee)
+            // Run algorithm N°6 (adaboost) to produce a classifier (== ArrayList<StumpRule>)
             adaboost(round);
 
             boolean overSized = cascade[round].size() > committeeSizeGuide;
@@ -359,7 +365,9 @@ public class Classifier {
             }
             if (overSized)
                 break;
+            nbWeakClassifier++;
         }
+        return nbWeakClassifier;
     }
 
     private ArrayList<String> orderedExamples() {
@@ -430,8 +438,9 @@ public class Classifier {
             System.out.println("      - AverW+: " + averageWeightPos + " | AverW-: " + averageWeightNeg);
             System.out.println("      - MinW: " + minWeight + " | MaxW: " + maxWeight);
 
-            attentionalCascade(round, overallTargetDetectionRate, overallTargetFalsePositiveRate);
+            int nbWC = attentionalCascade(round, overallTargetDetectionRate, overallTargetFalsePositiveRate);
             System.out.println("    - Attentional Cascade computed!");
+            System.out.println("      - Number of weak classifier: " + nbWC);
 
             // -- Display results for this round --
 

@@ -9,8 +9,12 @@ import java.util.Objects;
 import static process.features.FeatureExtractor.*;
 
 public class DecisionStump extends Thread {
+    // X are examples
+    // Y are labels
+    // V are feature values
+    // (Xi, Yi, Vi) is a tuple of an image, its label (either -1 or 1), and the value the feature for image Xi.
 
-    private DenseMatrix labels;
+    private DenseMatrix Y;
     private ArrayList<DoubleDouble> weights;
     private long featureIndex;
     private int N;
@@ -21,7 +25,7 @@ public class DecisionStump extends Thread {
     private StumpRule best;
 
     public DecisionStump(DenseMatrix labels, ArrayList<DoubleDouble> weights, long featureCount, int N, DoubleDouble totalWeightPos, DoubleDouble totalWeightNeg, DoubleDouble minWeight) {
-        this.labels = labels;
+        this.Y = labels;
         this.weights = weights;
         this.featureIndex = featureCount;
         this.N = N;
@@ -36,9 +40,15 @@ public class DecisionStump extends Thread {
 
     @Override
     public void run() {
+        // To build a decision stump, we need a toggle (polarity) and an admissible threshold
+        // which minimizes the weighted classification error
+        //
+        // For N training example, there is exactly N+1 possible StumpRule.
 
-        StumpRule best = new StumpRule(featureIndex, 2, getExampleFeature(featureIndex, 0, N) - 1, -1, 0);
-        StumpRule current = deepCopy(best); // copy of best
+
+        // Get needed values
+        ArrayList<Integer> X = getFeatureExamplesIndexes(featureIndex, N);
+        ArrayList<Integer> V = getFeatureValues(featureIndex, N);
 
         // Left & Right hand of the stump
         DoubleDouble leftWeightPos = DoubleDouble.ZERO;
@@ -46,19 +56,37 @@ public class DecisionStump extends Thread {
         DoubleDouble rightWeightPos = totalWeightPos;
         DoubleDouble rightWeightNeg = totalWeightNeg;
 
+        assert X.size() == N;
+        assert V.size() == N;
+        assert getExampleIndex(featureIndex, 0, N) == X.get(0);
+        assert getExampleFeature(featureIndex, 0, N) == V.get(0);
+
+        // First compute all threshold and margins between all values of V, but also before (-1) and after (+1) V values!
+        // We will then find the best threshold in this list based on the error it gives
+        ArrayList<Double> thresholds;
+        ArrayList<Double> margins;
+        {
+            thresholds = new ArrayList<>(N + 1);
+            margins = new ArrayList<>(N + 1);
+
+            thresholds.add((double) (V.get(0) - 1));
+            margins.add((double) -1);
+            for (int i = 0; i < N-1; i++) {
+                thresholds.add(((double) (V.get(i) + V.get(i + 1))) / 2.0d);
+                margins.add((double) V.get(i + 1) - V.get(i));
+            }
+            thresholds.add((double) (V.get(N-1) + 1));
+            margins.add((double) 0);
+        }
+
+        StumpRule best = new StumpRule(featureIndex, 2, thresholds.get(0),margins.get(0), 0);
+        StumpRule current = deepCopy(best);
+        for (int i = 0; i < N; i++) {
+
+        }
+
         // Go through all these observations one after another
         int iterator = -1;
-
-        // To build a decision stump, you need a toggle and an admissible threshold
-        // which doesn't coincide with any of the observations
-
-        ArrayList<Integer> featureExampleIndexes = getFeatureExamplesIndexes(featureIndex, N);
-        ArrayList<Integer> featureValues = getFeatureValues(featureIndex, N);
-        assert featureExampleIndexes.size() == N;
-        assert featureValues.size() == N;
-        assert getExampleIndex(featureIndex, 0, N) == featureExampleIndexes.get(0);
-        assert getExampleFeature(featureIndex, 0, N) == featureValues.get(0);
-
         while (true) {
             DoubleDouble errorPlus = leftWeightPos.add(rightWeightNeg);
             DoubleDouble errorMinus = rightWeightPos.add(leftWeightNeg);
@@ -88,8 +116,8 @@ public class DecisionStump extends Thread {
                 break;
 
             while (true) {
-                int exampleIndex = featureExampleIndexes.get(iterator);
-                double label = (int) labels.get(0, exampleIndex); // FIXME: why casting to int?
+                int exampleIndex = X.get(iterator);
+                double label = (int) Y.get(0, exampleIndex); // FIXME: why casting to int?
                 double weight = weights.get(exampleIndex).doubleValue();
 
                 if (label < 0) {
@@ -103,21 +131,15 @@ public class DecisionStump extends Thread {
                 // if a new threshold can be found, break
                 // two cases are possible:
                 //   - Either it is the last observation:
-                if ((iterator == N - 1) || (!Objects.equals(featureValues.get(iterator), featureValues.get(iterator + 1))))
+                if ((iterator == N - 1) || (!Objects.equals(V.get(iterator), V.get(iterator + 1))))
                     break;
 
                 iterator++;
             }
 
-            if (iterator < N - 1) {
-                current.threshold = ((double) featureValues.get(iterator) + (double) featureValues.get(iterator + 1)) / 2.0d;
-                current.margin = featureValues.get(iterator + 1) - featureValues.get(iterator);
-            } else {
-                current.threshold = featureValues.get(iterator) + 1;
-                current.margin = 0;
-            }
+            current.threshold = thresholds.get(iterator+1);
+            current.margin = margins.get(iterator+1);
         }
-
         this.best = best;
     }
 
