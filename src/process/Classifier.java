@@ -1,11 +1,9 @@
 package process;
 
 import jeigen.DenseMatrix;
-import utils.DoubleDouble;
 import utils.Serializer;
 
 import java.util.ArrayList;
-import java.util.Collections;
 
 import static java.lang.Math.log;
 import static process.features.FeatureExtractor.*;
@@ -57,16 +55,16 @@ public class Classifier {
     private ArrayList<StumpRule>[] cascade;
     private ArrayList<Float> tweaks;
 
-    private ArrayList<DoubleDouble> weightsTrain;
-    private ArrayList<DoubleDouble> weightsTest;
+    private DenseMatrix weightsTrain;
+    private DenseMatrix weightsTest;
     private DenseMatrix labelsTrain;
     private DenseMatrix labelsTest;
 
-    private DoubleDouble totalWeightPos; // total weight received by positive examples currently
-    private DoubleDouble totalWeightNeg; // total weight received by negative examples currently
+    private double totalWeightPos; // total weight received by positive examples currently
+    private double totalWeightNeg; // total weight received by negative examples currently
 
-    private DoubleDouble minWeight; // minimum weight among all weights currently
-    private DoubleDouble maxWeight; // maximum weight among all weights currently
+    private double minWeight; // minimum weight among all weights currently
+    private double maxWeight; // maximum weight among all weights currently
 
     public Classifier(int width, int height) {
         this.width = width;
@@ -88,17 +86,20 @@ public class Classifier {
         int start = onlyMostRecent ? committeeSize - 1 : 0;
 
         for (int member = start; member < committeeSize; member++) {
-            if (cascade[round].get(member).error.eq(0) && member != 0) {
+            if (cascade[round].get(member).error == 0 && member != 0) {
                 System.err.println("Boosting Error Occurred!");
                 System.exit(1);
             }
 
             // 0.5 does not count here
             // if member's weightedError is zero, member weight is nan, but it won't be used anyway
-            DoubleDouble err = cascade[round].get(member).error;
-            assert Double.isFinite(err.doubleValue()); // <=> !NaN && !Infinity
+            double err = cascade[round].get(member).error;
+            assert Double.isFinite(err); // <=> !NaN && !Infinity
 
-            memberWeight.set(member, log(DoubleDouble.ONE.divideBy(err).doubleValue() - 1)); // log((1 / commitee[member].error) - 1)
+            if (err != 0)
+                memberWeight.set(member, log((1 / err) - 1)); // log((1 / commitee[member].error) - 1)
+            else
+                memberWeight.set(member, Double.MAX_VALUE);
 
             long featureIndex = cascade[round].get(member).featureIndex;
             for (int i = 0; i < N; i++) {
@@ -107,7 +108,7 @@ public class Classifier {
             }
         }
         if (!onlyMostRecent) {
-            DenseMatrix finalVerdict = memberWeight.mul(memberVerdict);
+            DenseMatrix finalVerdict = memberWeight.mul(memberVerdict); // FIXME : matrix mul error
             for (int i = 0; i < N; i++)
                 prediction.set(0, i, finalVerdict.get(1, i) > 0 ? 1 : -1);
         }
@@ -165,7 +166,7 @@ public class Classifier {
             }
         }
 
-        if (best.error.gte(0.5)) {
+        if (best.error >= 0.5) {
             System.out.println("      - Failed best stump, error : " + best.error + " >= 0.5 !");
             System.exit(1);
         }
@@ -190,43 +191,53 @@ public class Classifier {
         predictLabel(round, trainN, 0, prediction, true);
 
         DenseMatrix agree = labelsTrain.mul(prediction);
-        ArrayList<DoubleDouble> weightUpdate = new ArrayList<>(trainN);
+        DenseMatrix weightUpdate = DenseMatrix.ones(1, trainN); // new ArrayList<>(trainN);
 
         boolean werror = false;
 
         for (int i = 0; i < trainN; i++) {
             if (agree.get(0, i) < 0) {
-                weightUpdate.add(DoubleDouble.ONE.divideBy(bestDS.error).subtract(1)); // (1 / bestDS.error) - 1
+                if (bestDS.error != 0)
+                    weightUpdate.set(0, i, (1 / bestDS.error) - 1); // (1 / bestDS.error) - 1
+                else
+                    weightUpdate.set(0, i, Double.MAX_VALUE - 1);
                 werror = true;
-            } else {
-                weightUpdate.add(DoubleDouble.ONE);
             }
         }
 
         //update weights only if there is an error
         if (werror) {
 
-            // weightsTrain = weightsTrain.mul(weightUpdate)
+            weightsTrain = weightsTrain.mul(weightUpdate);
+            /*for (int i = 0; i < trainN; i++)
+                weightsTrain.set(i, weightsTrain.get(i) * weightUpdate.get(i));
+*/
+            double sum = 0;
             for (int i = 0; i < trainN; i++)
-                weightsTrain.set(i, weightsTrain.get(i).multiplyBy(weightUpdate.get(i)));
+                sum += weightsTrain.get(0, i);
+            double sumPos = 0;
+            for (int i = 0; i < trainN; i++) {
+                double newVal = weightsTrain.get(0, i) / sum;
+                weightsTrain.set(0, i, newVal);
+                sumPos += newVal;
+            }
+            totalWeightPos = sumPos;
+            totalWeightNeg = 1 - sumPos;
 
-            // weightsTrain /= weightsTrain.sum()
-            DoubleDouble sum = DoubleDouble.ZERO;
-            for (int i = 0; i < trainN; i++)
-                sum = sum.add(weightsTrain.get(i));
-            for (int i = 0; i < trainN; i++)
-                weightsTrain.set(i, weightsTrain.get(i).divideBy(sum));
+            assert totalWeightPos <= 1;
+            assert totalWeightNeg <= 1;
 
-            totalWeightPos = DoubleDouble.ZERO;
-            for (int i = 0; i < countTrainPos; i++)
-                totalWeightPos = totalWeightPos.add(weightsTrain.get(i));
-            totalWeightNeg = new DoubleDouble(1).subtract(totalWeightPos);
+            minWeight = weightsTrain.get(0, 0);
+            maxWeight = weightsTrain.get(0, 0);
 
-            assert totalWeightPos.lte(1);
-            assert totalWeightNeg.lte(1);
+            for (int i = 1; i < trainN; i++) {
+                double currentVal = weightsTrain.get(0, i);
+                if (minWeight > currentVal)
+                    minWeight = currentVal;
+                if (maxWeight < currentVal)
+                    maxWeight = currentVal;
+            }
 
-            minWeight = Collections.min(weightsTrain);
-            maxWeight = Collections.max(weightsTrain);
         }
 
         System.out.println("Adaboost passes : " + adaboostPasses);
@@ -416,15 +427,15 @@ public class Classifier {
             System.out.println("  - Round N." + round + ":");
 
             // Update weights (needed because adaboost change weights when running)
-            totalWeightPos = new DoubleDouble(initialPositiveWeight);
-            totalWeightNeg = new DoubleDouble(1 - initialPositiveWeight);
-            DoubleDouble averageWeightPos = totalWeightPos.divideBy(countTrainPos);
-            DoubleDouble averageWeightNeg = totalWeightNeg.divideBy(countTrainNeg);
-            minWeight = averageWeightPos.min(averageWeightNeg);
-            maxWeight = averageWeightPos.max(averageWeightNeg);
-            weightsTrain = new ArrayList<>(trainN);
+            totalWeightPos = initialPositiveWeight;
+            totalWeightNeg = 1 - initialPositiveWeight;
+            double averageWeightPos = totalWeightPos / countTrainPos;
+            double averageWeightNeg = totalWeightNeg / countTrainNeg;
+            minWeight = averageWeightPos < averageWeightNeg ? averageWeightPos : averageWeightNeg;
+            maxWeight = averageWeightPos > averageWeightNeg ? averageWeightPos : averageWeightNeg;
+            weightsTrain = DenseMatrix.zeros(1, trainN);
             for (int i = 0; i < trainN; i++)
-                weightsTrain.add(i < countTrainPos ? averageWeightPos : averageWeightNeg);
+                weightsTrain.set(0, i, i < countTrainPos ? averageWeightPos : averageWeightNeg);
             System.out.println("    - Initialized weights:");
             System.out.println("      - TotW+: " + totalWeightPos + " | TotW-: " + totalWeightNeg);
             System.out.println("      - AverW+: " + averageWeightPos + " | AverW-: " + averageWeightNeg);

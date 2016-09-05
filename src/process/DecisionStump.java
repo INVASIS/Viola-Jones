@@ -1,7 +1,6 @@
 package process;
 
 import jeigen.DenseMatrix;
-import utils.DoubleDouble;
 
 import java.util.ArrayList;
 import java.util.Objects;
@@ -11,16 +10,16 @@ import static process.features.FeatureExtractor.*;
 public class DecisionStump extends Thread {
 
     private DenseMatrix labels;
-    private ArrayList<DoubleDouble> weights;
+    private DenseMatrix weights;
     private long featureIndex;
     private int N;
-    private DoubleDouble totalWeightPos;
-    private DoubleDouble totalWeightNeg;
-    private DoubleDouble minWeight;
+    private double totalWeightPos;
+    private double totalWeightNeg;
+    private double minWeight;
 
     private StumpRule best;
 
-    public DecisionStump(DenseMatrix labels, ArrayList<DoubleDouble> weights, long featureCount, int N, DoubleDouble totalWeightPos, DoubleDouble totalWeightNeg, DoubleDouble minWeight) {
+    public DecisionStump(DenseMatrix labels, DenseMatrix weights, long featureCount, int N, double totalWeightPos, double totalWeightNeg, double minWeight) {
         this.labels = labels;
         this.weights = weights;
         this.featureIndex = featureCount;
@@ -41,10 +40,10 @@ public class DecisionStump extends Thread {
         StumpRule current = deepCopy(best); // copy of best
 
         // Left & Right hand of the stump
-        DoubleDouble leftWeightPos = DoubleDouble.ZERO;
-        DoubleDouble leftWeightNeg = DoubleDouble.ZERO;
-        DoubleDouble rightWeightPos = totalWeightPos;
-        DoubleDouble rightWeightNeg = totalWeightNeg;
+        double leftWeightPos = 0;
+        double leftWeightNeg = 0;
+        double rightWeightPos = totalWeightPos;
+        double rightWeightNeg = totalWeightNeg;
 
         // Go through all these observations one after another
         int iterator = -1;
@@ -60,11 +59,11 @@ public class DecisionStump extends Thread {
         assert getExampleFeature(featureIndex, 0, N) == featureValues.get(0);
 
         while (true) {
-            DoubleDouble errorPlus = leftWeightPos.add(rightWeightNeg);
-            DoubleDouble errorMinus = rightWeightPos.add(leftWeightNeg);
+            double errorPlus = leftWeightPos + rightWeightNeg;
+            double errorMinus = rightWeightPos + leftWeightNeg;
 
-            DoubleDouble Epsilon_hat;
-            if (errorPlus.lt(errorMinus)) {
+            double Epsilon_hat;
+            if (errorPlus < errorMinus) {
                 Epsilon_hat = errorPlus;
                 current.toggle = 1;
             } else {
@@ -72,7 +71,7 @@ public class DecisionStump extends Thread {
                 current.toggle = -1;
             }
 
-            current.error = Epsilon_hat.lt(minWeight.multiplyBy(0.9)) ? new DoubleDouble(0) : Epsilon_hat;
+            current.error = Epsilon_hat < minWeight * 0.9 ? 0 : Epsilon_hat;
 
             if (current.compare(best))
                 best = deepCopy(current);
@@ -90,14 +89,14 @@ public class DecisionStump extends Thread {
             while (true) {
                 int exampleIndex = featureExampleIndexes.get(iterator);
                 double label = (int) labels.get(0, exampleIndex); // FIXME: why casting to int?
-                double weight = weights.get(exampleIndex).doubleValue();
+                double weight = weights.get(0, exampleIndex);
 
                 if (label < 0) {
-                    leftWeightNeg = leftWeightNeg.add(weight); // leftWeightNeg += weight
-                    rightWeightNeg = rightWeightNeg.subtract(weight); // rightWeightNeg -= weight
+                    leftWeightNeg = leftWeightNeg + weight; // leftWeightNeg += weight
+                    rightWeightNeg = rightWeightNeg - weight; // rightWeightNeg -= weight
                 } else {
-                    leftWeightPos = leftWeightPos.add(weight); // leftWeightPos += weight
-                    rightWeightPos = rightWeightPos.subtract(weight); // rightWeightPos -= weight
+                    leftWeightPos = leftWeightPos + weight; // leftWeightPos += weight
+                    rightWeightPos = rightWeightPos - weight; // rightWeightPos -= weight
                 }
 
                 // if a new threshold can be found, break
