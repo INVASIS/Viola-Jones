@@ -103,13 +103,14 @@ public class Classifier {
             long featureIndex = cascade[round].get(member).featureIndex;
             for (int i = 0; i < N; i++) {
                 int exampleIndex = getExampleIndex(featureIndex, i, N);
-                memberVerdict.set(member, exampleIndex, ((getExampleFeature(featureIndex, i, N) > cascade[round].get(member).threshold ? 1 : -1) * cascade[round].get(member).toggle) + decisionTweak);
+                memberVerdict.set(member, exampleIndex,
+                        ((getExampleFeature(featureIndex, i, N) > cascade[round].get(member).threshold ? 1 : -1) * cascade[round].get(member).toggle) + decisionTweak);
             }
         }
         if (!onlyMostRecent) {
-            DenseMatrix finalVerdict = memberWeight.mul(memberVerdict); // FIXME : matrix mul error
+            DenseMatrix finalVerdict = memberWeight.mmul(memberVerdict); // FIXME : matrix mul error Sould use mmul ??
             for (int i = 0; i < N; i++)
-                prediction.set(0, i, finalVerdict.get(1, i) > 0 ? 1 : -1);
+                prediction.set(0, i, finalVerdict.get(0, i) > 0 ? 1 : -1);
         }
         else {
             for (int i = 0; i < N; i++)
@@ -221,11 +222,21 @@ public class Classifier {
             double sum = 0;
             for (int i = 0; i < trainN; i++)
                 sum += weightsTrain.get(0, i);
+
             double sumPos = 0;
+
+            minWeight = 1;
+            maxWeight = 0;
+
             for (int i = 0; i < trainN; i++) {
                 double newVal = weightsTrain.get(0, i) / sum;
                 weightsTrain.set(0, i, newVal);
-                sumPos += newVal;
+                if (i < countTrainPos)
+                    sumPos += newVal;
+                if (minWeight > newVal)
+                    minWeight = newVal;
+                if (maxWeight < newVal)
+                    maxWeight = newVal;
             }
             totalWeightPos = sumPos;
             totalWeightNeg = 1 - sumPos;
@@ -233,18 +244,6 @@ public class Classifier {
             assert totalWeightPos + totalWeightNeg == 1;
             assert totalWeightPos <= 1;
             assert totalWeightNeg <= 1;
-
-            minWeight = weightsTrain.get(0, 0);
-            maxWeight = weightsTrain.get(0, 0);
-
-            for (int i = 1; i < trainN; i++) {
-                double currentVal = weightsTrain.get(0, i);
-                if (minWeight > currentVal)
-                    minWeight = currentVal;
-                if (maxWeight < currentVal)
-                    maxWeight = currentVal;
-            }
-
         }
     }
 
@@ -342,7 +341,7 @@ public class Classifier {
                     }
                 }
 
-                System.out.println("    - worstDetectionRate: " + worstDetectionRate + ">= overallTargetDetectionRate: " + overallTargetDetectionRate + " && worstFalsePositive: " + worstFalsePositive + "<= overallTargetFalsePositiveRate: " + overallTargetFalsePositiveRate);
+                //System.out.println("    - worstDetectionRate: " + worstDetectionRate + ">= overallTargetDetectionRate: " + overallTargetDetectionRate + " && worstFalsePositive: " + worstFalsePositive + "<= overallTargetFalsePositiveRate: " + overallTargetFalsePositiveRate);
                 if (worstDetectionRate >= overallTargetDetectionRate && worstFalsePositive <= overallTargetFalsePositiveRate) {
                     layerMissionAccomplished = true;
                     break;
