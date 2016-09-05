@@ -6,13 +6,13 @@ import utils.Utils;
 
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.Objects;
 import java.util.concurrent.*;
 
 import static java.lang.Math.log;
 import static process.features.FeatureExtractor.*;
 import static utils.Utils.countFiles;
 import static utils.Utils.listFiles;
+import static utils.Utils.streamFiles;
 
 public class Classifier {
     /**
@@ -497,66 +497,56 @@ public class Classifier {
 
         computeFeaturesTimed(test_dir);
 
-        /**
-         * 1/2 ln( (1-err) / err )
-         */
         ArrayList<StumpRule> rules = Serializer.readRule(Conf.TRAIN_FEATURES);
-        ArrayList<String> listTestFaces = Utils.listFiles(test_dir + "/faces", Conf.FEATURE_EXTENSION);
-        ArrayList<String> listTestNonFaces = Utils.listFiles(test_dir + "/non-faces", Conf.FEATURE_EXTENSION);
 
         long goodFaces = 0;
-        for (String listTestFace : listTestFaces) {
-            int sum = 0;
+        long wrongFaces = 0;
+        long goodNonFaces = 0;
+        long wrongNonFaces = 0;
+
+        for (String listTestFace : streamFiles(test_dir + "/faces", Conf.FEATURE_EXTENSION)) {
+            double sum = 0;
 
             ArrayList<Integer> haar = Serializer.readArrayFromDisk(listTestFace);
 
             for (StumpRule rule : rules) {
-                long featureIndex = rule.featureIndex;
-                double error = rule.error;
-                double threshold = rule.threshold;
-                int toggle = rule.toggle;
-
-                double alpha = 0.5 * log((1 - error) / error);
-
-                sum += toggle * (haar.get((int) featureIndex) < threshold ? 1 : -1 * alpha);
+                double alpha = 0.5d * log((1.0d - rule.error) / rule.error);
+                double val = haar.get((int) rule.featureIndex);
+                sum += rule.toggle * alpha * (val < rule.threshold ? -1 : 1);
             }
 
             if (sum >= 0)
                 goodFaces++;
+            else
+                wrongFaces++;
         }
 
-        System.out.println("Vrai Positifs : " + goodFaces + " / " + countTestPos);
-        System.out.println("Vrai Negatifs : " + (1 - ( (float)goodFaces / (float)countTestPos)));
-        System.out.println("FACES ratio : " + ((float) goodFaces / (float)countTestPos));
-
-        int goodNon = 0;
-        for (String listTestNonFace : listTestNonFaces) {
-            int sum = 0;
+        for (String listTestNonFace : streamFiles(test_dir + "/non-faces", Conf.FEATURE_EXTENSION)) {
+            double sum = 0;
 
             ArrayList<Integer> haar = Serializer.readArrayFromDisk(listTestNonFace);
 
             for (StumpRule rule : rules) {
-                long featureIndex = rule.featureIndex;
-                double error = rule.error;
-                double threshold = rule.threshold;
-                int toggle = rule.toggle;
-
-                double alpha = 0.5 * log((1 - error) / error);
-
-                sum += toggle * (haar.get((int) featureIndex) < threshold ? 1 : -1 * alpha);
+                double alpha = 0.5d * log((1.0d - rule.error) / rule.error);
+                double val = haar.get((int) rule.featureIndex);
+                sum += rule.toggle * alpha * (val < rule.threshold ? -1 : 1);
             }
 
             if (sum < 0)
-                goodNon++;
+                goodNonFaces++;
+            else
+                wrongNonFaces++;
         }
 
-        System.out.println("Faux négatifs : " + goodNon + " / " + countTestNeg);
-        System.out.println("Faux positifs : " + (1 - ( (float)goodNon / (float)countTestNeg)));
-        System.out.println("NON FACES ratio : " + (float)goodNon / (float)countTestNeg);
+        System.out.println("Vrai Positifs : " + goodFaces + " / " + countTestPos + " (" + (((double)goodFaces)/(double)countTestPos + "%)"));
+        System.out.println("Vrai Negatifs : " + wrongFaces + " / " + countTestPos + " (" + (((double)wrongFaces)/(double)countTestPos + "%)"));
+        System.out.println("Faux Positifs : " + goodNonFaces + " / " + countTestNeg + " (" + (((double)goodNonFaces)/(double)countTestNeg + "%)"));
+        System.out.println("Faux Negatifs : " + wrongNonFaces + " / " + countTestNeg + " (" + (((double)wrongNonFaces)/(double)countTestNeg + "%)"));
 
-        System.out.println("Overall : ");
-        System.out.println("FACES Result : " + (goodFaces  + goodNon) + " / " + testN);
-        System.out.println("FACES ratio : " + ((float)goodFaces + (float)goodNon) / (float)testN);
+        System.out.println("Positifs : " + (goodFaces + goodNonFaces) + " / " + countTrainPos + countTestNeg + " (" + (((double)(goodFaces+goodNonFaces))/(double)(countTrainPos+countTestNeg)+ "%)"));
+        System.out.println("Negatifs : " + (wrongFaces + wrongNonFaces) + " / " + countTrainPos + countTestNeg + " (" + (((double)(wrongFaces+wrongNonFaces))/(double)(countTrainPos+countTestNeg)+ "%)"));
+
+        System.out.println("Taux de detection : " + ((((double)goodFaces)/(double)countTestPos) + (((double)goodNonFaces)/(double)countTestNeg)/2.0d) + "%");
 
         // TODO: after the training has been done, we can test on a new set of images.
 
