@@ -3,13 +3,15 @@ package utils;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
+import java.math.RoundingMode;
 
 public class DoubleDouble extends BigDecimal {
+    public static final MathContext DECIMAL80 = new MathContext(20, RoundingMode.HALF_EVEN);
     public static final DoubleDouble ZERO = new DoubleDouble(0);
     public static final DoubleDouble ONE = new DoubleDouble(1);
 
     public DoubleDouble(double val) {
-        super(val, MathContext.DECIMAL128);
+        super(val, DECIMAL80);
     }
 
     public DoubleDouble(BigDecimal val) {
@@ -17,7 +19,7 @@ public class DoubleDouble extends BigDecimal {
     }
 
     public DoubleDouble multiplyBy(DoubleDouble val) {
-        return new DoubleDouble(this.multiply(val, MathContext.DECIMAL128));
+        return new DoubleDouble(this.multiply(val, DECIMAL80));
     }
 
     public DoubleDouble multiplyBy(double val) {
@@ -30,7 +32,7 @@ public class DoubleDouble extends BigDecimal {
             System.err.println("/!\\ divideBy 0 /!\\ ");
             return new DoubleDouble(Double.MAX_VALUE);
         }
-        return new DoubleDouble(super.divide(val, MathContext.DECIMAL128));
+        return new DoubleDouble(super.divide(val, DECIMAL80));
     }
 
     public DoubleDouble divideBy(int val) {
@@ -38,7 +40,7 @@ public class DoubleDouble extends BigDecimal {
     }
 
     public DoubleDouble add(DoubleDouble val) {
-        return new DoubleDouble(super.add(val, MathContext.DECIMAL128));
+        return new DoubleDouble(super.add(val, DECIMAL80));
     }
 
     public DoubleDouble add(double val) {
@@ -46,7 +48,7 @@ public class DoubleDouble extends BigDecimal {
     }
 
     public DoubleDouble subtract(DoubleDouble val) {
-        return new DoubleDouble(super.subtract(val, MathContext.DECIMAL128));
+        return new DoubleDouble(super.subtract(val, DECIMAL80));
     }
 
     public DoubleDouble subtract(double val) {

@@ -1,7 +1,6 @@
 package process;
 
 import jeigen.DenseMatrix;
-import utils.DoubleDouble;
 
 import java.util.ArrayList;
 import java.util.Objects;
@@ -15,16 +14,16 @@ public class DecisionStump extends Thread {
     // (Xi, Yi, Vi) is a tuple of an image, its label (either -1 or 1), and the value the feature for image Xi.
 
     private DenseMatrix Y;
-    private ArrayList<DoubleDouble> weights;
+    private DenseMatrix weights;
     private long featureIndex;
     private int N;
-    private DoubleDouble totalWeightPos;
-    private DoubleDouble totalWeightNeg;
-    private DoubleDouble minWeight;
+    private double totalWeightPos;
+    private double totalWeightNeg;
+    private double minWeight;
 
     private StumpRule best;
 
-    public DecisionStump(DenseMatrix labels, ArrayList<DoubleDouble> weights, long featureCount, int N, DoubleDouble totalWeightPos, DoubleDouble totalWeightNeg, DoubleDouble minWeight) {
+    public DecisionStump(DenseMatrix labels, DenseMatrix weights, long featureCount, int N, double totalWeightPos, double totalWeightNeg, double minWeight) {
         this.Y = labels;
         this.weights = weights;
         this.featureIndex = featureCount;
@@ -51,10 +50,10 @@ public class DecisionStump extends Thread {
         ArrayList<Integer> V = getFeatureValues(featureIndex, N);
 
         // Left & Right hand of the stump
-        DoubleDouble leftWeightPos = DoubleDouble.ZERO;
-        DoubleDouble leftWeightNeg = DoubleDouble.ZERO;
-        DoubleDouble rightWeightPos = totalWeightPos;
-        DoubleDouble rightWeightNeg = totalWeightNeg;
+        double leftWeightPos = 0;
+        double leftWeightNeg = 0;
+        double rightWeightPos = totalWeightPos;
+        double rightWeightNeg = totalWeightNeg;
 
         assert X.size() == N;
         assert V.size() == N;
@@ -88,11 +87,11 @@ public class DecisionStump extends Thread {
         // Go through all these observations one after another
         int iterator = -1;
         while (true) {
-            DoubleDouble errorPlus = leftWeightPos.add(rightWeightNeg);
-            DoubleDouble errorMinus = rightWeightPos.add(leftWeightNeg);
+            double errorPlus = leftWeightPos + rightWeightNeg;
+            double errorMinus = rightWeightPos + leftWeightNeg;
 
-            DoubleDouble Epsilon_hat;
-            if (errorPlus.lt(errorMinus)) {
+            double Epsilon_hat;
+            if (errorPlus < errorMinus) {
                 Epsilon_hat = errorPlus;
                 current.toggle = 1;
             } else {
@@ -100,7 +99,7 @@ public class DecisionStump extends Thread {
                 current.toggle = -1;
             }
 
-            current.error = Epsilon_hat.lt(minWeight.multiplyBy(0.9)) ? new DoubleDouble(0) : Epsilon_hat;
+            current.error = Epsilon_hat < minWeight * 0.9 ? 0 : Epsilon_hat;
 
             if (current.compare(best))
                 best = deepCopy(current);
@@ -118,14 +117,14 @@ public class DecisionStump extends Thread {
             while (true) {
                 int exampleIndex = X.get(iterator);
                 double label = (int) Y.get(0, exampleIndex); // FIXME: why casting to int?
-                double weight = weights.get(exampleIndex).doubleValue();
+                double weight = weights.get(0, exampleIndex);
 
                 if (label < 0) {
-                    leftWeightNeg = leftWeightNeg.add(weight); // leftWeightNeg += weight
-                    rightWeightNeg = rightWeightNeg.subtract(weight); // rightWeightNeg -= weight
+                    leftWeightNeg = leftWeightNeg + weight; // leftWeightNeg += weight
+                    rightWeightNeg = rightWeightNeg - weight; // rightWeightNeg -= weight
                 } else {
-                    leftWeightPos = leftWeightPos.add(weight); // leftWeightPos += weight
-                    rightWeightPos = rightWeightPos.subtract(weight); // rightWeightPos -= weight
+                    leftWeightPos = leftWeightPos + weight; // leftWeightPos += weight
+                    rightWeightPos = rightWeightPos - weight; // rightWeightPos -= weight
                 }
 
                 // if a new threshold can be found, break
