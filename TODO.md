@@ -17,3 +17,7 @@ Add them when possible
 Instead of sliding rectangles from size 1 x 1 to max x max on each image, 
 we may only slide 100x less rectangles by providing to the algorithm an approx size of faces expected for that image.
 This approach is compatible with existing CCTV cameras, so this would be a real improvement for performance.
+
+Blacklist
+ThreadPoolExecutor
+
