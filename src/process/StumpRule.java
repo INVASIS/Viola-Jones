@@ -2,7 +2,7 @@ package process;
 
 import utils.DoubleDouble;
 
-public class StumpRule { // == stumpRule
+public class StumpRule {
 
     // Values that will be used to find the best StumpRule
     public long featureIndex;
@@ -29,8 +29,8 @@ public class StumpRule { // == stumpRule
         this.toggle = toggle;
     }
 
-    public static boolean compare(StumpRule first, StumpRule second) {
-        return (first.error.lt(second.error) || (first.error.eq(second.error) && first.margin > second.margin));
+    public boolean compare(StumpRule other) {
+        return (this.error.lt(other.error) || (this.error.eq(other.error) && this.margin > other.margin));
     }
 }
 

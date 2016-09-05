@@ -6,10 +6,9 @@ import utils.DoubleDouble;
 import java.util.ArrayList;
 import java.util.Objects;
 
-import static process.StumpRule.compare;
 import static process.features.FeatureExtractor.*;
 
-public class ThreadManager extends Thread {
+public class DecisionStump extends Thread {
 
     private DenseMatrix labels;
     private ArrayList<DoubleDouble> weights;
@@ -21,7 +20,7 @@ public class ThreadManager extends Thread {
 
     private StumpRule best;
 
-    public ThreadManager(DenseMatrix labels, ArrayList<DoubleDouble> weights, long featureCount, int N, DoubleDouble totalWeightPos, DoubleDouble totalWeightNeg, DoubleDouble minWeight) {
+    public DecisionStump(DenseMatrix labels, ArrayList<DoubleDouble> weights, long featureCount, int N, DoubleDouble totalWeightPos, DoubleDouble totalWeightNeg, DoubleDouble minWeight) {
         this.labels = labels;
         this.weights = weights;
         this.featureIndex = featureCount;
@@ -75,7 +74,7 @@ public class ThreadManager extends Thread {
 
             current.error = Epsilon_hat.lt(minWeight.multiplyBy(0.9)) ? new DoubleDouble(0) : Epsilon_hat;
 
-            if (compare(current, best))
+            if (current.compare(best))
                 best = deepCopy(current);
 
             iterator++;

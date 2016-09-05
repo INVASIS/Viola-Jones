@@ -26,8 +26,10 @@ public class DoubleDouble extends BigDecimal {
 
     public DoubleDouble divideBy(DoubleDouble val) {
         // Handles NaN
-        if (val.eq(0))
+        if (val.eq(0)) {
+            System.err.println("/!\\ divideBy 0 /!\\ ");
             return new DoubleDouble(Double.MAX_VALUE);
+        }
         return new DoubleDouble(super.divide(val, MathContext.DECIMAL128));
     }
 
@@ -55,8 +57,16 @@ public class DoubleDouble extends BigDecimal {
         return this.compareTo(val) == -1;
     }
 
+    public boolean lt(double val) {
+        return this.lt(new DoubleDouble(val));
+    }
+
     public boolean lte(DoubleDouble val) {
         return this.compareTo(val) <= 0;
+    }
+
+    public boolean lte(double val) {
+        return this.lte(new DoubleDouble(val));
     }
 
     public boolean eq(DoubleDouble val) {

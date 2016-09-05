@@ -5,6 +5,7 @@ import utils.DoubleDouble;
 import utils.Serializer;
 
 import java.util.ArrayList;
+import java.util.Collections;
 
 import static java.lang.Math.log;
 import static process.features.FeatureExtractor.*;
@@ -136,17 +137,17 @@ public class Classifier {
 
         System.out.println("      - Calling bestStump with totalWeightsPos : " + totalWeightPos + " totalWeightNeg : " + totalWeightNeg + " minWeight : " + minWeight);
         int nb_threads = Runtime.getRuntime().availableProcessors();
-        ThreadManager managerFor0 = new ThreadManager(labelsTrain, weightsTrain, 0, trainN, totalWeightPos, totalWeightNeg, minWeight);
+        DecisionStump managerFor0 = new DecisionStump(labelsTrain, weightsTrain, 0, trainN, totalWeightPos, totalWeightNeg, minWeight);
         managerFor0.run();
         StumpRule best = managerFor0.getBest();
         for (long i = 1; i < featureCount; i++) {
 
-            ArrayList<ThreadManager> listThreads = new ArrayList<>(nb_threads);
+            ArrayList<DecisionStump> listThreads = new ArrayList<>(nb_threads);
             long j;
             for (j = 0; j < nb_threads && j + i < featureCount; j++) {
-                ThreadManager threadManager = new ThreadManager(labelsTrain, weightsTrain, i + j, trainN, totalWeightPos, totalWeightNeg, minWeight);
-                listThreads.add(threadManager);
-                threadManager.start();
+                DecisionStump decisionStump = new DecisionStump(labelsTrain, weightsTrain, i + j, trainN, totalWeightPos, totalWeightNeg, minWeight);
+                listThreads.add(decisionStump);
+                decisionStump.start();
             }
             i += (j - 1);
             for (int k = 0; k < j; k++) {
@@ -159,7 +160,7 @@ public class Classifier {
             }
 
             for (int k = 0; k < j; k++) {
-                if (StumpRule.compare(listThreads.get(k).getBest(), best))
+                if (listThreads.get(k).getBest().compare(best))
                     best = listThreads.get(k).getBest();
             }
         }
@@ -181,12 +182,8 @@ public class Classifier {
         System.out.println();
         // STATE: OK & CHECKED 16/31/08
 
-        // The result to be filled & returned
-        ArrayList<StumpRule> committee = new ArrayList<>();
-
         StumpRule bestDS = bestStump();
-        committee.add(bestDS);
-        cascade[round] = committee;
+        cascade[round].add(bestDS);
         adaboostPasses++;
 
         DenseMatrix prediction = new DenseMatrix(1, trainN);
@@ -208,29 +205,28 @@ public class Classifier {
 
         //update weights only if there is an error
         if (werror) {
+
+            // weightsTrain = weightsTrain.mul(weightUpdate)
             for (int i = 0; i < trainN; i++)
-                weightsTrain.set(i, weightsTrain.get(i).multiplyBy(weightUpdate.get(i))); // <=> weightsTrain = weightsTrain.mul(weightUpdate)
+                weightsTrain.set(i, weightsTrain.get(i).multiplyBy(weightUpdate.get(i)));
+
+            // weightsTrain /= weightsTrain.sum()
             DoubleDouble sum = DoubleDouble.ZERO;
             for (int i = 0; i < trainN; i++)
                 sum = sum.add(weightsTrain.get(i));
-            DoubleDouble sumPos = DoubleDouble.ZERO;
-            for (int i = 0; i < trainN; i++) {
-                DoubleDouble newVal = weightsTrain.get(i).divideBy(sum);
-                weightsTrain.set(i, newVal);
-                sumPos = sumPos.add(newVal);
-            }
-            totalWeightPos = sumPos;
-            totalWeightNeg = new DoubleDouble(1).subtract(sumPos); // 1 - sumPos
+            for (int i = 0; i < trainN; i++)
+                weightsTrain.set(i, weightsTrain.get(i).divideBy(sum));
 
-            minWeight = weightsTrain.get(0);
-            maxWeight = weightsTrain.get(0);
-            for (int i = 1; i < trainN; i++) {
-                DoubleDouble currentVal = weightsTrain.get(i);
-                if (minWeight.gt(currentVal))
-                    minWeight = currentVal;
-                if (maxWeight.lt(currentVal))
-                    maxWeight = currentVal;
-            }
+            totalWeightPos = DoubleDouble.ZERO;
+            for (int i = 0; i < countTrainPos; i++)
+                totalWeightPos = totalWeightPos.add(weightsTrain.get(i));
+            totalWeightNeg = new DoubleDouble(1).subtract(totalWeightPos);
+
+            assert totalWeightPos.lte(1);
+            assert totalWeightNeg.lte(1);
+
+            minWeight = Collections.min(weightsTrain);
+            maxWeight = Collections.max(weightsTrain);
         }
 
         System.out.println("Adaboost passes : " + adaboostPasses);
@@ -278,10 +274,12 @@ public class Classifier {
         int committeeSizeGuide = Math.min(20 + round * 10, 200);
         System.out.println("    - CommitteeSizeGuide = " + committeeSizeGuide);
 
+        cascade[round] = new ArrayList<>(); // Add a new committee == ArrayList<StumpRule>
+
         boolean layerMissionAccomplished = false;
         while (!layerMissionAccomplished) {
 
-            // Run algorithm N°6 (adaboost) to produce a classifier (which is in fact a committee == ArrayList<StumpRule>)
+            // Run algorithm N°6 (adaboost) to produce a classifier (which is in fact a committee)
             adaboost(round);
 
             boolean overSized = cascade[round].size() > committeeSizeGuide;
@@ -327,6 +325,7 @@ public class Classifier {
                     }
                 }
 
+                System.out.println("    - worstDetectionRate: " + worstDetectionRate + ">= overallTargetDetectionRate: " + overallTargetDetectionRate + " && worstFalsePositive: " + worstFalsePositive + "<= overallTargetFalsePositiveRate: " + overallTargetFalsePositiveRate);
                 if (worstDetectionRate >= overallTargetDetectionRate && worstFalsePositive <= overallTargetFalsePositiveRate) {
                     layerMissionAccomplished = true;
                     break;
@@ -393,7 +392,6 @@ public class Classifier {
         // Now organize all those features, so that it is easier to make requests on it
         organizeFeatures(featureCount, orderedExamples(), Conf.ORGANIZED_FEATURES, Conf.ORGANIZED_SAMPLE, false);
 
-
         System.out.println("Training classifier:");
 
         // Estimated number of rounds needed
@@ -406,27 +404,31 @@ public class Classifier {
             tweaks.add(0f);
         cascade = new ArrayList[boostingRounds];
 
-        // Updating weights
-        totalWeightPos = new DoubleDouble(initialPositiveWeight);
-        totalWeightNeg = new DoubleDouble(1 - initialPositiveWeight);
-        DoubleDouble averageWeightPos = totalWeightPos.divideBy(countTrainPos);
-        DoubleDouble averageWeightNeg = totalWeightNeg.divideBy(countTrainNeg);
-        minWeight = averageWeightPos.min(averageWeightNeg);
-        maxWeight = averageWeightPos.max(averageWeightNeg);
-
-        // Init labels & weights
+        // Init labels
         labelsTrain = new DenseMatrix(1, trainN);
-        weightsTrain = new ArrayList<>(trainN);
-        for (int i = 0; i < trainN; i++) {
-            labelsTrain.set(0, i, i < countTrainPos ? 1 : -1);
-            weightsTrain.add(i < countTrainPos ? averageWeightPos : averageWeightNeg);
-        }
+        for (int i = 0; i < trainN; i++)
+            labelsTrain.set(0, i, i < countTrainPos ? 1 : -1); // face == 1 VS non-face == -1
 
         double accumulatedFalsePositive = 1;
 
         // Training: run Cascade until we arrive to a certain wanted rate of success
         for (int round = 0; round < boostingRounds && accumulatedFalsePositive > GOAL; round++) {
             System.out.println("  - Round N." + round + ":");
+
+            // Update weights (needed because adaboost change weights when running)
+            totalWeightPos = new DoubleDouble(initialPositiveWeight);
+            totalWeightNeg = new DoubleDouble(1 - initialPositiveWeight);
+            DoubleDouble averageWeightPos = totalWeightPos.divideBy(countTrainPos);
+            DoubleDouble averageWeightNeg = totalWeightNeg.divideBy(countTrainNeg);
+            minWeight = averageWeightPos.min(averageWeightNeg);
+            maxWeight = averageWeightPos.max(averageWeightNeg);
+            weightsTrain = new ArrayList<>(trainN);
+            for (int i = 0; i < trainN; i++)
+                weightsTrain.add(i < countTrainPos ? averageWeightPos : averageWeightNeg);
+            System.out.println("    - Initialized weights:");
+            System.out.println("      - TotW+: " + totalWeightPos + " | TotW-: " + totalWeightNeg);
+            System.out.println("      - AverW+: " + averageWeightPos + " | AverW-: " + averageWeightNeg);
+            System.out.println("      - MinW: " + minWeight + " | MaxW: " + maxWeight);
 
             attentionalCascade(round, overallTargetDetectionRate, overallTargetFalsePositiveRate);
             System.out.println("    - Attentional Cascade computed!");
