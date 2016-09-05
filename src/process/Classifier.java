@@ -101,15 +101,17 @@ public class Classifier {
                 memberWeight.set(member, Double.MAX_VALUE);
 
             long featureIndex = cascade[round].get(member).featureIndex;
-            for (int i = 0; i < N; i++) {
-                int exampleIndex = getExampleIndex(featureIndex, i, N);
-                memberVerdict.set(member, exampleIndex, ((getExampleFeature(featureIndex, i, N) > cascade[round].get(member).threshold ? 1 : -1) * cascade[round].get(member).toggle) + decisionTweak);
-            }
+            final ArrayList<Integer> featureExamplesIndexes = getFeatureExamplesIndexes(featureIndex, N);
+            final ArrayList<Integer> featureValues = getFeatureValues(featureIndex, N);
+
+            for (int i = 0; i < N; i++)
+                memberVerdict.set(member, featureExamplesIndexes.get(i),
+                        ((featureValues.get(i) > cascade[round].get(member).threshold ? 1 : -1) * cascade[round].get(member).toggle) + decisionTweak);
         }
         if (!onlyMostRecent) {
-            DenseMatrix finalVerdict = memberWeight.mul(memberVerdict); // FIXME : matrix mul error
+            DenseMatrix finalVerdict = memberWeight.mmul(memberVerdict); // FIXME : matrix mul error Sould use mmul ??
             for (int i = 0; i < N; i++)
-                prediction.set(0, i, finalVerdict.get(1, i) > 0 ? 1 : -1);
+                prediction.set(0, i, finalVerdict.get(0, i) > 0 ? 1 : -1);
         }
         else {
             for (int i = 0; i < N; i++)
@@ -221,11 +223,21 @@ public class Classifier {
             double sum = 0;
             for (int i = 0; i < trainN; i++)
                 sum += weightsTrain.get(0, i);
+
             double sumPos = 0;
-            for (int i = 0; i < countTrainPos; i++) {
+
+            minWeight = 1;
+            maxWeight = 0;
+
+            for (int i = 0; i < trainN; i++) {
                 double newVal = weightsTrain.get(0, i) / sum;
                 weightsTrain.set(0, i, newVal);
-                sumPos += newVal;
+                if (i < countTrainPos)
+                    sumPos += newVal;
+                if (minWeight > newVal)
+                    minWeight = newVal;
+                if (maxWeight < newVal)
+                    maxWeight = newVal;
             }
             totalWeightPos = sumPos;
             totalWeightNeg = 1 - sumPos;
@@ -233,18 +245,6 @@ public class Classifier {
             assert totalWeightPos + totalWeightNeg == 1;
             assert totalWeightPos <= 1;
             assert totalWeightNeg <= 1;
-
-            minWeight = weightsTrain.get(0, 0);
-            maxWeight = weightsTrain.get(0, 0);
-
-            for (int i = 1; i < trainN; i++) {
-                double currentVal = weightsTrain.get(0, i);
-                if (minWeight > currentVal)
-                    minWeight = currentVal;
-                if (maxWeight < currentVal)
-                    maxWeight = currentVal;
-            }
-
         }
     }
 
@@ -341,8 +341,9 @@ public class Classifier {
                         continue;
                     }
                 }
-
+                
 //                System.out.println("    - worstDetectionRate: " + worstDetectionRate + ">= overallTargetDetectionRate: " + overallTargetDetectionRate + " && worstFalsePositive: " + worstFalsePositive + "<= overallTargetFalsePositiveRate: " + overallTargetFalsePositiveRate);
+
                 if (worstDetectionRate >= overallTargetDetectionRate && worstFalsePositive <= overallTargetFalsePositiveRate) {
                     layerMissionAccomplished = true;
                     break;
@@ -432,6 +433,7 @@ public class Classifier {
 
         // Training: run Cascade until we arrive to a certain wanted rate of success
         for (int round = 0; round < boostingRounds && accumulatedFalsePositive > GOAL; round++) {
+            long startTime = System.currentTimeMillis();
             System.out.println("  - Round N." + round + ":");
 
             // Update weights (needed because adaboost changes weights when running)
@@ -450,7 +452,7 @@ public class Classifier {
             System.out.println("      - MinW: " + minWeight + " | MaxW: " + maxWeight);
 
             int nbWC = attentionalCascade(round, overallTargetDetectionRate, overallTargetFalsePositiveRate);
-            System.out.println("    - Attentional Cascade computed!");
+            System.out.println("    - Attentional Cascade computed in " + ((new Date()).getTime() - startTime)/1000 + "s!");
             System.out.println("      - Number of weak classifier: " + nbWC);
 
             // -- Display results for this round --
