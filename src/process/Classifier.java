@@ -5,6 +5,8 @@ import utils.Serializer;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Objects;
+import java.util.concurrent.*;
 
 import static java.lang.Math.log;
 import static process.features.FeatureExtractor.*;
@@ -139,31 +141,21 @@ public class Classifier {
         //   else if (current.weightedError == best.weightedError && current.margin > best.margin) -> best = current
 
         System.out.println("      - Calling bestStump with totalWeightsPos: " + totalWeightPos + " totalWeightNeg: " + totalWeightNeg + " minWeight: " + minWeight);
-        int nb_threads = Runtime.getRuntime().availableProcessors();
-        DecisionStump managerFor0 = new DecisionStump(labelsTrain, weightsTrain, 0, trainN, totalWeightPos, totalWeightNeg, minWeight);
-        managerFor0.run();
-        StumpRule best = managerFor0.getBest();
-        for (long i = 1; i < featureCount; i++) { // TODO: Replace by threadPoolExecutor
-            ArrayList<DecisionStump> listThreads = new ArrayList<>(nb_threads);
-            long j;
-            for (j = 0; j < nb_threads && j + i < featureCount; j++) {
-                DecisionStump decisionStump = new DecisionStump(labelsTrain, weightsTrain, i + j, trainN, totalWeightPos, totalWeightNeg, minWeight);
-                listThreads.add(decisionStump);
-                decisionStump.start();
-            }
-            i += (j - 1);
-            for (int k = 0; k < j; k++) {
-                try {
-                    listThreads.get(k).join();
-                } catch (InterruptedException e) {
-                    System.err.println("      - Error in thread while computing bestStump - i = " + i + " k = " + k + " j = " + j);
-                    e.printStackTrace();
-                }
-            }
+        ExecutorService executor = Executors.newFixedThreadPool(Conf.TRAIN_MAX_CONCURENT_PROCESSES);
+        ArrayList<Future<StumpRule>> futureResults = new ArrayList<>(trainN);
+        for (int i = 0; i < featureCount; i++)
+            futureResults.add(executor.submit(new DecisionStump(labelsTrain, weightsTrain, i, trainN, totalWeightPos, totalWeightNeg, minWeight)));
 
-            for (int k = 0; k < j; k++) {
-                if (listThreads.get(k).getBest().compare(best))
-                    best = listThreads.get(k).getBest();
+        StumpRule best = null;
+        for (int i = 0; i < featureCount; i++) {
+            try {
+                StumpRule current = futureResults.get(i).get();
+                if (best == null)
+                    best = current;
+                else if (current.compare(best))
+                        best = current;
+            } catch (InterruptedException | ExecutionException e) {
+                e.printStackTrace();
             }
         }
 

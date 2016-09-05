@@ -33,4 +33,14 @@ public class StumpRule { // == Weak classifier
     public boolean compare(StumpRule other) {
         return this.compare(other.error, other.margin);
     }
+
+    public static StumpRule deepCopy(StumpRule other) {
+        return new StumpRule(
+                other.featureIndex,
+                other.error,
+                other.threshold,
+                other.margin,
+                other.toggle
+        );
+    }
 }

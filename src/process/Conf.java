@@ -18,7 +18,7 @@ public class Conf {
     public final static String ORGANIZED_FEATURES = TRAIN_DIR + "/organizedFeatures.data";
     public final static String ORGANIZED_SAMPLE = TRAIN_DIR + "/organizedSample.data";
     public final static String TRAIN_FEATURES = TRAIN_DIR + "/featuresValues.data";
-    public final static int TRAIN_MAX_CONCURENT_PROCESSES = 1; // FIXME
+    public final static int TRAIN_MAX_CONCURENT_PROCESSES = 20; // FIXME
     public final static boolean PATH_CREATED = createPaths();
     public final static int TRAIN_MAX_ROUNDS = 20;
     public final static String FEATURE_EXTENSION = ".haar";
