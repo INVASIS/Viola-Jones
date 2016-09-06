@@ -1,10 +1,12 @@
 package utils;
 
+import org.omg.CORBA.Object;
 import process.StumpRule;
 
 import java.io.*;
 import java.nio.file.FileAlreadyExistsException;
 import java.util.ArrayList;
+import java.util.zip.Inflater;
 
 import static utils.Utils.fileExists;
 
@@ -202,14 +204,16 @@ public class Serializer {
             writer.println("int layerCount=" + layerCount);
             writer.println("int layerCommitteeSize[]=");
 
-            for (Integer aLayerMemory : layerMemory) {
-                writer.println(aLayerMemory + ";");
-            }
+            layerMemory.forEach(writer::println);
 
             writer.println("float tweaks[]=");
+
+            tweaks.forEach(writer::println);
+            /*
             for (int i = 0; i < layerCount; i++) {
-                writer.println(tweaks.get(i) + ";");
+                writer.println(tweaks.get(i));
             }
+            */
 
             writer.close();
 
@@ -218,5 +222,56 @@ public class Serializer {
             e.printStackTrace();
             System.exit(1);
         }
+    }
+
+    /**
+     *
+     * @return the layerCount
+     * @param fileName the path to the file with the data needed
+     * @param layerCommitteeSize ArrayList in which the size of each committe will be stored
+     * @param tweaks ArrayList in which the tweaks will be stored
+     */
+    public static int readLayerMemory(String fileName, ArrayList<Integer> layerCommitteeSize, ArrayList<Float> tweaks) {
+
+        int layercount = 0;
+
+        try {
+            BufferedReader br = new BufferedReader(new FileReader(fileName));
+            String line = br.readLine();
+
+            while (line != null) {
+                line = br.readLine();
+                if (line.equals("")) {
+                    line = br.readLine();
+                    break;
+                }
+            }
+
+            line = br.readLine();
+            String[] parts = line.split("=");
+            layercount = Integer.parseInt(parts[1]);
+            line = br.readLine();
+
+            for (int i = 0; i < layercount; i++) {
+                line = br.readLine();
+                layerCommitteeSize.add(Integer.parseInt(line));
+            }
+
+            line = br.readLine();
+
+            for (int i = 0; i < layercount; i++) {
+                line = br.readLine();
+                tweaks.add(Float.parseFloat(line));
+            }
+
+            br.close();
+
+        } catch (IOException e) {
+            System.err.println("Error while reading the layer memory");
+            e.printStackTrace();
+            System.exit(1);
+        }
+
+        return layercount;
     }
 }

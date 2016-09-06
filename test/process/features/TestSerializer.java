@@ -1,5 +1,6 @@
 package process.features;
 
+import org.junit.Assert;
 import org.junit.Test;
 import process.Conf;
 import process.StumpRule;
@@ -140,5 +141,51 @@ public class TestSerializer {
         assertEquals(committee.get(1).featureIndex, read.get(2).featureIndex);
         assertEquals(committee.get(1).threshold, read.get(2).threshold);
         assertEquals(committee.get(1).toggle, read.get(2).toggle);
+    }
+
+    @Test
+    public void printLayerMemoryTest() {
+        String tmp_file = "tmp/test/featuresValues.data";
+
+        ArrayList<StumpRule> committee = new ArrayList<>();
+
+        StumpRule stumpRule = new StumpRule(1, 1, 1, 1, 1);
+        StumpRule stumpRule2 = new StumpRule(2, 2, 2, 2, -1);
+        StumpRule stumpRule3 = new StumpRule(3, 3, 3, 3, 1);
+        StumpRule stumpRule4 = new StumpRule(4, 4, 4, 4, -1);
+        StumpRule stumpRule5 = new StumpRule(5, 5, 5, 5, 1);
+        committee.add(stumpRule);
+        committee.add(stumpRule2);
+        committee.add(stumpRule3);
+        committee.add(stumpRule4);
+        committee.add(stumpRule5);
+
+        Serializer.writeRule(committee, true, tmp_file);
+
+        ArrayList<Integer> layerMemory = new ArrayList<>();
+        layerMemory.add(2);
+        layerMemory.add(2);
+        layerMemory.add(1);
+
+        ArrayList<Float> tweaks = new ArrayList<>();
+        tweaks.add(0.000122f);
+        tweaks.add(0.101010f);
+        tweaks.add(0.424242f);
+
+        Serializer.writeLayerMemory(layerMemory, tweaks, tmp_file);
+
+        ArrayList<Integer> layerCommitteSize = new ArrayList<>();
+        ArrayList<Float> readTweaks = new ArrayList<>();
+
+        int layerCount = Serializer.readLayerMemory(tmp_file, layerCommitteSize, readTweaks);
+
+        Assert.assertEquals(3, layerCount);
+        Assert.assertEquals(3, layerCommitteSize.size());
+        Assert.assertEquals(3, readTweaks.size());
+
+        for (int i = 0; i < 3; i++) {
+            Assert.assertEquals(layerMemory.get(i), layerCommitteSize.get(i));
+            Assert.assertEquals(tweaks.get(i), readTweaks.get(i));
+        }
     }
 }
