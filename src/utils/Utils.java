@@ -124,9 +124,7 @@ public class Utils {
     public static double safeDiv(double a, double b) {
         if (b != 0)
             return a / b;
-        else {
-            System.err.println("/!\\ Division by 0! /!\\");
+        else
             return Double.MAX_VALUE;
-        }
     }
 }

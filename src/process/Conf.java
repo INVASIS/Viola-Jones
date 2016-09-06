@@ -15,6 +15,10 @@ public class Conf {
     public final static String TMP_DIR = "tmp";
     public final static String TRAIN_DIR = TMP_DIR + "/training";
     public final static String TEST_DIR = TMP_DIR + "/test";
+    public final static String FACES = "/faces";
+    public final static String NONFACES = "/non-faces";
+    public final static String IMAGES_FEATURES_TRAIN = TRAIN_DIR + "/imagesFeatures.data";
+    public final static String IMAGES_FEATURES_TEST = TEST_DIR + "/imagesFeatures.data";
     public final static String ORGANIZED_FEATURES = TRAIN_DIR + "/organizedFeatures.data";
     public final static String ORGANIZED_SAMPLE = TRAIN_DIR + "/organizedSample.data";
     public final static String TRAIN_FEATURES = TRAIN_DIR + "/featuresValues.data";

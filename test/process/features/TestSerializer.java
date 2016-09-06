@@ -34,17 +34,17 @@ public class TestSerializer {
         r2.add(6);
         r2.add(10);
         appendArrayToDisk(filePath, r2);
-        ArrayList<Integer> result = readArrayFromDisk(filePath);
-        assertEquals(result.get(0), new Integer(1));
-        assertEquals(result.get(1), new Integer(2));
-        assertEquals(result.get(2), new Integer(3));
-        assertEquals(result.get(3), new Integer(5));
-        assertEquals(result.get(4), new Integer(7));
-        assertEquals(result.get(5), new Integer(8));
-        assertEquals(result.get(6), new Integer(9));
-        assertEquals(result.get(7), new Integer(1));
-        assertEquals(result.get(8), new Integer(6));
-        assertEquals(result.get(9), new Integer(10));
+        int[] result = readArrayFromDisk(filePath, 10);
+        assertEquals(result[0], 1);
+        assertEquals(result[1], 2);
+        assertEquals(result[2], 3);
+        assertEquals(result[3], 5);
+        assertEquals(result[4], 7);
+        assertEquals(result[5], 8);
+        assertEquals(result[6], 9);
+        assertEquals(result[7], 1);
+        assertEquals(result[8], 6);
+        assertEquals(result[9], 10);
         assertEquals(readIntFromDisk(filePath, 8), 6);
 
         try {
@@ -53,25 +53,24 @@ public class TestSerializer {
             assertEquals(false, true);
         }
 
-        writeArrayToDisk(filePath, result);
-        result = readArrayFromDisk(filePath);
-        assertEquals(result.get(0), new Integer(1));
-        assertEquals(result.get(1), new Integer(2));
-        assertEquals(result.get(2), new Integer(3));
-        assertEquals(result.get(3), new Integer(5));
-        assertEquals(result.get(4), new Integer(7));
-        assertEquals(result.get(5), new Integer(8));
-        assertEquals(result.get(6), new Integer(9));
-        assertEquals(result.get(7), new Integer(1));
-        assertEquals(result.get(8), new Integer(6));
-        assertEquals(result.get(9), new Integer(10));
+        writeArrayToDisk(filePath, result, 10);
+        result = readArrayFromDisk(filePath, 10);
+        assertEquals(result[0], 1);
+        assertEquals(result[1], 2);
+        assertEquals(result[2], 3);
+        assertEquals(result[3], 5);
+        assertEquals(result[4], 7);
+        assertEquals(result[5], 8);
+        assertEquals(result[6], 9);
+        assertEquals(result[7], 1);
+        assertEquals(result[8], 6);
+        assertEquals(result[9], 10);
         assertEquals(readIntFromDisk(filePath, 8), 6);
 
         result = readArrayFromDisk(filePath, 3, 6);
-        assertEquals(result.size(), 3);
-        assertEquals(result.get(0), new Integer(5));
-        assertEquals(result.get(1), new Integer(7));
-        assertEquals(result.get(2), new Integer(8));
+        assertEquals(result[0], 5);
+        assertEquals(result[1], 7);
+        assertEquals(result[2], 8);
         //assertEquals(result.get(3), new Integer(9));
 
         try {
@@ -98,12 +97,11 @@ public class TestSerializer {
         }
 
         ArrayList<Integer> correctValues = computeImageFeatures(img, true);
-        ArrayList<Integer> writtenValues = readArrayFromDisk(haar);
+        int[] writtenValues = readArrayFromDisk(haar, correctValues.size());
 
-        assertEquals(writtenValues.size(), correctValues.size());
 
         for (int i = 0; i < correctValues.size(); i++)
-            assertEquals(writtenValues.get(i), correctValues.get(i));
+            assertEquals(new Integer(writtenValues[i]), correctValues.get(i));
     }
 
     @Test

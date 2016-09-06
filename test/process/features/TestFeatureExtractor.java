@@ -8,6 +8,8 @@ import utils.Serializer;
 import utils.Utils;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 
 import static org.junit.Assert.assertEquals;
 import static process.features.FeatureExtractor.*;
@@ -70,16 +72,7 @@ public class TestFeatureExtractor {
     }
 
     @Test
-    public void getExampleIndexAllRAMTest() {
-        getExampleIndexTest(false);
-    }
-
-    @Test
-    public void getExampleIndexForceDiskTest() {
-        getExampleIndexTest(true);
-    }
-
-    private void getExampleIndexTest(boolean forceDisk) {
+    public void getExampleIndexTest() {
         if (Conf.USE_CUDA)
             Conf.haarExtractor.setUp(19, 19);
 
@@ -94,27 +87,27 @@ public class TestFeatureExtractor {
         files.add(img3);
         files.add(img4);
 
-        ArrayList<Integer> features1;
+        ArrayList<Integer> features1 = new ArrayList<>();
         if (Utils.fileExists(img1 + Conf.FEATURE_EXTENSION))
-            features1 = Serializer.readArrayFromDisk(img1 + Conf.FEATURE_EXTENSION);
+            Collections.addAll(features1, Arrays.stream(Serializer.readFeaturesFromDisk(img1 + Conf.FEATURE_EXTENSION)).boxed().toArray(Integer[]::new));
         else
             features1 = computeImageFeatures(img1, true);
 
-        ArrayList<Integer> features2;
+        ArrayList<Integer> features2 = new ArrayList<>();
         if (Utils.fileExists(img2 + Conf.FEATURE_EXTENSION))
-            features2 = Serializer.readArrayFromDisk(img2 + Conf.FEATURE_EXTENSION);
+            Collections.addAll(features1, Arrays.stream(Serializer.readFeaturesFromDisk(img2 + Conf.FEATURE_EXTENSION)).boxed().toArray(Integer[]::new));
         else
             features2 = computeImageFeatures(img2, true);
 
-        ArrayList<Integer> features3;
+        ArrayList<Integer> features3 = new ArrayList<>();
         if (Utils.fileExists(img3 + Conf.FEATURE_EXTENSION))
-            features3 = Serializer.readArrayFromDisk(img3 + Conf.FEATURE_EXTENSION);
+            Collections.addAll(features1, Arrays.stream(Serializer.readFeaturesFromDisk(img3 + Conf.FEATURE_EXTENSION)).boxed().toArray(Integer[]::new));
         else
             features3 = computeImageFeatures(img3, true);
 
-        ArrayList<Integer> features4;
+        ArrayList<Integer> features4 = new ArrayList<>();
         if (Utils.fileExists(img4 + Conf.FEATURE_EXTENSION))
-            features4 = Serializer.readArrayFromDisk(img4 + Conf.FEATURE_EXTENSION);
+            Collections.addAll(features1, Arrays.stream(Serializer.readFeaturesFromDisk(img4 + Conf.FEATURE_EXTENSION)).boxed().toArray(Integer[]::new));
         else
             features4 = computeImageFeatures(img4, true);
 
@@ -130,7 +123,7 @@ public class TestFeatureExtractor {
         if (Utils.fileExists(ORGANIZED_FEATURES))
             Utils.deleteFile(ORGANIZED_FEATURES);
 
-        organizeFeatures(features1.size(), files, ORGANIZED_FEATURES, ORGANIZED_SAMPLE, forceDisk);
+        organizeFeatures(features1.size(), files, ORGANIZED_FEATURES, ORGANIZED_SAMPLE);
 
         for (int i = 0; i < features1.size(); i++) {
             for (int j = 0; j < 4; j++) {

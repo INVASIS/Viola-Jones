@@ -43,8 +43,8 @@ public class DecisionStump implements Callable<StumpRule> {
         // the best StumpRule returned is (almost?) always different.
 
         // Get needed values
-        ArrayList<Integer> X = getFeatureExamplesIndexes(featureIndex, N);
-        ArrayList<Integer> V = getFeatureValues(featureIndex, N); // V is already sorted in ascending order.
+        int[] X = getFeatureExamplesIndexes(featureIndex, N);
+        int[] V = getFeatureValues(featureIndex, N); // V is already sorted in ascending order.
 
         // Left & Right hand of the stump
         double leftWeightPos = 0;
@@ -52,23 +52,18 @@ public class DecisionStump implements Callable<StumpRule> {
         double rightWeightPos = totalWeightPos;
         double rightWeightNeg = totalWeightNeg;
 
-        assert X.size() == N;
-        assert V.size() == N;
-        assert getExampleIndex(featureIndex, 0, N) == X.get(0);
-        assert getExampleFeature(featureIndex, 0, N) == V.get(0);
-
         // First compute all threshold and margins between all values of V, but also before (-1) and after (+1) V values!
         // We will then find the best threshold in this list based on the error it gives
         ArrayList<Double> thresholds = new ArrayList<>(N + 1);
         ArrayList<Double> margins = new ArrayList<>(N + 1);
         {
-            thresholds.add((double) (V.get(0) - 1));
+            thresholds.add((double) (V[0] - 1));
             margins.add((double) -1);
             for (int i = 0; i < N-1; i++) {
-                thresholds.add(((double) (V.get(i) + V.get(i + 1))) / 2.0d);
-                margins.add((double) V.get(i + 1) - V.get(i));
+                thresholds.add(((double) (V[i] + V[i + 1])) / 2.0d);
+                margins.add((double) V[i + 1] - V[i]);
             }
-            thresholds.add((double) (V.get(N-1) + 1));
+            thresholds.add((double) (V[N-1] + 1));
             margins.add((double) 0);
         }
         StumpRule best = new StumpRule(featureIndex, 2, thresholds.get(0),margins.get(0), 0);
@@ -104,7 +99,7 @@ public class DecisionStump implements Callable<StumpRule> {
                 break;
 
             while (true) {
-                int exampleIndex = X.get(iterator);
+                int exampleIndex = X[iterator];
                 double label = (int) Y.get(0, exampleIndex); // FIXME: why casting to int?
                 double weight = weights.get(0, exampleIndex);
 
@@ -120,7 +115,7 @@ public class DecisionStump implements Callable<StumpRule> {
                 // if a new threshold can be found, break
                 // two cases are possible:
                 //   - Either it is the last observation:
-                if ((iterator == N - 1) || (!Objects.equals(V.get(iterator), V.get(iterator + 1))))
+                if ((iterator == N - 1) || (!Objects.equals(V[iterator], V[iterator + 1])))
                     break;
 
                 iterator++;

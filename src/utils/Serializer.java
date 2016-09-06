@@ -1,21 +1,45 @@
 package utils;
 
+import process.Conf;
 import process.StumpRule;
 
 import java.io.*;
 import java.nio.file.FileAlreadyExistsException;
 import java.util.ArrayList;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static utils.Utils.fileExists;
 
 
 public class Serializer {
+    private static int[][] trainImagesFeatures = null;
+    private static int[][] testImagesFeatures = null;
+    private static boolean inMemory = false;
+    public static long featureCount;
+
+    private static ConcurrentHashMap<String, Integer> fileIndex = new ConcurrentHashMap<>();
+    private static ConcurrentHashMap<String, Integer> fileTraining = new ConcurrentHashMap<>();
+
     private static void skipBytesLong(DataInputStream dis, long skip) throws IOException {
         long total = 0;
         long cur;
 
         while ((total < skip) && ((cur = dis.skip(skip - total)) > 0)) {
             total += cur;
+        }
+    }
+
+    public static void appendArrayToDisk(String filePath, int[] values, long size) {
+        DataOutputStream os;
+        try {
+            os = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(filePath, fileExists(filePath))));
+            for (long i = 0; i < size; i++)
+                os.writeInt(values[(int) i]);
+            os.close();
+        } catch (IOException e) {
+            System.err.println("Could not write to " + filePath);
+            e.printStackTrace();
+            System.exit(1);
         }
     }
 
@@ -33,6 +57,14 @@ public class Serializer {
         }
     }
 
+    public static void writeArrayToDisk(String filePath, int[] values, long size) {
+        if (fileExists(filePath)) {
+            new FileAlreadyExistsException(filePath).printStackTrace();
+            System.exit(1);
+        }
+        appendArrayToDisk(filePath, values, size);
+    }
+
     public static void writeArrayToDisk(String filePath, ArrayList<Integer> values) {
         if (fileExists(filePath)) {
             new FileAlreadyExistsException(filePath).printStackTrace();
@@ -41,15 +73,18 @@ public class Serializer {
         appendArrayToDisk(filePath, values);
     }
 
-    public static ArrayList<Integer> readArrayFromDisk(String filePath) {
-        ArrayList<Integer> result = new ArrayList<>();
-
+    public static int[] readArrayFromDisk(String filePath, long expectedSize) {
+        int[] result = new int[(int) expectedSize];
         DataInputStream os;
         try {
+            long c = 0;
             os = new DataInputStream(new BufferedInputStream(new FileInputStream(filePath)));
             while (true) {
+                if (c == expectedSize)
+                    break;
                 try {
-                    result.add(os.readInt());
+                    result[(int)c] = os.readInt();
+                    c++;
                 } catch (EOFException e) {
                     break;
                 }
@@ -62,8 +97,19 @@ public class Serializer {
         return result;
     }
 
-    public static ArrayList<Integer> readArrayFromDisk(String filePath, long fromIndex, long toIndex) {
-        ArrayList<Integer> result = new ArrayList<>();
+    public static int[] readFeaturesFromDisk(String filePath) {
+        if (inMemory && fileIndex.containsKey(fileIndex)) {
+            if (fileTraining.get(filePath) == 1)
+                return trainImagesFeatures[fileIndex.get(filePath)];
+            else
+                return testImagesFeatures[fileIndex.get(filePath)];
+        }
+
+        return readArrayFromDisk(filePath, featureCount);
+    }
+
+    public static int[] readArrayFromDisk(String filePath, long fromIndex, long toIndex) {
+        int[] result = new int[(int) (toIndex-fromIndex)];
 
         DataInputStream os;
         try {
@@ -71,8 +117,10 @@ public class Serializer {
             skipBytesLong(os, Integer.BYTES * fromIndex);
             long i = 0;
             while (true) {
+                if (i == (toIndex-fromIndex))
+                    break;
                 try {
-                    result.add(os.readInt());
+                    result[(int) i] = os.readInt();
                     i++;
                 } catch (EOFException e) {
                     break;
@@ -85,7 +133,6 @@ public class Serializer {
             e.printStackTrace();
             System.exit(1);
         }
-        assert result.size() == (toIndex - fromIndex);
         return result;
     }
 
@@ -218,5 +265,96 @@ public class Serializer {
             e.printStackTrace();
             System.exit(1);
         }
+    }
+
+    public static void buildImagesFeatures(ArrayList<String> faces, ArrayList<String> nonfaces, boolean training) {
+        System.out.println("Caching images features values for " + (training ? "training":"validation") + " set:");
+        int posN = faces.size();
+        int negN = nonfaces.size();
+        int N = posN + negN;
+
+        long presumableFreeMemory = Runtime.getRuntime().maxMemory() - (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory());
+        long neededMemory = featureCount * Integer.BYTES * N;
+        System.out.println("  - Needed memory: " + neededMemory + " (presumable free memory: " + presumableFreeMemory + ")");
+        if (!(presumableFreeMemory > neededMemory)) {
+            System.out.println("    - Could not store in memory");
+            inMemory = false;
+            return;
+        }
+
+        if (featureCount > Integer.MAX_VALUE) {
+            System.out.println("Size exceeds Integer.MAX_VALUE");
+            System.exit(1);
+        }
+
+        System.out.println("  - Initializing int[" + N + "][" + featureCount + "]...");
+        if (training)
+            trainImagesFeatures = new int[N][(int) featureCount];
+        else
+            testImagesFeatures = new int[N][(int) featureCount];
+
+
+        System.out.println("  - Reading all values from disk to memory...");
+        for (int i = 0; i < N; i++) {
+            String filePath = i < posN ? faces.get(i) : nonfaces.get(i-posN) + Conf.FEATURE_EXTENSION;
+            fileIndex.putIfAbsent(filePath, i);
+            fileTraining.putIfAbsent(filePath, training ? 1 : 0);
+
+            if (training)
+                trainImagesFeatures[i] = readFeaturesFromDisk(filePath);
+            else
+                testImagesFeatures[i] = readFeaturesFromDisk(filePath);
+
+        }
+        inMemory = true;
+
+
+//        try {
+//            if (fileExists(imagesFeatureFilepath)) {
+//                if (force)
+//                    deleteFile(imagesFeatureFilepath);
+//                else {
+//                    FileChannel fc = new RandomAccessFile(imagesFeatureFilepath, "r").getChannel();
+//                    if (training)
+//                        trainImagesFeatures = fc.map(FileChannel.MapMode.READ_ONLY, 0, fc.size());
+//                    else
+//                        testImagesFeatures = fc.map(FileChannel.MapMode.READ_ONLY, 0, fc.size());
+//                    return;
+//                }
+//            }
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//            System.exit(1);
+//        }
+
+//        ArrayList<Integer> tmp = readArrayFromDisk(faces.get(0) + Conf.FEATURE_EXTENSION);
+//
+//        long length = Integer.BYTES * tmp.size() * (long)(faces.size() + nonfaces.size());
+//        System.out.println("Length: " + length);
+
+//        MappedByteBuffer out;
+//        try {
+//            int c = 0;
+//            out = new RandomAccessFile(imagesFeatureFilepath, "rw").getChannel().map(FileChannel.MapMode.READ_WRITE, 0, length);
+//            for (String face : faces){
+//                tmp = readArrayFromDisk(face + Conf.FEATURE_EXTENSION);
+//                for (long i = 0; i < tmp.size(); i++)
+//                    out.putInt(tmp.get((int) i));
+//                c++;
+//            }
+//            for (String nonface : nonfaces){
+//                tmp = readArrayFromDisk(nonface + Conf.FEATURE_EXTENSION);
+//                for (long i = 0; i < tmp.size();  i++)
+//                    out.putInt(tmp.get((int) i));
+//                c++;
+//            }
+//            if (c != faces.size() + nonfaces.size()) {
+//                System.out.println("Sizes doesn't match! (c=" + c + " while expecting " + (faces.size() + nonfaces.size()) + ")");
+//                System.exit(1);
+//            }
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//            System.exit(1);
+//        }
     }
 }

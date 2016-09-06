@@ -9,7 +9,7 @@ import java.util.concurrent.*;
 
 import static java.lang.Math.log;
 import static process.features.FeatureExtractor.*;
-import static utils.Serializer.readArrayFromDisk;
+import static utils.Serializer.buildImagesFeatures;
 import static utils.Utils.*;
 
 public class Classifier {
@@ -80,12 +80,11 @@ public class Classifier {
         this.width = width;
         this.height = height;
 
-        this.featureCount = countAllFeatures(width, height);
+        this.featureCount = Serializer.featureCount;
         System.out.println("Feature count for " + width + "x" + height + ": " + featureCount);
     }
 
-    private static boolean isFace(ArrayList<StumpRule>[] cascade, ArrayList<Float> tweaks, ArrayList<Integer> exampleFeatureValues, int defaultLayerNumber) {
-        long featureCount = exampleFeatureValues.size();
+    private static boolean isFace(ArrayList<StumpRule>[] cascade, ArrayList<Float> tweaks, int[] exampleFeatureValues, long featureCount, int defaultLayerNumber) {
 
         double sum = 0;
         double sumSum = 0;
@@ -109,7 +108,7 @@ public class Classifier {
             int committeeSize = cascade[layer].size();
             for(int ruleIndex = 0; ruleIndex < committeeSize; ruleIndex++){
                 StumpRule rule = cascade[layer].get(ruleIndex);
-                double featureValue = (double)exampleFeatureValues.get((int) rule.featureIndex) / standardDeviation;
+                double featureValue = (double)exampleFeatureValues[(int) rule.featureIndex] / standardDeviation;
                 double vote = (featureValue > rule.threshold ? 1 : -1) * rule.toggle + tweaks.get(layer);
                 if (rule.error == 0) {
                     if (ruleIndex == 0)
@@ -147,15 +146,16 @@ public class Classifier {
             double err = committee.get(member).error;
             assert Double.isFinite(err); // <=> !NaN && !Infinity
 
+            // If member's err is zero, member weight is nan, but it won't be used anyway
             memberWeight.set(member, log(safeDiv(1.0d, err) - 1));
 
             long featureIndex = committee.get(member).featureIndex;
-            final ArrayList<Integer> featureExamplesIndexes = getFeatureExamplesIndexes(featureIndex, N);
-            final ArrayList<Integer> featureValues = getFeatureValues(featureIndex, N);
+            final int[] featureExamplesIndexes = getFeatureExamplesIndexes(featureIndex, N);
+            final int[] featureValues = getFeatureValues(featureIndex, N);
 
             for (int i = 0; i < N; i++)
-                memberVerdict.set(member, featureExamplesIndexes.get(i),
-                        ((featureValues.get(i) > committee.get(member).threshold ? 1 : -1) * committee.get(member).toggle) + decisionTweak);
+                memberVerdict.set(member, featureExamplesIndexes[i],
+                        ((featureValues[i] > committee.get(member).threshold ? 1 : -1) * committee.get(member).toggle) + decisionTweak);
         }
         DenseMatrix prediction = new DenseMatrix(1, N);
         if (startingFrom == 0) {
@@ -328,14 +328,14 @@ public class Classifier {
             testBlackList[NEGATIVE] = DenseMatrix.ones(1, countTestNeg);
 
             for (int i = 0; i < countTestPos; i++) {
-                boolean face = isFace(cascade, tweaks, readArrayFromDisk(testFaces.get(i)), round+1);
+                boolean face = isFace(cascade, tweaks, Serializer.readFeaturesFromDisk(testFaces.get(i) + Conf.FEATURE_EXTENSION), featureCount, round+1);
                 if (!face) {
                     testBlackList[POSITIVE].set(0, i, 1);
                     nFalseNegative += 1;
                 }
             }
             for (int i = 0; i < countTestNeg; i++) {
-                boolean face = isFace(cascade, tweaks, readArrayFromDisk(testNonFaces.get(i)), round+1);
+                boolean face = isFace(cascade, tweaks, Serializer.readFeaturesFromDisk(testNonFaces.get(i) + Conf.FEATURE_EXTENSION), featureCount, round+1);
                 if (face) {
                     testBlackList[NEGATIVE].set(0, i, 0);
                     nFalsePositive += 1;
@@ -451,8 +451,8 @@ public class Classifier {
         long startTimeTrain = System.currentTimeMillis();
 
         train_dir = trainDir;
-        trainFaces = listFiles(train_dir + "/faces", Conf.IMAGES_EXTENSION);
-        trainNonFaces = listFiles(train_dir + "/non-faces", Conf.IMAGES_EXTENSION);
+        trainFaces = listFiles(train_dir + Conf.FACES, Conf.IMAGES_EXTENSION);
+        trainNonFaces = listFiles(train_dir + Conf.NONFACES, Conf.IMAGES_EXTENSION);
         countTrainPos = trainFaces.size();
         countTrainNeg = trainNonFaces.size();
         trainN = countTrainPos + countTrainNeg;
@@ -460,8 +460,8 @@ public class Classifier {
         System.out.println("Total number of training images: " + trainN + " (pos: " + countTrainPos + ", neg: " + countTrainNeg + ")");
 
         test_dir = testDir;
-        testFaces = listFiles(test_dir + "/faces", Conf.IMAGES_EXTENSION);
-        testNonFaces = listFiles(test_dir + "/non-faces", Conf.IMAGES_EXTENSION);
+        testFaces = listFiles(test_dir + Conf.FACES, Conf.IMAGES_EXTENSION);
+        testNonFaces = listFiles(test_dir + Conf.NONFACES, Conf.IMAGES_EXTENSION);
         countTestPos = testFaces.size();
         countTestNeg = testNonFaces.size();
         testN = countTestPos + countTestNeg;
@@ -471,11 +471,13 @@ public class Classifier {
         layerMemory = new ArrayList<>();
 
         // Compute all features for train & test set
-        computeFeaturesTimed(train_dir);
-        computeFeaturesTimed(test_dir);
+        computeFeaturesTimed(train_dir, Conf.IMAGES_FEATURES_TRAIN, true);
+        computeFeaturesTimed(test_dir, Conf.IMAGES_FEATURES_TEST, false);
+        buildImagesFeatures(trainFaces, trainNonFaces, true);
+        buildImagesFeatures(testFaces, testNonFaces, false);
 
         // Now organize all training features, so that it is easier to make requests on it
-        organizeFeatures(featureCount, orderedExamples(), Conf.ORGANIZED_FEATURES, Conf.ORGANIZED_SAMPLE, false);
+        organizeFeatures(featureCount, orderedExamples(), Conf.ORGANIZED_FEATURES, Conf.ORGANIZED_SAMPLE);
 
         System.out.println("Training classifier:");
 
@@ -562,11 +564,11 @@ public class Classifier {
         }*/
 
         test_dir = dir;
-        countTestPos = countFiles(test_dir + "/faces", Conf.IMAGES_EXTENSION);
-        countTestNeg = countFiles(test_dir + "/non-faces", Conf.IMAGES_EXTENSION);
+        countTestPos = countFiles(test_dir + Conf.FACES, Conf.IMAGES_EXTENSION);
+        countTestNeg = countFiles(test_dir + Conf.NONFACES, Conf.IMAGES_EXTENSION);
         testN = countTestPos + countTestNeg;
 
-        computeFeaturesTimed(test_dir);
+        computeFeaturesTimed(test_dir, Conf.IMAGES_FEATURES_TEST, false);
 
         ArrayList<StumpRule> rules = Serializer.readRule(Conf.TRAIN_FEATURES);
 
@@ -575,14 +577,14 @@ public class Classifier {
         long goodNonFaces = 0;
         long wrongNonFaces = 0;
 
-        for (String listTestFace : streamFiles(test_dir + "/faces", Conf.FEATURE_EXTENSION)) {
+        for (String listTestFace : streamFiles(test_dir + Conf.FACES, Conf.FEATURE_EXTENSION)) {
             double sum = 0;
 
-            ArrayList<Integer> haar = readArrayFromDisk(listTestFace);
+            int[] haar = Serializer.readFeaturesFromDisk(listTestFace);
 
             for (StumpRule rule : rules) {
                 double alpha = 0.5d * log((1.0d - rule.error) / rule.error);
-                double val = haar.get((int) rule.featureIndex);
+                double val = haar[(int) rule.featureIndex];
                 sum += rule.toggle * alpha * (val < rule.threshold ? -1 : 1);
             }
 
@@ -592,14 +594,14 @@ public class Classifier {
                 wrongFaces++;
         }
 
-        for (String listTestNonFace : streamFiles(test_dir + "/non-faces", Conf.FEATURE_EXTENSION)) {
+        for (String listTestNonFace : streamFiles(test_dir + Conf.NONFACES, Conf.FEATURE_EXTENSION)) {
             double sum = 0;
 
-            ArrayList<Integer> haar = readArrayFromDisk(listTestNonFace);
+            int[] haar = Serializer.readFeaturesFromDisk(listTestNonFace);
 
             for (StumpRule rule : rules) {
                 double alpha = 0.5d * log((1.0d - rule.error) / rule.error);
-                double val = haar.get((int) rule.featureIndex);
+                double val = haar[(int) rule.featureIndex];
                 sum += rule.toggle * alpha * (val < rule.threshold ? -1 : 1);
             }
 
