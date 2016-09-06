@@ -11,7 +11,7 @@ public class Main {
         Conf.haarExtractor.setUp(width, height);
 
         // TODO : TO CONSTANTS
-        float overallTargetDetectionRate = 0.80f;
+        float overallTargetDetectionRate = 0.999f;
         float overallTargetFalsePositiveRate = 0.000001f;
         float targetDetectionRate = 0.995f;
         float targetFalsePositiveRate = 0.5f;
@@ -26,7 +26,7 @@ public class Main {
 
 
         Classifier classifier = new Classifier(width, height);
-        //classifier.train("data/trainset", 0.5f, overallTargetDetectionRate, overallTargetFalsePositiveRate, targetFalsePositiveRate);
+        classifier.train("data/trainset", "data/testset", 0.5f, overallTargetDetectionRate, overallTargetFalsePositiveRate, targetFalsePositiveRate);
         classifier.test("data/testset");
     }
 }

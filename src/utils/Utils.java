@@ -120,4 +120,13 @@ public class Utils {
     public static boolean fileExists(String filePath) {
         return Files.exists(Paths.get(filePath));
     }
+
+    public static double safeDiv(double a, double b) {
+        if (b != 0)
+            return a / b;
+        else {
+            System.err.println("/!\\ Division by 0! /!\\");
+            return Double.MAX_VALUE;
+        }
+    }
 }

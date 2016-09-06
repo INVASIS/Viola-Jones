@@ -37,6 +37,7 @@ In order to let the program access to these files, you must add their directory 
 2. [Robust Real-Time Face Detection](http://www.face-rec.org/algorithms/Boosting-Ensemble/16981346.pdf)
 3. [Adam Harvey Explains Viola-Jones Face Detection](http://www.makematics.com/research/viola-jones/)
 4. [5KK73 GPU Assignment 2012](https://sites.google.com/site/5kk73gpu2012/assignment/viola-jones-face-detection)
+5. [Object detection using cascades of boosted classifiers](http://www.die.uchile.cl/ieee-cis/files/RuizdelSolar_T9.pdf)
 
 [travis-url]: https://travis-ci.org/INVASIS/Viola-Jones
 [travis-image]: http://img.shields.io/travis/INVASIS/Viola-Jones.svg?style=flat-square
