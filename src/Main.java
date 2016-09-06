@@ -26,7 +26,7 @@ public class Main {
 
 
         Classifier classifier = new Classifier(width, height);
-        classifier.train("data/trainset", "data/testset", 0.5f, overallTargetDetectionRate, overallTargetFalsePositiveRate, targetFalsePositiveRate);
+        //classifier.train("data/trainset", "data/testset", 0.5f, overallTargetDetectionRate, overallTargetFalsePositiveRate, targetFalsePositiveRate);
         classifier.test("data/testset");
     }
 }
