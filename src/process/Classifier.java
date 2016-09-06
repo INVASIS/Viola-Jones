@@ -84,7 +84,8 @@ public class Classifier {
         System.out.println("Feature count for " + width + "x" + height + ": " + featureCount);
     }
 
-    private static boolean isFace(ArrayList<StumpRule>[] cascade, ArrayList<Float> tweaks, int[] exampleFeatureValues, long featureCount, int defaultLayerNumber) {
+    public static boolean isFace(ArrayList<StumpRule>[] cascade, ArrayList<Float> tweaks, int[] exampleFeatureValues, int defaultLayerNumber) {
+        long featureCount = Serializer.featureCount;
 
         double sum = 0;
         double sumSum = 0;
@@ -99,7 +100,7 @@ public class Classifier {
 
         // Everything is a face if no layer is involved
         if (defaultLayerNumber == 0) {
-            System.out.println("Does it really happen? It seems!");
+            System.out.println("Does it really happen? It seems!"); // LoL
             return true;
         }
         int layerCount = defaultLayerNumber < 0 ? tweaks.size() : defaultLayerNumber;
@@ -328,14 +329,14 @@ public class Classifier {
             testBlackList[NEGATIVE] = DenseMatrix.ones(1, countTestNeg);
 
             for (int i = 0; i < countTestPos; i++) {
-                boolean face = isFace(cascade, tweaks, Serializer.readFeaturesFromDisk(testFaces.get(i) + Conf.FEATURE_EXTENSION), featureCount, round+1);
+                boolean face = isFace(cascade, tweaks, Serializer.readFeaturesFromDisk(testFaces.get(i) + Conf.FEATURE_EXTENSION), round+1);
                 if (!face) {
                     testBlackList[POSITIVE].set(0, i, 1);
                     nFalseNegative += 1;
                 }
             }
             for (int i = 0; i < countTestNeg; i++) {
-                boolean face = isFace(cascade, tweaks, Serializer.readFeaturesFromDisk(testNonFaces.get(i) + Conf.FEATURE_EXTENSION), featureCount, round+1);
+                boolean face = isFace(cascade, tweaks, Serializer.readFeaturesFromDisk(testNonFaces.get(i) + Conf.FEATURE_EXTENSION), round+1);
                 if (face) {
                     testBlackList[NEGATIVE].set(0, i, 0);
                     nFalsePositive += 1;
@@ -570,60 +571,52 @@ public class Classifier {
 
         computeFeaturesTimed(test_dir, Conf.IMAGES_FEATURES_TEST, false);
 
-        ArrayList<StumpRule> rules = Serializer.readRule(Conf.TRAIN_FEATURES);
+        long vraiPositif = 0;
+        long fauxNegatif = 0;
+        long vraiNegatif = 0;
+        long fauxPositif = 0;
 
-        long goodFaces = 0;
-        long wrongFaces = 0;
-        long goodNonFaces = 0;
-        long wrongNonFaces = 0;
+        EvaluateImage evaluateImage = new EvaluateImage(countTestPos, countTestNeg, test_dir);
+        for (String listTestFace : streamFiles(test_dir + "/faces", Conf.FEATURE_EXTENSION)) {
+            boolean result = evaluateImage.guess(listTestFace);
 
-        for (String listTestFace : streamFiles(test_dir + Conf.FACES, Conf.FEATURE_EXTENSION)) {
-            double sum = 0;
-
-            int[] haar = Serializer.readFeaturesFromDisk(listTestFace);
-
-            for (StumpRule rule : rules) {
-                double alpha = 0.5d * log((1.0d - rule.error) / rule.error);
-                double val = haar[(int) rule.featureIndex];
-                sum += rule.toggle * alpha * (val < rule.threshold ? -1 : 1);
-            }
-
-            if (sum < 0)
-                goodFaces++;
+            if (result)
+                vraiPositif++;
             else
-                wrongFaces++;
+                fauxNegatif++;
         }
 
-        for (String listTestNonFace : streamFiles(test_dir + Conf.NONFACES, Conf.FEATURE_EXTENSION)) {
-            double sum = 0;
+        System.out.println("------------------------ TMP ------------------------");
+        System.out.println("Vrai Positifs : " + vraiPositif + " / " + countTestPos + " (" + (((double)vraiPositif)/(double)countTestPos + "%)") + "Should be high");
+        System.out.println("Faux Negatifs : " + fauxNegatif + " / " + countTestPos + " (" + (((double)fauxNegatif)/(double)countTestPos + "%)") + "Should be low");
+        System.out.println("------------------------ TMP ------------------------");
 
-            int[] haar = Serializer.readFeaturesFromDisk(listTestNonFace);
+        for (String listTestNonFace : streamFiles(test_dir + "/non-faces", Conf.FEATURE_EXTENSION)) {
+            boolean result = evaluateImage.guess(listTestNonFace);
 
-            for (StumpRule rule : rules) {
-                double alpha = 0.5d * log((1.0d - rule.error) / rule.error);
-                double val = haar[(int) rule.featureIndex];
-                sum += rule.toggle * alpha * (val < rule.threshold ? -1 : 1);
-            }
-
-            if (sum < 0)
-                goodNonFaces++;
+            if (result)
+                fauxPositif++;
             else
-                wrongNonFaces++;
+                vraiNegatif++;
         }
 
-        System.out.println("Vrai Positifs : " + goodFaces + " / " + countTestPos + " (" + (((double)goodFaces)/(double)countTestPos + "%)"));
-        System.out.println("Vrai Negatifs : " + wrongFaces + " / " + countTestPos + " (" + (((double)wrongFaces)/(double)countTestPos + "%)"));
-        System.out.println("Faux Positifs : " + goodNonFaces + " / " + countTestNeg + " (" + (((double)goodNonFaces)/(double)countTestNeg + "%)"));
-        System.out.println("Faux Negatifs : " + wrongNonFaces + " / " + countTestNeg + " (" + (((double)wrongNonFaces)/(double)countTestNeg + "%)"));
+        System.out.println("Vrai Positifs : " + vraiPositif + " / " + countTestPos + " (" + (((double)vraiPositif)/(double)countTestPos + "%)") + "Should be high");
+        System.out.println("Faux Negatifs : " + fauxNegatif + " / " + countTestPos + " (" + (((double)fauxNegatif)/(double)countTestPos + "%)") + "Should be low");
+        System.out.println("Vrai Negatifs : " + vraiNegatif + " / " + countTestNeg + " (" + (((double)vraiNegatif)/(double)countTestNeg + "%)") + "Should be high");
+        System.out.println("Faux Positifs : " + fauxPositif + " / " + countTestNeg + " (" + (((double)fauxPositif)/(double)countTestNeg + "%)") + "Should be low");
 
-        System.out.println("Positifs : " + (goodFaces + goodNonFaces) + " / " + (countTestPos + countTestNeg) + " (" + (((double)(goodFaces+goodNonFaces))/(double)(countTestPos+countTestNeg)+ "%)"));
-        System.out.println("Negatifs : " + (wrongFaces + wrongNonFaces) + " / " + (countTestPos + countTestNeg) + " (" + (((double)(wrongFaces+wrongNonFaces))/(double)(countTestPos+countTestNeg)+ "%)"));
+        System.out.println("Positifs : " + (vraiPositif + vraiNegatif) + " / " + (countTestPos + countTestNeg) + " (" + (((double)(vraiPositif+vraiNegatif))/(double)(countTestPos+countTestNeg)+ "%)"));
+        System.out.println("Negatifs : " + (fauxNegatif + fauxPositif) + " / " + (countTestPos + countTestNeg) + " (" + (((double)(fauxNegatif+fauxPositif))/(double)(countTestPos+countTestNeg)+ "%)"));
 
-        System.out.println("Taux de detection : " + (((((double)goodFaces)/(double)countTestPos) + (((double)goodNonFaces)/(double)countTestNeg))/2.0d) + "%");
-        System.out.println("Taux de detection : " + ((1.0d - (double)goodNonFaces)/(double)countTestPos) + "%");
+        System.out.println("Taux de detection : " + (((((double)vraiPositif)/(double)countTestPos) + (((double)vraiNegatif)/(double)countTestNeg))/2.0d) + "%");
+        System.out.println("Taux de detection : " + ((1.0d - (double)vraiNegatif)/(double)countTestPos) + "%");
+
+        System.out.println("vraiPositif : " + vraiPositif);
+        System.out.println("fauxNegatif : " + fauxNegatif);
+        System.out.println("vraiNegatif : " + vraiNegatif);
+        System.out.println("fauxPositif : " + fauxPositif);
 
         // TODO: after the training has been done, we can test on a new set of images.
-
         return 0;
     }
 }
