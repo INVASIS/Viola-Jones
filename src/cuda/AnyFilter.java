@@ -53,7 +53,7 @@ public class AnyFilter {
         this.filter = filter;
     }
 
-    public void compute() {
+    public ImageHandler compute() {
 
         CUfunction function = new CUfunction();
         cuModuleGetFunction(function, module, KERNEL_NAME);
@@ -149,6 +149,7 @@ public class AnyFilter {
         cuMemFree(deviceInput);
         cuMemFree(deviceOutput);
 
+        return newImg;
     }
 
 }

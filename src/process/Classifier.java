@@ -87,17 +87,7 @@ public class Classifier {
     public static boolean isFace(ArrayList<StumpRule>[] cascade, ArrayList<Float> tweaks, int[] exampleFeatureValues, int defaultLayerNumber) {
         long featureCount = Serializer.featureCount;
 
-        double sum = 0;
-        double sumSum = 0;
-        for (Integer exampleFeatureValue : exampleFeatureValues) {
-            sum += exampleFeatureValue;
-            sumSum += exampleFeatureValue * exampleFeatureValue;
-        }
-        // standardDeviation = SQRT(VAR(X))
-        double standardDeviation = Math.sqrt((sumSum/Math.pow((double)featureCount, 2)) - (Math.pow(sum/Math.pow((float)featureCount, 2), 2)));
-        if (!Double.isFinite(standardDeviation) || standardDeviation < FLAT_IMAGE_THRESHOLD)
-            return false;
-
+        // TODO : use standard deviation ??
         // Everything is a face if no layer is involved
         if (defaultLayerNumber == 0) {
             System.out.println("Does it really happen? It seems!"); // LoL
@@ -109,7 +99,7 @@ public class Classifier {
             int committeeSize = cascade[layer].size();
             for(int ruleIndex = 0; ruleIndex < committeeSize; ruleIndex++){
                 StumpRule rule = cascade[layer].get(ruleIndex);
-                double featureValue = (double)exampleFeatureValues[(int) rule.featureIndex] / standardDeviation;
+                double featureValue = (double)exampleFeatureValues[(int) rule.featureIndex];
                 double vote = (featureValue > rule.threshold ? 1 : -1) * rule.toggle + tweaks.get(layer);
                 if (rule.error == 0) {
                     if (ruleIndex == 0)
@@ -576,7 +566,7 @@ public class Classifier {
         long vraiNegatif = 0;
         long fauxPositif = 0;
 
-        EvaluateImage evaluateImage = new EvaluateImage(countTestPos, countTestNeg, test_dir);
+        EvaluateImage evaluateImage = new EvaluateImage(countTestPos, countTestNeg, test_dir, width, height);
         for (String listTestFace : streamFiles(test_dir + "/faces", Conf.FEATURE_EXTENSION)) {
             boolean result = evaluateImage.guess(listTestFace);
 
@@ -590,6 +580,7 @@ public class Classifier {
         System.out.println("Vrai Positifs : " + vraiPositif + " / " + countTestPos + " (" + (((double)vraiPositif)/(double)countTestPos + "%)") + "Should be high");
         System.out.println("Faux Negatifs : " + fauxNegatif + " / " + countTestPos + " (" + (((double)fauxNegatif)/(double)countTestPos + "%)") + "Should be low");
         System.out.println("------------------------ TMP ------------------------");
+
 
         for (String listTestNonFace : streamFiles(test_dir + "/non-faces", Conf.FEATURE_EXTENSION)) {
             boolean result = evaluateImage.guess(listTestNonFace);
