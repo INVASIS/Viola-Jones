@@ -6,6 +6,7 @@ import process.StumpRule;
 import java.io.*;
 import java.nio.file.FileAlreadyExistsException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static utils.Utils.fileExists;
@@ -180,6 +181,16 @@ public class Serializer {
         return i;
     }
 
+    public static int readIntFromMemory(String filePath, long featureIndex) {
+        if (!inMemory)
+            return readIntFromDisk(filePath, featureIndex);
+
+        if (fileTraining.get(filePath) == 1)
+            return trainImagesFeatures[fileIndex.get(filePath)][(int) featureIndex];
+        else
+            return testImagesFeatures[fileIndex.get(filePath)][(int) featureIndex];
+    }
+
     public static void writeRule(ArrayList<StumpRule> committee, boolean firstRound, String fileName) {
         try {
 
@@ -298,14 +309,16 @@ public class Serializer {
 
         System.out.println("  - Reading all values from disk to memory...");
         for (int i = 0; i < N; i++) {
-            String filePath = i < posN ? faces.get(i) : nonfaces.get(i - posN) + Conf.FEATURE_EXTENSION;
+            String filePath = (i < posN ? faces.get(i) : nonfaces.get(i - posN)) + Conf.FEATURE_EXTENSION;
             fileIndex.putIfAbsent(filePath, i);
             fileTraining.putIfAbsent(filePath, training ? 1 : 0);
 
-            if (training)
-                trainImagesFeatures[i] = readFeaturesFromDisk(filePath);
-            else
-                testImagesFeatures[i] = readFeaturesFromDisk(filePath);
+            if (training) {
+                trainImagesFeatures[i] = Arrays.copyOf(readFeaturesFromDisk(filePath), (int) featureCount);
+            }
+            else {
+                testImagesFeatures[i] = Arrays.copyOf(readFeaturesFromDisk(filePath), (int) featureCount);
+            }
 
         }
         inMemory = true;

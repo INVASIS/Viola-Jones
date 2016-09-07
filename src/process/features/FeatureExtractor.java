@@ -353,6 +353,7 @@ public class FeatureExtractor {
      */
     public static void organizeFeatures(long featureCount, ArrayList<String> examples, String feature, String sample) {
         System.out.println("Organizing features...");
+        long startTime = System.currentTimeMillis();
 
         int trainN = examples.size();
 
@@ -375,9 +376,8 @@ public class FeatureExtractor {
             // <exampleIndex, value>
             ArrayList<Pair<Integer, Integer>> ascendingFeatures = new ArrayList<>();
 
-            for (int exampleIndex = 0; exampleIndex < trainN; exampleIndex++) {
-                ascendingFeatures.add(new Pair<>(exampleIndex, readIntFromDisk(examples.get(exampleIndex) + Conf.FEATURE_EXTENSION, featureIndex)));
-            }
+            for (int exampleIndex = 0; exampleIndex < trainN; exampleIndex++)
+                ascendingFeatures.add(new Pair<>(exampleIndex, readIntFromMemory(examples.get(exampleIndex) + Conf.FEATURE_EXTENSION, featureIndex)));
 
             Collections.sort(ascendingFeatures, (o1, o2) -> o1.getValue().compareTo(o2.getValue()));
 
@@ -392,6 +392,8 @@ public class FeatureExtractor {
             appendArrayToDisk(sample, permutedSamples);
             appendArrayToDisk(feature, permutedFeatures);
         }
+        long elapsedTimeMS = (new Date()).getTime() - startTime;
+        System.out.println("  - Done in " + (elapsedTimeMS/1000) + "s");
     }
 
     /**

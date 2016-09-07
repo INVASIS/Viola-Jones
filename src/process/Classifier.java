@@ -411,7 +411,7 @@ public class Classifier {
                     oscillationObserver[tweakCounter % 2] = 1;
                 } else {
                     finalTweak = true;
-                    System.out.println("    - worstDetectionRate: " + worstDetectionRate + ">= overallTargetDetectionRate: " + overallTargetDetectionRate + " && worstFalsePositive: " + worstFalsePositive + "<= overallTargetFalsePositiveRate: " + overallTargetFalsePositiveRate);
+                    System.out.println("    - worstDetectionRate: " + worstDetectionRate + " >= overallTargetDetectionRate: " + overallTargetDetectionRate + " && worstFalsePositive: " + worstFalsePositive + " <= overallTargetFalsePositiveRate: " + overallTargetFalsePositiveRate);
                     System.out.println("    - No way out at this point. tweak goes from " + tweak);
                     continue;
                 }
