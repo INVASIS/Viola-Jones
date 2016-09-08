@@ -89,25 +89,25 @@ public class TestFeatureExtractor {
 
         ArrayList<Integer> features1 = new ArrayList<>();
         if (Utils.fileExists(img1 + Conf.FEATURE_EXTENSION))
-            Collections.addAll(features1, Arrays.stream(Serializer.readFeaturesFromDisk(img1 + Conf.FEATURE_EXTENSION)).boxed().toArray(Integer[]::new));
+            Collections.addAll(features1, Arrays.stream(Serializer.readFeatures(img1 + Conf.FEATURE_EXTENSION)).boxed().toArray(Integer[]::new));
         else
             features1 = computeImageFeatures(img1, true);
 
         ArrayList<Integer> features2 = new ArrayList<>();
         if (Utils.fileExists(img2 + Conf.FEATURE_EXTENSION))
-            Collections.addAll(features1, Arrays.stream(Serializer.readFeaturesFromDisk(img2 + Conf.FEATURE_EXTENSION)).boxed().toArray(Integer[]::new));
+            Collections.addAll(features1, Arrays.stream(Serializer.readFeatures(img2 + Conf.FEATURE_EXTENSION)).boxed().toArray(Integer[]::new));
         else
             features2 = computeImageFeatures(img2, true);
 
         ArrayList<Integer> features3 = new ArrayList<>();
         if (Utils.fileExists(img3 + Conf.FEATURE_EXTENSION))
-            Collections.addAll(features1, Arrays.stream(Serializer.readFeaturesFromDisk(img3 + Conf.FEATURE_EXTENSION)).boxed().toArray(Integer[]::new));
+            Collections.addAll(features1, Arrays.stream(Serializer.readFeatures(img3 + Conf.FEATURE_EXTENSION)).boxed().toArray(Integer[]::new));
         else
             features3 = computeImageFeatures(img3, true);
 
         ArrayList<Integer> features4 = new ArrayList<>();
         if (Utils.fileExists(img4 + Conf.FEATURE_EXTENSION))
-            Collections.addAll(features1, Arrays.stream(Serializer.readFeaturesFromDisk(img4 + Conf.FEATURE_EXTENSION)).boxed().toArray(Integer[]::new));
+            Collections.addAll(features1, Arrays.stream(Serializer.readFeatures(img4 + Conf.FEATURE_EXTENSION)).boxed().toArray(Integer[]::new));
         else
             features4 = computeImageFeatures(img4, true);
 

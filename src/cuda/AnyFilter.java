@@ -151,5 +151,4 @@ public class AnyFilter {
 
         return newImg;
     }
-
 }

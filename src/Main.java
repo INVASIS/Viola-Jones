@@ -30,7 +30,7 @@ public class Main {
         Serializer.featureCount = countAllFeatures(width, height);
 
         Classifier classifier = new Classifier(width, height);
-        classifier.train("data/trainset", "data/testset", 0.5f, overallTargetDetectionRate, overallTargetFalsePositiveRate, targetFalsePositiveRate);
+        classifier.train("data/trainset", "data/testset", 0.5f, overallTargetDetectionRate, overallTargetFalsePositiveRate, targetFalsePositiveRate, false);
         classifier.test("data/testset");
     }
 }

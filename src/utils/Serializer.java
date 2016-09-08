@@ -98,7 +98,7 @@ public class Serializer {
         return result;
     }
 
-    public static int[] readFeaturesFromDisk(String filePath) {
+    public static int[] readFeatures(String filePath) {
         if (inMemory && fileIndex.containsKey(fileIndex)) {
             if (fileTraining.get(filePath) == 1)
                 return trainImagesFeatures[fileIndex.get(filePath)];
@@ -314,10 +314,10 @@ public class Serializer {
             fileTraining.putIfAbsent(filePath, training ? 1 : 0);
 
             if (training) {
-                trainImagesFeatures[i] = Arrays.copyOf(readFeaturesFromDisk(filePath), (int) featureCount);
+                trainImagesFeatures[i] = Arrays.copyOf(readFeatures(filePath), (int) featureCount);
             }
             else {
-                testImagesFeatures[i] = Arrays.copyOf(readFeaturesFromDisk(filePath), (int) featureCount);
+                testImagesFeatures[i] = Arrays.copyOf(readFeatures(filePath), (int) featureCount);
             }
 
         }

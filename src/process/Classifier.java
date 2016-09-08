@@ -36,6 +36,7 @@ public class Classifier {
     /* --- CLASS VARIABLES --- */
 
     private boolean computed = false;
+    private boolean withTweaks;
 
     private final int width;
     private final int height;
@@ -85,9 +86,6 @@ public class Classifier {
     }
 
     public static boolean isFace(ArrayList<StumpRule>[] cascade, ArrayList<Float> tweaks, int[] exampleFeatureValues, int defaultLayerNumber) {
-        long featureCount = Serializer.featureCount;
-
-        // TODO : use standard deviation ??
         // Everything is a face if no layer is involved
         if (defaultLayerNumber == 0) {
             System.out.println("Does it really happen? It seems!"); // LoL
@@ -319,14 +317,14 @@ public class Classifier {
             testBlackList[NEGATIVE] = DenseMatrix.ones(1, countTestNeg);
 
             for (int i = 0; i < countTestPos; i++) {
-                boolean face = isFace(cascade, tweaks, Serializer.readFeaturesFromDisk(testFaces.get(i) + Conf.FEATURE_EXTENSION), round+1);
+                boolean face = isFace(cascade, tweaks, Serializer.readFeatures(testFaces.get(i) + Conf.FEATURE_EXTENSION), round+1);
                 if (!face) {
                     testBlackList[POSITIVE].set(0, i, 1);
                     nFalseNegative += 1;
                 }
             }
             for (int i = 0; i < countTestNeg; i++) {
-                boolean face = isFace(cascade, tweaks, Serializer.readFeaturesFromDisk(testNonFaces.get(i) + Conf.FEATURE_EXTENSION), round+1);
+                boolean face = isFace(cascade, tweaks, Serializer.readFeatures(testNonFaces.get(i) + Conf.FEATURE_EXTENSION), round+1);
                 if (face) {
                     testBlackList[NEGATIVE].set(0, i, 0);
                     nFalsePositive += 1;
@@ -342,7 +340,7 @@ public class Classifier {
     /**
      * Algorithm 10 from the original paper
      */
-    private int attentionalCascade(int round, float overallTargetDetectionRate, float overallTargetFalsePositiveRate) {
+    private void attentionalCascade(int round, float overallTargetDetectionRate, float overallTargetFalsePositiveRate) {
         // STATE: OK & CHECKED 16/31/08
 
         int committeeSizeGuide = Math.min(20 + round * 10, 200);
@@ -350,14 +348,13 @@ public class Classifier {
 
         cascade[round] = new ArrayList<>();
 
-        int nbWeakClassifier = 0;
         boolean layerMissionAccomplished = false;
         while (!layerMissionAccomplished) {
-
             // Run algorithm N°6 (adaboost) to produce a classifier (== ArrayList<StumpRule>)
             adaboost(round);
 
             boolean overSized = cascade[round].size() > committeeSizeGuide;
+
             boolean finalTweak = overSized;
 
             int tweakCounter = 0;
@@ -420,11 +417,10 @@ public class Classifier {
                     }
                 }
             }
+
             if (overSized)
                 break;
-            nbWeakClassifier++;
         }
-        return nbWeakClassifier;
     }
 
     private ArrayList<String> orderedExamples() {
@@ -434,11 +430,13 @@ public class Classifier {
         return examples;
     }
 
-    public void train(String trainDir, String testDir, float initialPositiveWeight, float overallTargetDetectionRate, float overallTargetFalsePositiveRate, float targetFalsePositiveRate) {
+    public void train(String trainDir, String testDir, float initialPositiveWeight, float overallTargetDetectionRate, float overallTargetFalsePositiveRate, float targetFalsePositiveRate, boolean withTweaks) {
         if (computed) {
             System.out.println("Training already done!");
             return;
         }
+        this.withTweaks = withTweaks;
+
         long startTimeTrain = System.currentTimeMillis();
 
         train_dir = trainDir;
@@ -475,6 +473,7 @@ public class Classifier {
         // Estimated number of rounds needed
         int boostingRounds = (int) (Math.ceil(Math.log(overallTargetFalsePositiveRate) / Math.log(targetFalsePositiveRate)) + 20);
         System.out.println("  - Estimated needed boosting rounds: " + boostingRounds);
+        System.out.println("  - Target: falsePositiveTarget" + targetFalsePositiveRate + " detectionRateTarget " + overallTargetDetectionRate);
 
         // Initialization
         tweaks = new ArrayList<>(boostingRounds);
@@ -487,7 +486,7 @@ public class Classifier {
         labelsTest = new DenseMatrix(1, testN);
         for (int i = 0; i < trainN; i++) {
             labelsTrain.set(0, i, i < countTrainPos ? 1 : -1); // face == 1 VS non-face == -1
-            labelsTrain.set(0, i, i < countTestPos ? 1 : -1); // face == 1 VS non-face == -1
+            labelsTest.set(0, i, i < countTestPos ? 1 : -1); // face == 1 VS non-face == -1
         }
 
         double accumulatedFalsePositive = 1;
@@ -513,23 +512,37 @@ public class Classifier {
             System.out.println("      - AverW+: " + averageWeightPos + " | AverW-: " + averageWeightNeg);
             System.out.println("      - MinW: " + minWeight + " | MaxW: " + maxWeight);
 
-            int nbWC = attentionalCascade(round, overallTargetDetectionRate, overallTargetFalsePositiveRate);
+            if (!withTweaks) {
+                cascade[0] = new ArrayList<>();
+                int expectedSize = Math.min(20 + boostingRounds * 10, 200);
+                System.out.println("    - Expected number of weak classifiers: " + expectedSize);
+                for (int i = 0; i < expectedSize; i++) {
+                    System.out.println("    - Adaboost N." + i + "/" + expectedSize + ":");
+                    adaboost(0);
+                }
+                System.out.println("    - Number of weak classifier: " + cascade[0].size());
+
+                // Attentional cascade is useless, a single round will be enough
+                break;
+            }
+
+            attentionalCascade(round, overallTargetDetectionRate, overallTargetFalsePositiveRate);
             System.out.println("    - Attentional Cascade computed in " + ((new Date()).getTime() - startTimeFor)/1000 + "s!");
-            System.out.println("      - Number of weak classifier: " + nbWC);
+            System.out.println("      - Number of weak classifier: " + cascade[round].size());
 
             // -- Display results for this round --
 
             //layerMemory.add(trainSet.committee.size());
             layerMemory.add(cascade[round].size());
-            System.out.println("    - The committee size is " + cascade[round].size());
 
             double[] tmp = calcEmpiricalError(true, round);
             System.out.println("    - The current tweak " + tweaks.get(round) + " has falsePositive " + tmp[0] + " and detectionRate " + tmp[1] + " on the training examples.");
-            tmp = calcEmpiricalError(false, round);
-            System.out.println("    - The current tweak " + tweaks.get(round) + " has falsePositive " + tmp[0] + " and detectionRate " + tmp[1] + " on the validation examples.");
-            System.out.println("    - Target: falsePositiveTarget" + targetFalsePositiveRate + " detectionRateTarget " + overallTargetDetectionRate);
-            accumulatedFalsePositive *= tmp[0];
-            System.out.println("    - Accumulated False Positive Rate is around " + accumulatedFalsePositive);
+            if (withTweaks) {
+                tmp = calcEmpiricalError(false, round);
+                System.out.println("    - The current tweak " + tweaks.get(round) + " has falsePositive " + tmp[0] + " and detectionRate " + tmp[1] + " on the validation examples.");
+                accumulatedFalsePositive *= tmp[0];
+                System.out.println("    - Accumulated False Positive Rate is around " + accumulatedFalsePositive);
+            }
 
             //record the boosted rule into a target file
             Serializer.writeRule(cascade[round], round == 0, Conf.TRAIN_FEATURES);

@@ -109,7 +109,7 @@ public class ImageHandler {
         String haarFilePath = filePath + Conf.FEATURE_EXTENSION;
 
         if (fileExists(haarFilePath))
-            return Serializer.readFeaturesFromDisk(haarFilePath);
+            return Serializer.readFeatures(haarFilePath);
         else
             return computeImageFeatures(filePath, true).stream().mapToInt(i -> i).toArray();
     }

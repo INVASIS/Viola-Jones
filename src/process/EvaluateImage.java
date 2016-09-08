@@ -9,7 +9,7 @@ import utils.Utils;
 import java.util.ArrayList;
 
 import static process.features.FeatureExtractor.computeImageFeatures;
-import static utils.Serializer.readFeaturesFromDisk;
+import static utils.Serializer.readFeatures;
 
 public class EvaluateImage {
 
@@ -72,7 +72,7 @@ public class EvaluateImage {
             haar = computeImageFeatures(fileName, false).stream().mapToInt(i -> i).toArray();
             ;
         } else {
-            haar = readFeaturesFromDisk(fileName);
+            haar = readFeatures(fileName);
         }
 
         return Classifier.isFace(this.cascade, this.tweaks, haar, this.layerCount);
