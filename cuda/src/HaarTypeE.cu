@@ -10,7 +10,7 @@ int rectanglesSum(int** integralImage, int x, int y, int w, int h)
 }
 
 extern "C"
-__global__ void haar_type_E(int** integralImage, int* allRectangles, int numRectangles, int* haarFeatures)
+__global__ void haar_type_E(int** integralImage, int* allRectangles, int numRectangles, float coeff, int* haarFeatures)
 {
     // Get an "unique id" of the thread that correspond to one pixel
     const unsigned int tidX = blockIdx.x * blockDim.x + threadIdx.x;
@@ -18,10 +18,10 @@ __global__ void haar_type_E(int** integralImage, int* allRectangles, int numRect
     if (tidX < numRectangles)
     {
 
-        int x = allRectangles[tidX * 4];
-        int y = allRectangles[tidX * 4 + 1];
-        int w = allRectangles[tidX * 4 + 2];
-        int h = allRectangles[tidX * 4 + 3];
+        int x = (int) (allRectangles[tidX * 4] * coeff);
+        int y = (int) (allRectangles[tidX * 4 + 1] * coeff);
+        int w = (int) (allRectangles[tidX * 4 + 2] * coeff);
+        int h = (int) (allRectangles[tidX * 4 + 3] * coeff);
 
         int mid_w = w / 2;
         int mid_h = h / 2;

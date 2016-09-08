@@ -1,6 +1,5 @@
 package cuda;
 
-import GUI.Display;
 import GUI.ImageHandler;
 import jcuda.Pointer;
 import jcuda.Sizeof;
@@ -140,7 +139,6 @@ public class AnyFilter {
 
 
         ImageHandler newImg = new ImageHandler(outputedImg, width, height);
-        Display.drawImage(newImg.getBufferedImage());
 
         // Clean up.
         for (int i = 0; i < width; i++) {

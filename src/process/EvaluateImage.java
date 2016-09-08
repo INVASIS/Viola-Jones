@@ -2,11 +2,13 @@ package process;
 
 import GUI.ImageHandler;
 import cuda.AnyFilter;
+import cuda.HaarDetector;
 import process.features.Rectangle;
 import utils.Serializer;
 import utils.Utils;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 
 import static process.features.FeatureExtractor.computeImageFeatures;
 import static utils.Serializer.readFeatures;
@@ -31,6 +33,9 @@ public class EvaluateImage {
 
     private ArrayList<StumpRule>[] cascade;
 
+    private HashMap<Integer, Integer> neededHaarValues;
+    private HaarDetector haarDetector;
+
     public EvaluateImage(int countTestPos, int countTestNeg, String directory, int baseWidth, int baseHeight) {
         this.countTestPos = countTestPos;
         this.countTestNeg = countTestNeg;
@@ -38,6 +43,7 @@ public class EvaluateImage {
         this.directory = directory;
         this.baseHeight = baseHeight;
         this.baseWidth = baseWidth;
+
 
         init();
     }
@@ -59,6 +65,22 @@ public class EvaluateImage {
             }
             committeeStart += this.layerCommitteeSize.get(i);
         }
+
+        neededHaarValues = new HashMap<>();
+
+        int i = 0;
+        for (int layer = 0; layer < layerCount; layer++) {
+            for (StumpRule rule : cascade[layer]) {
+                if (!neededHaarValues.containsKey((int) rule.featureIndex)) {
+                    neededHaarValues.put((int) rule.featureIndex, i);
+                    i++;
+                }
+            }
+        }
+        System.out.println("Found " + i + " different indexes");
+        this.haarDetector = new HaarDetector(neededHaarValues);
+        this.haarDetector.setUp(baseWidth, baseHeight);
+
     }
 
     // TODO : remove unnecessary har features to compute only those needed
@@ -70,7 +92,6 @@ public class EvaluateImage {
         int[] haar;
         if (fileName.endsWith(Conf.IMAGES_EXTENSION) || !Utils.fileExists(fileName)) {
             haar = computeImageFeatures(fileName, false).stream().mapToInt(i -> i).toArray();
-            ;
         } else {
             haar = readFeatures(fileName);
         }
@@ -90,10 +111,29 @@ public class EvaluateImage {
         ArrayList<Rectangle> allRectangles = getAllRectangles(imageHandler);
         ArrayList<Rectangle> res = new ArrayList<>();
 
-
         int[] haar;
+        for (Rectangle rectangle : allRectangles) {
 
-        return null;
+            int[][] tmpImage = new int[rectangle.getWidth()][rectangle.getHeight()];
+
+            // TODO : improve copy or optimize this !
+            for (int x = rectangle.getX(); x < rectangle.getWidth() + rectangle.getX(); x++)
+                for (int y = rectangle.getY(); y < rectangle.getY() + rectangle.getHeight(); y++)
+                    tmpImage[x - rectangle.getX()][y - rectangle.getY()] = imageHandler.getGrayImage()[x][y];
+
+            ImageHandler tmpImageHandler = new ImageHandler(tmpImage, rectangle.getWidth(), rectangle.getHeight());
+
+
+            // TODO : make it work (or find another solution)
+            //haar = computeImageFeaturesDetector(imageHandler, haarDetector, (float) (rectangle.getHeight()) / (float) baseHeight).stream().mapToInt(i -> i).toArray();
+
+            haar = computeImageFeatures(downsamplingImage(tmpImageHandler), false, null).stream().mapToInt(i -> i).toArray();
+
+            if (Classifier.isFace(cascade, tweaks, haar, layerCount)) {
+                res.add(rectangle);
+            }
+        }
+        return res;
     }
 
     public ArrayList<Rectangle> getAllRectangles(ImageHandler imageHandler) {
@@ -107,6 +147,20 @@ public class EvaluateImage {
             System.exit(1);
         }
 
+        // Quick and dirty way to reduce the number of rectangles
+        // TODO : needs to be improved!
+        int xDisplacer = imageWidth / 100;
+        if (xDisplacer > 4)
+            xDisplacer = 4;
+        if (xDisplacer < 1)
+            xDisplacer = 1;
+
+        int yDisplacer = imageHeight / 100;
+        if (yDisplacer > 4)
+            yDisplacer = 4;
+        if (yDisplacer < 1)
+            yDisplacer = 1;
+
         ArrayList<Rectangle> rectangles = new ArrayList<>();
 
         int minDim = Math.min(imageHeight, imageWidth);
@@ -114,9 +168,9 @@ public class EvaluateImage {
 
         // FIXME : ne pas avancer pixel par pixel mais plutôt 3-4 pixels à la fois
         for (int frame = frameSize; frame <= minDim; frame *= coeff) {
-            for (int x = 0; x <= imageWidth - frame; x++) {
-                for (int y = 0; y <= imageHeight - frame; y++) {
-                    rectangles.add(new Rectangle(x, y, frame - 1, frame - 1));
+            for (int x = 0; x <= imageWidth - frame; x += xDisplacer) {
+                for (int y = 0; y <= imageHeight - frame; y += yDisplacer) {
+                    rectangles.add(new Rectangle(x, y, frame, frame));
                 }
             }
         }
@@ -160,13 +214,13 @@ public class EvaluateImage {
             int row = i / baseHeight;
             int col = i % baseWidth;
 
-            float rowPos = (float)(blured.getWidth() - 1) / (float)(baseWidth + 1) * (float)(row + 1);
-            float colPos = (float)(blured.getHeight() - 1) / (float)(baseHeight + 1) * (float)(col + 1);
+            float rowPos = (float) (blured.getWidth() - 1) / (float) (baseWidth + 1) * (float) (row + 1);
+            float colPos = (float) (blured.getHeight() - 1) / (float) (baseHeight + 1) * (float) (col + 1);
 
-            int lowRow = Math.max((int)Math.floor(rowPos), 0);
+            int lowRow = Math.max((int) Math.floor(rowPos), 0);
             int upRow = Math.min(lowRow + 1, blured.getWidth() - 1);
 
-            int lowCol = Math.max((int)Math.floor(colPos), 0);
+            int lowCol = Math.max((int) Math.floor(colPos), 0);
             int upCol = Math.min(lowCol + 1, blured.getHeight() - 1);
 
             newImg[row][col] = (grayImage[lowRow][lowCol] + grayImage[lowRow][upCol] + grayImage[upRow][lowCol] + grayImage[upRow][upCol]) / 4;
@@ -175,5 +229,9 @@ public class EvaluateImage {
 
         return new ImageHandler(newImg, baseWidth, baseHeight);
 
+    }
+
+    public HashMap<Integer, Integer> getNeededHaarValues() {
+        return neededHaarValues;
     }
 }

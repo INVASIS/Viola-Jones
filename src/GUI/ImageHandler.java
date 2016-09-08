@@ -3,6 +3,7 @@ package GUI;
 import process.Conf;
 import process.Filters;
 import process.IntegralImage;
+import process.features.Rectangle;
 import utils.Converters;
 import utils.Serializer;
 
@@ -10,6 +11,7 @@ import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 
 import static process.features.FeatureExtractor.computeImageFeatures;
 import static utils.Utils.fileExists;
@@ -112,5 +114,24 @@ public class ImageHandler {
             return Serializer.readFeatures(haarFilePath);
         else
             return computeImageFeatures(filePath, true).stream().mapToInt(i -> i).toArray();
+    }
+
+
+    public void drawRectangles(ArrayList<Rectangle> rectangles) {
+
+        for (Rectangle rectangle : rectangles) {
+
+            for (int i = rectangle.getX(); i < rectangle.getX() + rectangle.getWidth(); i++) {
+                this.getBufferedImage().setRGB(i, rectangle.getY(), 0);
+                this.getBufferedImage().setRGB(i, rectangle.getY() + rectangle.getHeight(), 0);
+            }
+
+            for (int j = rectangle.getY(); j < rectangle.getY() + rectangle.getHeight(); j++) {
+                this.getBufferedImage().setRGB(rectangle.getX(), j, 0);
+                this.getBufferedImage().setRGB(rectangle.getX() + rectangle.getWidth(), j, 0);
+            }
+
+        }
+
     }
 }

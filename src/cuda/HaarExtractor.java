@@ -13,79 +13,17 @@ import java.util.HashMap;
 
 import static jcuda.driver.JCudaDriver.*;
 
-// TODO : singleton ?
-public class HaarExtractor implements AutoCloseable {
-
-    private static final int THREADS_IN_BLOCK = 1024;
-    private static final String CUDA_FILENAME = "HaarType";
-    private static final String KERNEL_NAME = "haar_type_";
-
-    private long NUM_FEATURES_A;
-    private long NUM_FEATURES_B;
-    private long NUM_FEATURES_C;
-    private long NUM_FEATURES_D;
-    private long NUM_FEATURES_E;
-
-    private int[][] integral;
-    private int width;
-    private int height;
-
-    private ArrayList<Integer> featuresA;
-    private ArrayList<Integer> featuresB;
-    private ArrayList<Integer> featuresC;
-    private ArrayList<Integer> featuresD;
-    private ArrayList<Integer> featuresE;
-
-    private HashMap<Character, CUmodule> modules;
-
-    private CUdeviceptr srcPtr;
-    private CUdeviceptr dstPtr;
-    private CUdeviceptr tmpDataPtr[];
-
-    private CUdeviceptr allRectanglesA;
-    private CUdeviceptr allRectanglesB;
-    private CUdeviceptr allRectanglesC;
-    private CUdeviceptr allRectanglesD;
-    private CUdeviceptr allRectanglesE;
-
+public class HaarExtractor extends HaarBase {
 
     public HaarExtractor() {
-        this.modules = new HashMap<>();
-        this.modules.put('A', CudaUtils.getModule(CUDA_FILENAME + "A"));
-        this.modules.put('B', CudaUtils.getModule(CUDA_FILENAME + "B"));
-        this.modules.put('C', CudaUtils.getModule(CUDA_FILENAME + "C"));
-        this.modules.put('D', CudaUtils.getModule(CUDA_FILENAME + "D"));
-        this.modules.put('E', CudaUtils.getModule(CUDA_FILENAME + "E"));
-
-        this.allRectanglesA = new CUdeviceptr();
-        this.allRectanglesB = new CUdeviceptr();
-        this.allRectanglesC = new CUdeviceptr();
-        this.allRectanglesD = new CUdeviceptr();
-        this.allRectanglesE = new CUdeviceptr();
-
-        this.featuresA = new ArrayList<>();
-        this.featuresB = new ArrayList<>();
-        this.featuresC = new ArrayList<>();
-        this.featuresD = new ArrayList<>();
-        this.featuresE = new ArrayList<>();
-
+        super();
     }
 
+    @Override
     public void setUp(int width, int height) {
-        this.integral = null;
-        this.width = width;
-        this.height = height;
+        super.setUp(width, height);
 
-        this.NUM_FEATURES_A = FeatureExtractor.countFeatures(FeatureExtractor.widthTypeA, FeatureExtractor.heightTypeA, width, height);
-        this.NUM_FEATURES_B = FeatureExtractor.countFeatures(FeatureExtractor.widthTypeB, FeatureExtractor.heightTypeB, width, height);
-        this.NUM_FEATURES_C = FeatureExtractor.countFeatures(FeatureExtractor.widthTypeC, FeatureExtractor.heightTypeC, width, height);
-        this.NUM_FEATURES_D = FeatureExtractor.countFeatures(FeatureExtractor.widthTypeD, FeatureExtractor.heightTypeD, width, height);
-        this.NUM_FEATURES_E = FeatureExtractor.countFeatures(FeatureExtractor.widthTypeE, FeatureExtractor.heightTypeE, width, height);
-
-        this.tmpDataPtr = new CUdeviceptr[width];
-
-        // TODO: possible optimization: do not use all rectangles, as we train on simple x*x squares already centered on faces, we don't need all rectangles.
-        // TODO: + we will only need certains haar-feature, not all, so why not compute only those needed ?
+        // TODO : we will only need certains haar-feature, not all, so why not compute only those needed ?
         listAllTypeN(this.NUM_FEATURES_A, FeatureExtractor.widthTypeA, FeatureExtractor.heightTypeA, 'A');
         listAllTypeN(this.NUM_FEATURES_B, FeatureExtractor.widthTypeB, FeatureExtractor.heightTypeB, 'B');
         listAllTypeN(this.NUM_FEATURES_C, FeatureExtractor.widthTypeC, FeatureExtractor.heightTypeC, 'C');
@@ -176,6 +114,7 @@ public class HaarExtractor implements AutoCloseable {
                 Pointer.to(srcPtr),
                 Pointer.to(tmp_ptr),
                 Pointer.to(new int[]{(int) numFeatures}),
+                Pointer.to(new float[]{1}),
                 Pointer.to(dstPtr)
         );
 
@@ -225,46 +164,5 @@ public class HaarExtractor implements AutoCloseable {
 
         CudaUtils.freeArray2D(tmpDataPtr, srcPtr, width);
 
-    }
-
-    // Change the image to avoid recomputing all init stuff - to be used only for training purposes
-    public void updateImage(int[][] newIntegral) {
-        this.integral = newIntegral;
-        this.featuresA.clear();
-        this.featuresB.clear();
-        this.featuresC.clear();
-        this.featuresD.clear();
-        this.featuresE.clear();
-    }
-
-    public ArrayList<Integer> getFeaturesA() {
-        return featuresA;
-    }
-
-    public ArrayList<Integer> getFeaturesB() {
-        return featuresB;
-    }
-
-    public ArrayList<Integer> getFeaturesC() {
-        return featuresC;
-    }
-
-    public ArrayList<Integer> getFeaturesD() {
-        return featuresD;
-    }
-
-    public ArrayList<Integer> getFeaturesE() {
-        return featuresE;
-    }
-
-    @Override
-    public void close() throws Exception {
-        // Free CUDA
-        System.out.println("Freeing CUDA memory...");
-        cuMemFree(allRectanglesA);
-        cuMemFree(allRectanglesB);
-        cuMemFree(allRectanglesC);
-        cuMemFree(allRectanglesD);
-        cuMemFree(allRectanglesE);
     }
 }

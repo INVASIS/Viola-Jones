@@ -1,5 +1,7 @@
+import GUI.ImageHandler;
 import process.Classifier;
 import process.Conf;
+import process.EvaluateImage;
 import utils.Serializer;
 
 import static process.features.FeatureExtractor.countAllFeatures;
@@ -10,8 +12,6 @@ public class Main {
         // Training image size
         int width = 19;
         int height = 19;
-
-        Conf.haarExtractor.setUp(width, height);
 
         // TODO : TO CONSTANTS
         float overallTargetDetectionRate = 0.999f;
@@ -30,7 +30,7 @@ public class Main {
         Serializer.featureCount = countAllFeatures(width, height);
 
         Classifier classifier = new Classifier(width, height);
-        classifier.train("data/trainset", "data/testset", 0.5f, overallTargetDetectionRate, overallTargetFalsePositiveRate, targetFalsePositiveRate, true);
+        //classifier.train("data/trainset", "data/testset", 0.5f, overallTargetDetectionRate, overallTargetFalsePositiveRate, targetFalsePositiveRate, true);
         classifier.test("data/testset");
     }
 }

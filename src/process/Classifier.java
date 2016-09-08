@@ -1,6 +1,9 @@
 package process;
 
+import GUI.Display;
+import GUI.ImageHandler;
 import jeigen.DenseMatrix;
+import process.features.Rectangle;
 import utils.Serializer;
 
 import java.util.ArrayList;
@@ -624,6 +627,16 @@ public class Classifier {
         System.out.println("fauxPositif : " + fauxPositif);
 
         // TODO: after the training has been done, we can test on a new set of images.
+
+        //ImageHandler imageHandler = evaluateImage.downsamplingImage(new ImageHandler("data/face.jpg"));
+        //Display.drawImage(imageHandler.getBufferedImage());
+
+        ImageHandler image = new ImageHandler("data/got.jpeg");
+        ArrayList<Rectangle> rectangles = evaluateImage.getFaces(image);
+        System.out.println("Found " + rectangles.size() + " faces rectangle that contains a face");
+        image.drawRectangles(rectangles);
+        Display.drawImage(image.getBufferedImage());
+
         return 0;
     }
 }

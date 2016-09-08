@@ -1,6 +1,7 @@
 package process.features;
 
 import GUI.ImageHandler;
+import cuda.HaarDetector;
 import javafx.util.Pair;
 import process.Conf;
 import utils.yield.Yielderable;
@@ -271,9 +272,32 @@ public class FeatureExtractor {
         return count;
     }
 
+
+    // TODO : to int[]
+    // TODO : return it the size of all features
+    public static ArrayList<Integer> computeImageFeaturesDetector(ImageHandler image, HaarDetector haarDetector, float coeff) {
+        ArrayList<Integer> result = new ArrayList<>();
+        if (Conf.USE_CUDA) {
+            haarDetector.updateImage(image.getIntegralImage(), image.getWidth(), image.getHeight());
+            haarDetector.compute(coeff);
+            result.addAll(haarDetector.getFeaturesA());
+            result.addAll(haarDetector.getFeaturesB());
+            result.addAll(haarDetector.getFeaturesC());
+            result.addAll(haarDetector.getFeaturesD());
+            result.addAll(haarDetector.getFeaturesE());
+        } else
+            System.err.println("Error, should have CUDA");
+        return result;
+    }
+
     // Warning: Need to train and evaluate on the same features : only on GPU or only on CPU
     public static ArrayList<Integer> computeImageFeatures(String imagePath, boolean writeToDisk) {
         ImageHandler image = new ImageHandler(imagePath);
+
+        return computeImageFeatures(image, writeToDisk, imagePath);
+    }
+
+    public static ArrayList<Integer> computeImageFeatures(ImageHandler image, boolean writeToDisk, String imagePath) {
 
         ArrayList<Integer> result = new ArrayList<>();
         if (Conf.USE_CUDA) {
