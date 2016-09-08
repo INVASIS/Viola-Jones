@@ -313,25 +313,27 @@ public class Classifier {
             res[1] = nFalseNegative / (double) countTrainPos;
         }
         else {
-            testBlackList[POSITIVE] = DenseMatrix.zeros(1, countTestPos);
-            testBlackList[NEGATIVE] = DenseMatrix.ones(1, countTestNeg);
+            int nPos = (int) ((double)(countTestPos)/100*10);
+            int nNeg = (int) ((double)(countTestNeg)/100*1);
+            testBlackList[POSITIVE] = DenseMatrix.zeros(1, nPos);
+            testBlackList[NEGATIVE] = DenseMatrix.ones(1, nNeg);
 
-            for (int i = 0; i < countTestPos; i++) {
+            for (int i = 0; i < nPos; i++) {
                 boolean face = isFace(cascade, tweaks, Serializer.readFeatures(testFaces.get(i) + Conf.FEATURE_EXTENSION), round+1);
                 if (!face) {
                     testBlackList[POSITIVE].set(0, i, 1);
                     nFalseNegative += 1;
                 }
             }
-            for (int i = 0; i < countTestNeg; i++) {
+            for (int i = 0; i < nNeg; i++) {
                 boolean face = isFace(cascade, tweaks, Serializer.readFeatures(testNonFaces.get(i) + Conf.FEATURE_EXTENSION), round+1);
                 if (face) {
                     testBlackList[NEGATIVE].set(0, i, 0);
                     nFalsePositive += 1;
                 }
             }
-            res[0] = nFalsePositive / (double) countTestNeg;
-            res[1] = nFalseNegative / (double) countTestPos;
+            res[0] = nFalsePositive / (double) nNeg;
+            res[1] = nFalseNegative / (double) nPos;
         }
 
         return res;
