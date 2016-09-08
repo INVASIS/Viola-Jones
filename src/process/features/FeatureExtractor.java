@@ -280,41 +280,52 @@ public class FeatureExtractor {
         if (Conf.USE_CUDA) {
             haarDetector.updateImage(image.getIntegralImage(), image.getWidth(), image.getHeight());
             haarDetector.compute(coeff);
-            result.addAll(haarDetector.getFeaturesA());
-            result.addAll(haarDetector.getFeaturesB());
-            result.addAll(haarDetector.getFeaturesC());
-            result.addAll(haarDetector.getFeaturesD());
-            result.addAll(haarDetector.getFeaturesE());
+            int offset = 0;
+            System.arraycopy(Conf.haarExtractor.getFeaturesA(), 0, result, offset, (int) Conf.haarExtractor.getNUM_FEATURES_A());
+            offset += (int) Conf.haarExtractor.getNUM_FEATURES_A();
+            System.arraycopy(Conf.haarExtractor.getFeaturesB(), 0, result, offset, (int) Conf.haarExtractor.getNUM_FEATURES_B());
+            offset += (int) Conf.haarExtractor.getNUM_FEATURES_B();
+            System.arraycopy(Conf.haarExtractor.getFeaturesB(), 0, result, offset, (int) Conf.haarExtractor.getNUM_FEATURES_C());
+            offset += (int) Conf.haarExtractor.getNUM_FEATURES_C();
+            System.arraycopy(Conf.haarExtractor.getFeaturesB(), 0, result, offset, (int) Conf.haarExtractor.getNUM_FEATURES_D());
+            offset += (int) Conf.haarExtractor.getNUM_FEATURES_D();
+            System.arraycopy(Conf.haarExtractor.getFeaturesB(), 0, result, offset, (int) Conf.haarExtractor.getNUM_FEATURES_E());
         } else
             System.err.println("Error, should have CUDA");
         return result;
     }
 
     // Warning: Need to train and evaluate on the same features : only on GPU or only on CPU
-    public static ArrayList<Integer> computeImageFeatures(String imagePath, boolean writeToDisk) {
+    public static int[] computeImageFeatures(String imagePath, boolean writeToDisk) {
         ImageHandler image = new ImageHandler(imagePath);
 
         return computeImageFeatures(image, writeToDisk, imagePath);
     }
 
-    public static ArrayList<Integer> computeImageFeatures(ImageHandler image, boolean writeToDisk, String imagePath) {
+    public static int[] computeImageFeatures(ImageHandler image, boolean writeToDisk, String imagePath) {
 
-        ArrayList<Integer> result = new ArrayList<>();
+        int[] result = new int[(int) Conf.haarExtractor.getNUM_TOTAL_FEATURES()];
         if (Conf.USE_CUDA) {
             Conf.haarExtractor.updateImage(image.getIntegralImage());
             Conf.haarExtractor.compute();
-            result.addAll(Conf.haarExtractor.getFeaturesA());
-            result.addAll(Conf.haarExtractor.getFeaturesB());
-            result.addAll(Conf.haarExtractor.getFeaturesC());
-            result.addAll(Conf.haarExtractor.getFeaturesD());
-            result.addAll(Conf.haarExtractor.getFeaturesE());
-        } else
+            int offset = 0;
+            System.arraycopy(Conf.haarExtractor.getFeaturesA(), 0, result, offset, (int) Conf.haarExtractor.getNUM_FEATURES_A());
+            offset += (int) Conf.haarExtractor.getNUM_FEATURES_A();
+            System.arraycopy(Conf.haarExtractor.getFeaturesB(), 0, result, offset, (int) Conf.haarExtractor.getNUM_FEATURES_B());
+            offset += (int) Conf.haarExtractor.getNUM_FEATURES_B();
+            System.arraycopy(Conf.haarExtractor.getFeaturesC(), 0, result, offset, (int) Conf.haarExtractor.getNUM_FEATURES_C());
+            offset += (int) Conf.haarExtractor.getNUM_FEATURES_C();
+            System.arraycopy(Conf.haarExtractor.getFeaturesD(), 0, result, offset, (int) Conf.haarExtractor.getNUM_FEATURES_D());
+            offset += (int) Conf.haarExtractor.getNUM_FEATURES_D();
+            System.arraycopy(Conf.haarExtractor.getFeaturesE(), 0, result, offset, (int) Conf.haarExtractor.getNUM_FEATURES_E());
+        } else {
+            int cpt = 0;
             for (ArrayList<Feature> features : FeatureExtractor.streamFeaturesByType(image))
                 for (Feature f : features)
-                    result.add(f.getValue());
-
+                    result[cpt++] = f.getValue();
+        }
         if (writeToDisk)
-            writeArrayToDisk(imagePath + Conf.FEATURE_EXTENSION, result);
+            writeArrayToDisk(imagePath + Conf.FEATURE_EXTENSION, result, Conf.haarExtractor.getNUM_TOTAL_FEATURES());
 
         return result;
     }

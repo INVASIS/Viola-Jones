@@ -20,16 +20,17 @@ public abstract class HaarBase implements AutoCloseable {
     protected long NUM_FEATURES_C;
     protected long NUM_FEATURES_D;
     protected long NUM_FEATURES_E;
+    protected long NUM_TOTAL_FEATURES;
 
     protected int[][] integral;
     protected int width;
     protected int height;
 
-    protected ArrayList<Integer> featuresA;
-    protected ArrayList<Integer> featuresB;
-    protected ArrayList<Integer> featuresC;
-    protected ArrayList<Integer> featuresD;
-    protected ArrayList<Integer> featuresE;
+    protected int[] featuresA;
+    protected int[] featuresB;
+    protected int[] featuresC;
+    protected int[] featuresD;
+    protected int[] featuresE;
 
     protected CUdeviceptr allRectanglesA;
     protected CUdeviceptr allRectanglesB;
@@ -58,11 +59,6 @@ public abstract class HaarBase implements AutoCloseable {
         this.allRectanglesD = new CUdeviceptr();
         this.allRectanglesE = new CUdeviceptr();
 
-        this.featuresA = new ArrayList<>();
-        this.featuresB = new ArrayList<>();
-        this.featuresC = new ArrayList<>();
-        this.featuresD = new ArrayList<>();
-        this.featuresE = new ArrayList<>();
     }
 
 
@@ -76,7 +72,7 @@ public abstract class HaarBase implements AutoCloseable {
         this.NUM_FEATURES_C = FeatureExtractor.countFeatures(FeatureExtractor.widthTypeC, FeatureExtractor.heightTypeC, width, height);
         this.NUM_FEATURES_D = FeatureExtractor.countFeatures(FeatureExtractor.widthTypeD, FeatureExtractor.heightTypeD, width, height);
         this.NUM_FEATURES_E = FeatureExtractor.countFeatures(FeatureExtractor.widthTypeE, FeatureExtractor.heightTypeE, width, height);
-
+        this.NUM_TOTAL_FEATURES = NUM_FEATURES_A + NUM_FEATURES_B + NUM_FEATURES_C + NUM_FEATURES_D + NUM_FEATURES_E;
         this.tmpDataPtr = new CUdeviceptr[width];
 
     }
@@ -84,11 +80,11 @@ public abstract class HaarBase implements AutoCloseable {
     // Change the image to avoid recomputing all init stuff - to be used only for training purposes
     public void updateImage(int[][] newIntegral) {
         this.integral = newIntegral;
-        this.featuresA.clear();
-        this.featuresB.clear();
-        this.featuresC.clear();
-        this.featuresD.clear();
-        this.featuresE.clear();
+        this.featuresA = new int[(int) NUM_FEATURES_A];
+        this.featuresB = new int[(int) NUM_FEATURES_B];
+        this.featuresC = new int[(int) NUM_FEATURES_C];
+        this.featuresD = new int[(int) NUM_FEATURES_D];
+        this.featuresE = new int[(int) NUM_FEATURES_E];
     }
 
     @Override
@@ -102,24 +98,47 @@ public abstract class HaarBase implements AutoCloseable {
         cuMemFree(allRectanglesE);
     }
 
-    public ArrayList<Integer> getFeaturesA() {
+    public int[] getFeaturesA() {
         return featuresA;
     }
 
-    public ArrayList<Integer> getFeaturesB() {
+    public int[] getFeaturesB() {
         return featuresB;
     }
 
-    public ArrayList<Integer> getFeaturesC() {
+    public int[] getFeaturesC() {
         return featuresC;
     }
 
-    public ArrayList<Integer> getFeaturesD() {
+    public int[] getFeaturesD() {
         return featuresD;
     }
 
-    public ArrayList<Integer> getFeaturesE() {
+    public int[] getFeaturesE() {
         return featuresE;
     }
 
+    public long getNUM_TOTAL_FEATURES() {
+        return NUM_TOTAL_FEATURES;
+    }
+
+    public long getNUM_FEATURES_A() {
+        return NUM_FEATURES_A;
+    }
+
+    public long getNUM_FEATURES_B() {
+        return NUM_FEATURES_B;
+    }
+
+    public long getNUM_FEATURES_C() {
+        return NUM_FEATURES_C;
+    }
+
+    public long getNUM_FEATURES_D() {
+        return NUM_FEATURES_D;
+    }
+
+    public long getNUM_FEATURES_E() {
+        return NUM_FEATURES_E;
+    }
 }

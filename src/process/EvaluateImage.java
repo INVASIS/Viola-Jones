@@ -91,7 +91,7 @@ public class EvaluateImage {
         // Handle the case this is not a haar file
         int[] haar;
         if (fileName.endsWith(Conf.IMAGES_EXTENSION) || !Utils.fileExists(fileName)) {
-            haar = computeImageFeatures(fileName, false).stream().mapToInt(i -> i).toArray();
+            haar = computeImageFeatures(fileName, false);
         } else {
             haar = readFeatures(fileName);
         }
@@ -125,9 +125,9 @@ public class EvaluateImage {
 
 
             // TODO : make it work (or find another solution)
-            //haar = computeImageFeaturesDetector(imageHandler, haarDetector, (float) (rectangle.getHeight()) / (float) baseHeight).stream().mapToInt(i -> i).toArray();
+            //haar = computeImageFeaturesDetector(imageHandler, haarDetector, (float) (rectangle.getHeight()) / (float) baseHeight);
 
-            haar = computeImageFeatures(downsamplingImage(tmpImageHandler), false, null).stream().mapToInt(i -> i).toArray();
+            haar = computeImageFeatures(downsamplingImage(tmpImageHandler), false, null);
 
             if (Classifier.isFace(cascade, tweaks, haar, layerCount)) {
                 res.add(rectangle);

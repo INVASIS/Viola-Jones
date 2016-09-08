@@ -113,7 +113,7 @@ public class ImageHandler {
         if (fileExists(haarFilePath))
             return Serializer.readFeatures(haarFilePath);
         else
-            return computeImageFeatures(filePath, true).stream().mapToInt(i -> i).toArray();
+            return computeImageFeatures(filePath, true);
     }
 
 

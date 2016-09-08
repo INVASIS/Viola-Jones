@@ -586,7 +586,7 @@ public class Classifier {
         long fauxPositif = 0;
 
         EvaluateImage evaluateImage = new EvaluateImage(countTestPos, countTestNeg, test_dir, width, height);
-        for (String listTestFace : streamFiles(test_dir + "/faces", Conf.FEATURE_EXTENSION)) {
+        /*for (String listTestFace : streamFiles(test_dir + "/faces", Conf.FEATURE_EXTENSION)) {
             boolean result = evaluateImage.guess(listTestFace);
 
             if (result)
@@ -625,7 +625,7 @@ public class Classifier {
         System.out.println("fauxNegatif : " + fauxNegatif);
         System.out.println("vraiNegatif : " + vraiNegatif);
         System.out.println("fauxPositif : " + fauxPositif);
-
+*/
         // TODO: after the training has been done, we can test on a new set of images.
 
         //ImageHandler imageHandler = evaluateImage.downsamplingImage(new ImageHandler("data/face.jpg"));

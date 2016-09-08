@@ -1,7 +1,5 @@
-import GUI.ImageHandler;
 import process.Classifier;
 import process.Conf;
-import process.EvaluateImage;
 import utils.Serializer;
 
 import static process.features.FeatureExtractor.countAllFeatures;

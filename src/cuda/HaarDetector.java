@@ -161,27 +161,21 @@ public class HaarDetector extends HaarBase {
         cuMemAlloc(dstPtr, numFeatures * Sizeof.INT);
 
         CUdeviceptr tmp_ptr = null;
-        ArrayList<Integer> tmp_list = null;
         switch (type) {
             case 'A':
                 tmp_ptr = this.allRectanglesA;
-                tmp_list = this.featuresA;
                 break;
             case 'B':
                 tmp_ptr = this.allRectanglesB;
-                tmp_list = this.featuresB;
                 break;
             case 'C':
                 tmp_ptr = this.allRectanglesC;
-                tmp_list = this.featuresC;
                 break;
             case 'D':
                 tmp_ptr = this.allRectanglesD;
-                tmp_list = this.featuresD;
                 break;
             case 'E':
                 tmp_ptr = this.allRectanglesE;
-                tmp_list = this.featuresE;
                 break;
         }
 
@@ -211,9 +205,22 @@ public class HaarDetector extends HaarBase {
         int hostOutput[] = new int[(int) numFeatures];
         cuMemcpyDtoH(Pointer.to(hostOutput), dstPtr, numFeatures * Sizeof.INT);
 
-        // TODO : Need to do better - Opti by returning only an int[]
-        for (int index = 0; index < numFeatures; index++) {
-            tmp_list.add(hostOutput[index]);
+        switch (type) {
+            case 'A':
+                this.featuresA = hostOutput;
+                break;
+            case 'B':
+                this.featuresB = hostOutput;
+                break;
+            case 'C':
+                this.featuresC = hostOutput;
+                break;
+            case 'D':
+                this.featuresD = hostOutput;
+                break;
+            case 'E':
+                this.featuresE = hostOutput;
+                break;
         }
 
         cuMemFree(dstPtr);
