@@ -517,11 +517,12 @@ public class Classifier {
                 int expectedSize = Math.min(20 + boostingRounds * 10, 200);
                 System.out.println("    - Expected number of weak classifiers: " + expectedSize);
                 for (int i = 0; i < expectedSize; i++) {
-                    System.out.println("    - Adaboost N." + i + "/" + expectedSize + ":");
+                    System.out.println("    - Adaboost N." + (i+1) + "/" + expectedSize + ":");
                     adaboost(0);
                 }
                 System.out.println("    - Number of weak classifier: " + cascade[0].size());
 
+                Serializer.writeRule(cascade[round], round == 0, Conf.TRAIN_FEATURES);
                 // Attentional cascade is useless, a single round will be enough
                 break;
             }
