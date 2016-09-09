@@ -4,6 +4,7 @@ import GUI.Display;
 import GUI.ImageHandler;
 import javafx.util.Pair;
 import jeigen.DenseMatrix;
+import process.features.Face;
 import process.features.Rectangle;
 import utils.Serializer;
 
@@ -658,11 +659,11 @@ public class Classifier {
         //Display.drawImage(imageHandler.getBufferedImage());
 
         // Your images, for now do not take too lages images, it will take too long...
-        String images[] = {}; // put your images here (and in data/) to draw the faces
+        String images[] = {"got.jpeg"}; // put your images here (and in data/) to draw the faces
 
         for (String img : images) {
             ImageHandler image = new ImageHandler("data/" + img);
-            ArrayList<Pair<Rectangle, Double>> rectangles = evaluateImage.getFaces(image);
+            ArrayList<Face> rectangles = evaluateImage.getFaces(image);
             System.out.println("Found " + rectangles.size() + " faces rectangle that contains a face");
             image.drawRectangles(rectangles);
             Display.drawImage(image.getBufferedImage());

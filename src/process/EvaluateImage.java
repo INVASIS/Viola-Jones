@@ -4,12 +4,22 @@ import GUI.ImageHandler;
 import cuda.AnyFilter;
 import cuda.HaarDetector;
 import javafx.util.Pair;
+import org.jgrapht.DirectedGraph;
+import org.jgrapht.ListenableGraph;
+import org.jgrapht.UndirectedGraph;
+import org.jgrapht.alg.ConnectivityInspector;
+import org.jgrapht.alg.StrongConnectivityInspector;
+import org.jgrapht.alg.interfaces.StrongConnectivityAlgorithm;
+import org.jgrapht.graph.DefaultEdge;
+import org.jgrapht.graph.ListenableDirectedGraph;
+import org.jgrapht.graph.SimpleDirectedGraph;
+import org.jgrapht.graph.SimpleGraph;
+import process.features.Face;
 import process.features.Rectangle;
 import utils.Serializer;
 import utils.Utils;
 
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.*;
 
 import static process.features.FeatureExtractor.computeImageFeatures;
 import static utils.Serializer.readFeatures;
@@ -101,17 +111,17 @@ public class EvaluateImage {
 
     }
 
-    public ArrayList<Pair<Rectangle, Double>> getFaces(String fileName) {
+    public ArrayList<Face> getFaces(String fileName) {
         ImageHandler imageHandler = new ImageHandler(fileName);
 
         return getFaces(imageHandler);
     }
 
     // TODO : centrer-reduire les rectangles
-    public ArrayList<Pair<Rectangle, Double>> getFaces(ImageHandler imageHandler) {
+    public ArrayList<Face> getFaces(ImageHandler imageHandler) {
 
         ArrayList<Rectangle> allRectangles = getAllRectangles(imageHandler);
-        ArrayList<Pair<Rectangle, Double>> res = new ArrayList<>();
+        ArrayList<Face> res = new ArrayList<>();
 
         int[] haar;
         for (Rectangle rectangle : allRectangles) {
@@ -132,10 +142,11 @@ public class EvaluateImage {
 
             double confidence = Classifier.isFace(cascade, tweaks, haar, layerCount);
             if (confidence > 0) {
-                res.add(new Pair<>(rectangle, confidence));
+                res.add(new Face(rectangle, confidence));
             }
         }
 
+        res = postProcessing(res);
         // TODO : call post-processing to remove unnecessary rectangles
         return res;
     }
@@ -235,33 +246,44 @@ public class EvaluateImage {
 
     }
 
-    private ArrayList<Pair<Rectangle, Double>> postProcessing(ArrayList<Pair<Rectangle, Double>> allRectangles, int M, int N) {
-        ArrayList<Pair<Rectangle, Double>> result = new ArrayList<>();
-
+    // TODO : can improve perf here !
+    // TODO : Improve by discarging rectangles with not enouth red on the original face (on the image)
+    private ArrayList<Face> postProcessing(ArrayList<Face> allFaces) {
+        ArrayList<Face> result = new ArrayList<>();
         ArrayList<Pair<Integer, Integer>> centers = new ArrayList<>();
-        for (Pair<Rectangle, Double> pair : allRectangles) {
-            Rectangle rectangle = pair.getKey();
 
-            int x = (rectangle.getX() * 2 + rectangle.getWidth()) / 2;
-            int y = (rectangle.getY() * 2 + rectangle.getHeight()) / 2;
+        UndirectedGraph g = new SimpleGraph(DefaultEdge.class);
+        for (Face face : allFaces) {
+            int x = (face.getX() * 2 + face.getWidth()) / 2;
+            int y = (face.getY() * 2 + face.getHeight()) / 2;
 
-            centers.add(new Pair<>(x, y));
+            Pair<Integer, Integer> center = new Pair<>(x, y);
+            centers.add(center);
+            g.addVertex(center);
+            g.addVertex(face);
         }
 
-        int i = 0;
-        for (Pair<Rectangle, Double> pair : allRectangles) {
-            Rectangle rectangle = pair.getKey();
+        for (Face face : allFaces)
+            centers.stream().filter(center -> face.conrains(center.getKey(), center.getValue())).forEach(center -> g.addEdge(face, center));
 
+        ConnectivityInspector inspector = new ConnectivityInspector(g);
 
+        ArrayList list = (ArrayList) inspector.connectedSets();
+        for (Object aList : list) {
+            HashSet set = (HashSet) aList;
 
-            Pair<Integer, Integer> center = centers.get(i);
-
-            if (rectangle.conrains(center.getKey(), center.getValue())) {
-
+            Face face = new Face(new Rectangle(0, 0, 0, 0), -1);
+            for (Object o : set) {
+                if (o instanceof Face) {
+                    Face candidate = (Face) o;
+                    if (candidate.getConfidence() > face.getConfidence())
+                        face = candidate;
+                }
             }
-
-            i++;
+            if (face.getConfidence() > 0)
+                result.add(face);
         }
+
         return result;
     }
 

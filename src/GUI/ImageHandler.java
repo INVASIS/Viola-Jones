@@ -4,6 +4,7 @@ import javafx.util.Pair;
 import process.Conf;
 import process.Filters;
 import process.IntegralImage;
+import process.features.Face;
 import process.features.Rectangle;
 import utils.Converters;
 import utils.Serializer;
@@ -118,10 +119,9 @@ public class ImageHandler {
     }
 
 
-    public void drawRectangles(ArrayList<Pair<Rectangle, Double>> rectangles) {
+    public void drawRectangles(ArrayList<Face> rectangles) {
 
-        for (Pair<Rectangle, Double> pair : rectangles) {
-            Rectangle rectangle = pair.getKey();
+        for (Face rectangle : rectangles) {
             for (int i = rectangle.getX(); i < rectangle.getX() + rectangle.getWidth(); i++) {
                 this.getBufferedImage().setRGB(i, rectangle.getY(), 0);
                 this.getBufferedImage().setRGB(i, rectangle.getY() + rectangle.getHeight() - 1, 0);
