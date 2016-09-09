@@ -87,32 +87,34 @@ public class TestFeatureExtractor {
         files.add(img3);
         files.add(img4);
 
-        ArrayList<Integer> features1 = new ArrayList<>();
+        int numFeatures = (int) Conf.haarExtractor.getNUM_TOTAL_FEATURES();
+        Serializer.featureCount = countAllFeatures(19, 19);
+        int[] features1 = new int[numFeatures];
         if (Utils.fileExists(img1 + Conf.FEATURE_EXTENSION))
-            Collections.addAll(features1, Arrays.stream(Serializer.readFeatures(img1 + Conf.FEATURE_EXTENSION)).boxed().toArray(Integer[]::new));
+            System.arraycopy(Serializer.readFeatures(img1 + Conf.FEATURE_EXTENSION), 0, features1, 0, numFeatures);
         else
             features1 = computeImageFeatures(img1, true);
 
-        ArrayList<Integer> features2 = new ArrayList<>();
+        int[] features2 = new int[numFeatures];
         if (Utils.fileExists(img2 + Conf.FEATURE_EXTENSION))
-            Collections.addAll(features1, Arrays.stream(Serializer.readFeatures(img2 + Conf.FEATURE_EXTENSION)).boxed().toArray(Integer[]::new));
-        else
+            System.arraycopy(Serializer.readFeatures(img2 + Conf.FEATURE_EXTENSION), 0, features2, 0, numFeatures);
+            else
             features2 = computeImageFeatures(img2, true);
 
-        ArrayList<Integer> features3 = new ArrayList<>();
+        int[] features3 = new int[numFeatures];
         if (Utils.fileExists(img3 + Conf.FEATURE_EXTENSION))
-            Collections.addAll(features1, Arrays.stream(Serializer.readFeatures(img3 + Conf.FEATURE_EXTENSION)).boxed().toArray(Integer[]::new));
+            System.arraycopy(Serializer.readFeatures(img3 + Conf.FEATURE_EXTENSION), 0, features3, 0, numFeatures);
         else
             features3 = computeImageFeatures(img3, true);
 
-        ArrayList<Integer> features4 = new ArrayList<>();
+        int[] features4 = new  int[numFeatures];
         if (Utils.fileExists(img4 + Conf.FEATURE_EXTENSION))
-            Collections.addAll(features1, Arrays.stream(Serializer.readFeatures(img4 + Conf.FEATURE_EXTENSION)).boxed().toArray(Integer[]::new));
+            System.arraycopy(Serializer.readFeatures(img4 + Conf.FEATURE_EXTENSION), 0, features4, 0, numFeatures);
         else
             features4 = computeImageFeatures(img4, true);
 
 
-        ArrayList<ArrayList<Integer>> all = new ArrayList<>();
+        ArrayList<int[]> all = new ArrayList<>();
         all.add(features1);
         all.add(features2);
         all.add(features3);
@@ -123,9 +125,9 @@ public class TestFeatureExtractor {
         if (Utils.fileExists(ORGANIZED_FEATURES))
             Utils.deleteFile(ORGANIZED_FEATURES);
 
-        organizeFeatures(features1.size(), files, ORGANIZED_FEATURES, ORGANIZED_SAMPLE);
+        organizeFeatures(numFeatures, files, ORGANIZED_FEATURES, ORGANIZED_SAMPLE);
 
-        for (int i = 0; i < features1.size(); i++) {
+        for (int i = 0; i < numFeatures; i++) {
             for (int j = 0; j < 4; j++) {
                 int index = getExampleIndex(i, j, 4, ORGANIZED_SAMPLE);
 
@@ -134,7 +136,7 @@ public class TestFeatureExtractor {
 
                 int feat = getExampleFeature(i, j, 4, ORGANIZED_FEATURES);
 
-                assertEquals(Long.valueOf(all.get(index).get(i)), Long.valueOf(feat));
+                assertEquals(Long.valueOf(all.get(index)[i]), Long.valueOf(feat));
 
             }
         }

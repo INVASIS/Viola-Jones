@@ -123,12 +123,12 @@ public class ImageHandler {
 
             for (int i = rectangle.getX(); i < rectangle.getX() + rectangle.getWidth(); i++) {
                 this.getBufferedImage().setRGB(i, rectangle.getY(), 0);
-                this.getBufferedImage().setRGB(i, rectangle.getY() + rectangle.getHeight(), 0);
+                this.getBufferedImage().setRGB(i, rectangle.getY() + rectangle.getHeight() - 1, 0);
             }
 
             for (int j = rectangle.getY(); j < rectangle.getY() + rectangle.getHeight(); j++) {
                 this.getBufferedImage().setRGB(rectangle.getX(), j, 0);
-                this.getBufferedImage().setRGB(rectangle.getX() + rectangle.getWidth(), j, 0);
+                this.getBufferedImage().setRGB(rectangle.getX() + rectangle.getWidth() - 1, j, 0);
             }
 
         }

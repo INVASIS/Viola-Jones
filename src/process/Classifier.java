@@ -572,14 +572,14 @@ public class Classifier {
             System.err.println("Train the classifier before testing it!");
             System.exit(1);
         }*/
-
+/*
         test_dir = dir;
         countTestPos = countFiles(test_dir + Conf.FACES, Conf.IMAGES_EXTENSION);
         countTestNeg = countFiles(test_dir + Conf.NONFACES, Conf.IMAGES_EXTENSION);
         testN = countTestPos + countTestNeg;
 
         computeFeaturesTimed(test_dir, Conf.IMAGES_FEATURES_TEST, false);
-
+*/
         long vraiPositif = 0;
         long fauxNegatif = 0;
         long vraiNegatif = 0;

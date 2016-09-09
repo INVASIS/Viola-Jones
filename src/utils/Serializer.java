@@ -244,8 +244,8 @@ public class Serializer {
 
         } catch (IOException e) {
             System.err.println("Error while reading the list of decisionStumps");
-            e.printStackTrace();
-            System.exit(1);
+            //e.printStackTrace();
+            //System.exit(1);
         }
         return result;
     }
@@ -417,8 +417,8 @@ public class Serializer {
 
         } catch (IOException e) {
             System.err.println("Error while reading the layer memory");
-            e.printStackTrace();
-            System.exit(1);
+            //e.printStackTrace();
+            //System.exit(1);
         }
 
         return layercount;

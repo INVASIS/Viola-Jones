@@ -13,6 +13,7 @@ import java.util.ArrayList;
 
 import static junit.framework.TestCase.assertEquals;
 import static process.features.FeatureExtractor.computeImageFeatures;
+import static process.features.FeatureExtractor.countAllFeatures;
 import static utils.Serializer.*;
 
 
@@ -97,12 +98,12 @@ public class TestSerializer {
             }
         }
 
-        ArrayList<Integer> correctValues = computeImageFeatures(img, true);
-        int[] writtenValues = readArrayFromDisk(haar, correctValues.size());
+        int[] correctValues = computeImageFeatures(img, true);
+        int[] writtenValues = readArrayFromDisk(haar, countAllFeatures(19, 19));
 
 
-        for (int i = 0; i < correctValues.size(); i++)
-            assertEquals(new Integer(writtenValues[i]), correctValues.get(i));
+        for (int i = 0; i < countAllFeatures(19, 19); i++)
+            assertEquals(writtenValues[i], correctValues[i]);
     }
 
     @Test
