@@ -19,5 +19,4 @@ we may only slide 100x less rectangles by providing to the algorithm an approx s
 This approach is compatible with existing CCTV cameras, so this would be a real improvement for performance.
 
 Blacklist
-ThreadPoolExecutor
 

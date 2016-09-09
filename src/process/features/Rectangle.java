@@ -13,6 +13,16 @@ public class Rectangle {
         this.height = height;
     }
 
+
+    public boolean conrains(int px, int py) {
+
+        if (px >= x && px <= x + width && py >= y && py <= y + height)
+            return true;
+        else
+            return false;
+
+    }
+
     public int getX() {
         return x;
     }

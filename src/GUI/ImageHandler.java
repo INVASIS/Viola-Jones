@@ -1,5 +1,6 @@
 package GUI;
 
+import javafx.util.Pair;
 import process.Conf;
 import process.Filters;
 import process.IntegralImage;
@@ -117,10 +118,10 @@ public class ImageHandler {
     }
 
 
-    public void drawRectangles(ArrayList<Rectangle> rectangles) {
+    public void drawRectangles(ArrayList<Pair<Rectangle, Double>> rectangles) {
 
-        for (Rectangle rectangle : rectangles) {
-
+        for (Pair<Rectangle, Double> pair : rectangles) {
+            Rectangle rectangle = pair.getKey();
             for (int i = rectangle.getX(); i < rectangle.getX() + rectangle.getWidth(); i++) {
                 this.getBufferedImage().setRGB(i, rectangle.getY(), 0);
                 this.getBufferedImage().setRGB(i, rectangle.getY() + rectangle.getHeight() - 1, 0);

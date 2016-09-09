@@ -21,8 +21,9 @@ public class DecisionStump implements Callable<StumpRule> {
     private double totalWeightPos;
     private double totalWeightNeg;
     private double minWeight;
+    private boolean[] removed;
 
-    public DecisionStump(DenseMatrix labels, DenseMatrix weights, long featureIndex, int N, double totalWeightPos, double totalWeightNeg, double minWeight) {
+    public DecisionStump(DenseMatrix labels, DenseMatrix weights, long featureIndex, int N, double totalWeightPos, double totalWeightNeg, double minWeight, boolean[] removed) {
         this.Y = labels;
         this.weights = weights;
         this.featureIndex = featureIndex;
@@ -30,6 +31,7 @@ public class DecisionStump implements Callable<StumpRule> {
         this.totalWeightPos = totalWeightPos;
         this.totalWeightNeg = totalWeightNeg;
         this.minWeight = minWeight;
+        this.removed = removed;
     }
 
     @Override
@@ -100,17 +102,18 @@ public class DecisionStump implements Callable<StumpRule> {
 
             while (true) {
                 int exampleIndex = X[iterator];
-                double label = (int) Y.get(0, exampleIndex); // FIXME: why casting to int?
-                double weight = weights.get(0, exampleIndex);
+                if (!removed[exampleIndex]) {
+                    double label = (int) Y.get(0, exampleIndex); // FIXME: why casting to int?
+                    double weight = weights.get(0, exampleIndex);
 
-                if (label < 0) {
-                    leftWeightNeg += weight; // leftWeightNeg += weight
-                    rightWeightNeg -= weight; // rightWeightNeg -= weight
-                } else {
-                    leftWeightPos += weight; // leftWeightPos += weight
-                    rightWeightPos -= weight; // rightWeightPos -= weight
+                    if (label < 0) {
+                        leftWeightNeg += weight; // leftWeightNeg += weight
+                        rightWeightNeg -= weight; // rightWeightNeg -= weight
+                    } else {
+                        leftWeightPos += weight; // leftWeightPos += weight
+                        rightWeightPos -= weight; // rightWeightPos -= weight
+                    }
                 }
-
                 // It is possible to have the same feature values from different examples
                 // if a new threshold can be found, break
                 // two cases are possible:

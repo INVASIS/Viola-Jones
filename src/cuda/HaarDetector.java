@@ -132,20 +132,30 @@ public class HaarDetector extends HaarBase {
             }
         }
 
-        cuMemAlloc(this.allRectanglesA, NUM_FEATURES_A * Sizeof.INT);
-        cuMemcpyHtoD(this.allRectanglesA, Pointer.to(arrayTypeA), NUM_FEATURES_A * Sizeof.INT);
+        if (NUM_FEATURES_A != 0){
+            cuMemAlloc(this.allRectanglesA, NUM_FEATURES_A * Sizeof.INT);
+            cuMemcpyHtoD(this.allRectanglesA, Pointer.to(arrayTypeA), NUM_FEATURES_A * Sizeof.INT);
+        }
 
-        cuMemAlloc(this.allRectanglesB, NUM_FEATURES_B * Sizeof.INT);
-        cuMemcpyHtoD(this.allRectanglesB, Pointer.to(arrayTypeB), NUM_FEATURES_B * Sizeof.INT);
+        if (NUM_FEATURES_B != 0) {
+            cuMemAlloc(this.allRectanglesB, NUM_FEATURES_B * Sizeof.INT);
+            cuMemcpyHtoD(this.allRectanglesB, Pointer.to(arrayTypeB), NUM_FEATURES_B * Sizeof.INT);
+        }
 
-        cuMemAlloc(this.allRectanglesC, NUM_FEATURES_C * Sizeof.INT);
-        cuMemcpyHtoD(this.allRectanglesC, Pointer.to(arrayTypeC), NUM_FEATURES_C * Sizeof.INT);
+        if (NUM_FEATURES_C != 0) {
+            cuMemAlloc(this.allRectanglesC, NUM_FEATURES_C * Sizeof.INT);
+            cuMemcpyHtoD(this.allRectanglesC, Pointer.to(arrayTypeC), NUM_FEATURES_C * Sizeof.INT);
+        }
 
-        cuMemAlloc(this.allRectanglesD, NUM_FEATURES_D * Sizeof.INT);
-        cuMemcpyHtoD(this.allRectanglesD, Pointer.to(arrayTypeD), NUM_FEATURES_D * Sizeof.INT);
+        if (NUM_FEATURES_D != 0) {
+            cuMemAlloc(this.allRectanglesD, NUM_FEATURES_D * Sizeof.INT);
+            cuMemcpyHtoD(this.allRectanglesD, Pointer.to(arrayTypeD), NUM_FEATURES_D * Sizeof.INT);
+        }
 
-        cuMemAlloc(this.allRectanglesE, NUM_FEATURES_E * Sizeof.INT);
-        cuMemcpyHtoD(this.allRectanglesE, Pointer.to(arrayTypeE), NUM_FEATURES_E * Sizeof.INT);
+        if (NUM_FEATURES_E != 0) {
+            cuMemAlloc(this.allRectanglesE, NUM_FEATURES_E * Sizeof.INT);
+            cuMemcpyHtoD(this.allRectanglesE, Pointer.to(arrayTypeE), NUM_FEATURES_E * Sizeof.INT);
+        }
     }
 
 

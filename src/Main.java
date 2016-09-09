@@ -12,10 +12,10 @@ public class Main {
         int height = 19;
 
         // TODO : TO CONSTANTS
-        float overallTargetDetectionRate = 0.999f;
-        float overallTargetFalsePositiveRate = 0.000001f;
+        float overallTargetDetectionRate = 0.97f;
+        float overallTargetFalsePositiveRate = 0.0000005f;
         float targetDetectionRate = 0.995f;
-        float targetFalsePositiveRate = 0.5f;
+        float targetFalsePositiveRate = 0.49f;
 
         if (Conf.USE_CUDA)
             Conf.haarExtractor.setUp(width, height);

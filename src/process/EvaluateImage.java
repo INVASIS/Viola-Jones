@@ -3,6 +3,7 @@ package process;
 import GUI.ImageHandler;
 import cuda.AnyFilter;
 import cuda.HaarDetector;
+import javafx.util.Pair;
 import process.features.Rectangle;
 import utils.Serializer;
 import utils.Utils;
@@ -96,20 +97,21 @@ public class EvaluateImage {
             haar = readFeatures(fileName);
         }
 
-        return Classifier.isFace(this.cascade, this.tweaks, haar, this.layerCount);
+        return Classifier.isFace(this.cascade, this.tweaks, haar, this.layerCount) > 0;
 
     }
 
-    public ArrayList<Rectangle> getFaces(String fileName) {
+    public ArrayList<Pair<Rectangle, Double>> getFaces(String fileName) {
         ImageHandler imageHandler = new ImageHandler(fileName);
 
         return getFaces(imageHandler);
     }
 
-    public ArrayList<Rectangle> getFaces(ImageHandler imageHandler) {
+    // TODO : centrer-reduire les rectangles
+    public ArrayList<Pair<Rectangle, Double>> getFaces(ImageHandler imageHandler) {
 
         ArrayList<Rectangle> allRectangles = getAllRectangles(imageHandler);
-        ArrayList<Rectangle> res = new ArrayList<>();
+        ArrayList<Pair<Rectangle, Double>> res = new ArrayList<>();
 
         int[] haar;
         for (Rectangle rectangle : allRectangles) {
@@ -118,8 +120,7 @@ public class EvaluateImage {
 
             // TODO : improve copy or optimize this !
             for (int x = rectangle.getX(); x < rectangle.getWidth() + rectangle.getX(); x++)
-                for (int y = rectangle.getY(); y < rectangle.getY() + rectangle.getHeight(); y++)
-                    tmpImage[x - rectangle.getX()][y - rectangle.getY()] = imageHandler.getGrayImage()[x][y];
+                System.arraycopy(imageHandler.getGrayImage()[x], rectangle.getY(), tmpImage[x - rectangle.getX()], 0, rectangle.getY() + rectangle.getHeight() - rectangle.getY());
 
             ImageHandler tmpImageHandler = new ImageHandler(tmpImage, rectangle.getWidth(), rectangle.getHeight());
 
@@ -129,10 +130,13 @@ public class EvaluateImage {
 
             haar = computeImageFeatures(downsamplingImage(tmpImageHandler), false, null);
 
-            if (Classifier.isFace(cascade, tweaks, haar, layerCount)) {
-                res.add(rectangle);
+            double confidence = Classifier.isFace(cascade, tweaks, haar, layerCount);
+            if (confidence > 0) {
+                res.add(new Pair<>(rectangle, confidence));
             }
         }
+
+        // TODO : call post-processing to remove unnecessary rectangles
         return res;
     }
 
@@ -150,14 +154,14 @@ public class EvaluateImage {
         // Quick and dirty way to reduce the number of rectangles
         // TODO : needs to be improved!
         int xDisplacer = imageWidth / 100;
-        if (xDisplacer > 4)
-            xDisplacer = 4;
+        if (xDisplacer > 10)
+            xDisplacer = 10;
         if (xDisplacer < 1)
             xDisplacer = 1;
 
         int yDisplacer = imageHeight / 100;
-        if (yDisplacer > 4)
-            yDisplacer = 4;
+        if (yDisplacer > 10)
+            yDisplacer = 10;
         if (yDisplacer < 1)
             yDisplacer = 1;
 
@@ -229,6 +233,36 @@ public class EvaluateImage {
 
         return new ImageHandler(newImg, baseWidth, baseHeight);
 
+    }
+
+    private ArrayList<Pair<Rectangle, Double>> postProcessing(ArrayList<Pair<Rectangle, Double>> allRectangles, int M, int N) {
+        ArrayList<Pair<Rectangle, Double>> result = new ArrayList<>();
+
+        ArrayList<Pair<Integer, Integer>> centers = new ArrayList<>();
+        for (Pair<Rectangle, Double> pair : allRectangles) {
+            Rectangle rectangle = pair.getKey();
+
+            int x = (rectangle.getX() * 2 + rectangle.getWidth()) / 2;
+            int y = (rectangle.getY() * 2 + rectangle.getHeight()) / 2;
+
+            centers.add(new Pair<>(x, y));
+        }
+
+        int i = 0;
+        for (Pair<Rectangle, Double> pair : allRectangles) {
+            Rectangle rectangle = pair.getKey();
+
+
+
+            Pair<Integer, Integer> center = centers.get(i);
+
+            if (rectangle.conrains(center.getKey(), center.getValue())) {
+
+            }
+
+            i++;
+        }
+        return result;
     }
 
     public HashMap<Integer, Integer> getNeededHaarValues() {

@@ -2,6 +2,7 @@ package process;
 
 import GUI.Display;
 import GUI.ImageHandler;
+import javafx.util.Pair;
 import jeigen.DenseMatrix;
 import process.features.Rectangle;
 import utils.Serializer;
@@ -61,7 +62,9 @@ public class Classifier {
 
     private DenseMatrix[] trainBlackList = new DenseMatrix[2];
     private DenseMatrix[] testBlackList = new DenseMatrix[2];
-
+    private boolean[] removed;
+    private int usedTrainPos;
+    private int usedTrainNeg;
 
     private ArrayList<Integer> layerMemory;
     private ArrayList<StumpRule>[] cascade;
@@ -88,13 +91,14 @@ public class Classifier {
         System.out.println("Feature count for " + width + "x" + height + ": " + featureCount);
     }
 
-    public static boolean isFace(ArrayList<StumpRule>[] cascade, ArrayList<Float> tweaks, int[] exampleFeatureValues, int defaultLayerNumber) {
+    public static double isFace(ArrayList<StumpRule>[] cascade, ArrayList<Float> tweaks, int[] exampleFeatureValues, int defaultLayerNumber) {
         // Everything is a face if no layer is involved
         if (defaultLayerNumber == 0) {
             System.out.println("Does it really happen? It seems!"); // LoL
-            return true;
+            return 1;
         }
         int layerCount = defaultLayerNumber < 0 ? tweaks.size() : defaultLayerNumber;
+        double confidence = 0;
         for(int layer = 0; layer < layerCount; layer++){
             double prediction = 0;
             int committeeSize = cascade[layer].size();
@@ -104,7 +108,7 @@ public class Classifier {
                 double vote = (featureValue > rule.threshold ? 1 : -1) * rule.toggle + tweaks.get(layer);
                 if (rule.error == 0) {
                     if (ruleIndex == 0)
-                        return vote > 0;
+                        return vote;
                     else {
                         System.err.println("Find an invalid rule!");
                         System.exit(1);
@@ -112,21 +116,27 @@ public class Classifier {
                 }
                 prediction += vote * log((1.0d/rule.error) - 1);
             }
+            confidence += prediction;
             if (prediction < 0)
-                return false;
+                return prediction;
         }
-        return true;
+        return confidence;
     }
 
     /**
      * Used to compute results
      */
-    private static DenseMatrix predictLabel(ArrayList<StumpRule> committee, int N, float decisionTweak, int startingFrom) {
+    private static void predictLabel(ArrayList<StumpRule> committee, int N, float decisionTweak, boolean onlyMostRecent, DenseMatrix prediction) {
         // prediction = Matrix<int, 1,n > -> To be filled here
 
         int committeeSize = committee.size();
         DenseMatrix memberVerdict = new DenseMatrix(committeeSize, N);
         DenseMatrix memberWeight = new DenseMatrix(1, committeeSize);
+
+        onlyMostRecent = committeeSize == 1 || onlyMostRecent;
+
+        int startingFrom = onlyMostRecent ? committeeSize - 1 : 0;
+
 
         // We compute results for the layer by comparing each StumpRule's threshold and each example.
         for (int member = startingFrom; member < committeeSize; member++) {
@@ -149,8 +159,8 @@ public class Classifier {
                 memberVerdict.set(member, featureExamplesIndexes[i],
                         ((featureValues[i] > committee.get(member).threshold ? 1 : -1) * committee.get(member).toggle) + decisionTweak);
         }
-        DenseMatrix prediction = new DenseMatrix(1, N);
-        if (startingFrom == 0) {
+        //DenseMatrix prediction = new DenseMatrix(1, N);
+        if (!onlyMostRecent) {
             // If we predict labels using all members of this layer, we have to weight memberVerdict.
             DenseMatrix finalVerdict = memberWeight.mmul(memberVerdict);
             for (int i = 0; i < N; i++)
@@ -160,7 +170,6 @@ public class Classifier {
             for (int i = 0; i < N; i++)
                 prediction.set(0, i, memberVerdict.get(startingFrom, i) > 0 ? 1 : -1);
         }
-        return prediction;
     }
 
     /**
@@ -185,15 +194,15 @@ public class Classifier {
 //        System.out.println("      - Calling bestStump with totalWeightsPos: " + totalWeightPos + " totalWeightNeg: " + totalWeightNeg + " minWeight: " + minWeight);
         ArrayList<Future<StumpRule>> futureResults = new ArrayList<>(trainN);
         for (int i = 0; i < featureCount; i++)
-            futureResults.add(executor.submit(new DecisionStump(labelsTrain, weightsTrain, i, trainN, totalWeightPos, totalWeightNeg, minWeight)));
+                futureResults.add(executor.submit(new DecisionStump(labelsTrain, weightsTrain, i, trainN, totalWeightPos, totalWeightNeg, minWeight, removed)));
 
         StumpRule best = null;
         for (int i = 0; i < featureCount; i++) {
             try {
-                StumpRule current = futureResults.get(i).get();
-                if (best == null)
-                    best = current;
-                else if (current.compare(best))
+                    StumpRule current = futureResults.get(i).get();
+                    if (best == null)
+                        best = current;
+                    else if (current.compare(best))
                         best = current;
             } catch (InterruptedException | ExecutionException e) {
                 e.printStackTrace();
@@ -228,7 +237,8 @@ public class Classifier {
         StumpRule bestDS = bestStump(); // A new weak classifier
         cascade[round].add(bestDS); // Add this weak classifier to our current strong classifier to get better results
 
-        DenseMatrix predictions = predictLabel(cascade[round], trainN, 0, cascade[round].size()-1);
+        DenseMatrix predictions = new DenseMatrix(1, trainN);
+        predictLabel(cascade[round], trainN, 0, true, predictions);
 
         DenseMatrix agree = labelsTrain.mul(predictions);
         DenseMatrix weightUpdate = DenseMatrix.ones(1, trainN); // new ArrayList<>(trainN);
@@ -236,7 +246,7 @@ public class Classifier {
         boolean werror = false;
 
         for (int i = 0; i < trainN; i++) {
-            if (agree.get(0, i) < 0) {
+            if (!removed[i] && agree.get(0, i) < 0) {
                 if (bestDS.error != 0)
                     weightUpdate.set(0, i, (1 / bestDS.error) - 1); // (1 / bestDS.error) - 1
                 else
@@ -281,7 +291,7 @@ public class Classifier {
     }
 
     // p141 in paper?
-    private double[] calcEmpiricalError(boolean training, int round) {
+    private double[] calcEmpiricalError(boolean training, int round, boolean canRemove) {
         // STATE: OK & CHECKED 16/26/08
 
         double[] res = new double[2];
@@ -294,26 +304,33 @@ public class Classifier {
             trainBlackList[NEGATIVE] = DenseMatrix.ones(1, countTrainNeg);
 
             DenseMatrix verdicts = DenseMatrix.ones(1, trainN);
+            DenseMatrix predictions = DenseMatrix.zeros(1, trainN);
             for (int layer = 0; layer < round+1; layer++) {
-                DenseMatrix predictions = predictLabel(cascade[layer], trainN, tweaks.get(layer), 0);
+                predictLabel(cascade[layer], trainN, tweaks.get(layer), false, predictions);
                 verdicts = verdicts.min(predictions); // Those at -1, remain where you are!
             }
 
             // Evaluate prediction errors
             DenseMatrix agree = labelsTrain.mul(verdicts);
             for (int exampleIndex = 0; exampleIndex < trainN; exampleIndex++) {
-                if (agree.get(0, exampleIndex) < 0) {
+                if (!removed[exampleIndex] && agree.get(0, exampleIndex) < 0) {
                     if (exampleIndex < countTrainPos) {
                         trainBlackList[POSITIVE].set(0, exampleIndex, 1);
                         nFalseNegative += 1;
+                        if (canRemove) {
+                            usedTrainPos--;
+                            removed[exampleIndex] = true;
+                        }
                     } else {
                         trainBlackList[NEGATIVE].set(0, exampleIndex-countTrainPos, 0);
                         nFalsePositive += 1;
-                    }
+                     }
                 }
             }
             res[0] = nFalsePositive / (double) countTrainNeg;
-            res[1] = nFalseNegative / (double) countTrainPos;
+            res[1] = 1 - nFalseNegative / (float) countTrainPos;
+
+            //res[1] = nFalseNegative / (double) countTrainPos;
         }
         else {
             int nPos = (int) ((double)(countTestPos)/100*10);
@@ -322,14 +339,14 @@ public class Classifier {
             testBlackList[NEGATIVE] = DenseMatrix.ones(1, nNeg);
 
             for (int i = 0; i < nPos; i++) {
-                boolean face = isFace(cascade, tweaks, Serializer.readFeatures(testFaces.get(i) + Conf.FEATURE_EXTENSION), round+1);
+                boolean face = isFace(cascade, tweaks, Serializer.readFeatures(testFaces.get(i) + Conf.FEATURE_EXTENSION), round+1) > 0;
                 if (!face) {
                     testBlackList[POSITIVE].set(0, i, 1);
                     nFalseNegative += 1;
                 }
             }
             for (int i = 0; i < nNeg; i++) {
-                boolean face = isFace(cascade, tweaks, Serializer.readFeatures(testNonFaces.get(i) + Conf.FEATURE_EXTENSION), round+1);
+                boolean face = isFace(cascade, tweaks, Serializer.readFeatures(testNonFaces.get(i) + Conf.FEATURE_EXTENSION), round+1) > 0;
                 if (face) {
                     testBlackList[NEGATIVE].set(0, i, 0);
                     nFalsePositive += 1;
@@ -373,11 +390,11 @@ public class Classifier {
             while (Math.abs(tweak) < 1.1) {
                 tweaks.set(round, tweak);
 
-                double[] resTrain = calcEmpiricalError(true, round);
-                double[] resTest = calcEmpiricalError(false, round);
+                double[] resTrain = calcEmpiricalError(true, round, false);
+                //double[] resTest = calcEmpiricalError(false, round);
 
-                double worstFalsePositive = Math.max(resTrain[0], resTest[0]);
-                double worstDetectionRate = Math.min(resTrain[1], resTest[1]);
+                double worstFalsePositive = Math.max(resTrain[0], resTrain[0]);
+                double worstDetectionRate = Math.min(resTrain[1], resTrain[1]);
 
                 if (finalTweak) {
                     if (worstDetectionRate >= 0.99) {
@@ -451,6 +468,8 @@ public class Classifier {
         countTrainNeg = trainNonFaces.size();
         trainN = countTrainPos + countTrainNeg;
 
+        usedTrainNeg = countTrainNeg;
+        usedTrainPos = countTrainPos;
         System.out.println("Total number of training images: " + trainN + " (pos: " + countTrainPos + ", neg: " + countTrainNeg + ")");
 
         test_dir = testDir;
@@ -461,6 +480,10 @@ public class Classifier {
         testN = countTestPos + countTestNeg;
 
         System.out.println("Total number of test images: " + testN + " (pos: " + countTestPos + ", neg: " + countTestNeg + ")");
+
+        removed = new boolean[trainN];
+        for (int i = 0; i < trainN; i++)
+            removed[i] = false;
 
         layerMemory = new ArrayList<>();
 
@@ -505,8 +528,11 @@ public class Classifier {
             // Update weights (needed because adaboost changes weights when running)
             totalWeightPos = initialPositiveWeight;
             totalWeightNeg = 1 - initialPositiveWeight;
-            double averageWeightPos = totalWeightPos / countTrainPos;
-            double averageWeightNeg = totalWeightNeg / countTrainNeg;
+            //double averageWeightPos = totalWeightPos / countTrainPos;
+            //double averageWeightNeg = totalWeightNeg / countTrainNeg;
+            double averageWeightPos = totalWeightPos / usedTrainPos;
+            double averageWeightNeg = totalWeightNeg / usedTrainNeg;
+
             minWeight = averageWeightPos < averageWeightNeg ? averageWeightPos : averageWeightNeg;
             maxWeight = averageWeightPos > averageWeightNeg ? averageWeightPos : averageWeightNeg;
             weightsTrain = DenseMatrix.zeros(1, trainN);
@@ -541,10 +567,10 @@ public class Classifier {
             //layerMemory.add(trainSet.committee.size());
             layerMemory.add(cascade[round].size());
 
-            double[] tmp = calcEmpiricalError(true, round);
+            double[] tmp = calcEmpiricalError(true, round, true);
             System.out.println("    - The current tweak " + tweaks.get(round) + " has falsePositive " + tmp[0] + " and detectionRate " + tmp[1] + " on the training examples.");
             if (withTweaks) {
-                tmp = calcEmpiricalError(false, round);
+                //tmp = calcEmpiricalError(false, round);
                 System.out.println("    - The current tweak " + tweaks.get(round) + " has falsePositive " + tmp[0] + " and detectionRate " + tmp[1] + " on the validation examples.");
                 accumulatedFalsePositive *= tmp[0];
                 System.out.println("    - Accumulated False Positive Rate is around " + accumulatedFalsePositive);
@@ -631,12 +657,16 @@ public class Classifier {
         //ImageHandler imageHandler = evaluateImage.downsamplingImage(new ImageHandler("data/face.jpg"));
         //Display.drawImage(imageHandler.getBufferedImage());
 
-        ImageHandler image = new ImageHandler("data/got.jpeg");
-        ArrayList<Rectangle> rectangles = evaluateImage.getFaces(image);
-        System.out.println("Found " + rectangles.size() + " faces rectangle that contains a face");
-        image.drawRectangles(rectangles);
-        Display.drawImage(image.getBufferedImage());
+        // Your images, for now do not take too lages images, it will take too long...
+        String images[] = {}; // put your images here (and in data/) to draw the faces
 
+        for (String img : images) {
+            ImageHandler image = new ImageHandler("data/" + img);
+            ArrayList<Pair<Rectangle, Double>> rectangles = evaluateImage.getFaces(image);
+            System.out.println("Found " + rectangles.size() + " faces rectangle that contains a face");
+            image.drawRectangles(rectangles);
+            Display.drawImage(image.getBufferedImage());
+        }
         return 0;
     }
 }
