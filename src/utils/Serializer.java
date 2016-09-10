@@ -423,4 +423,21 @@ public class Serializer {
 
         return layercount;
     }
+
+
+    public static ArrayList<StumpRule>[] readLayerMemory(String fileName, ArrayList<Float> tweaks, int[] layerCount) {
+        ArrayList<Integer> layerCommitteeSize = new ArrayList<>();
+        ArrayList<StumpRule> rules = Serializer.readRule(fileName);
+        layerCount[0] = readLayerMemory(fileName, layerCommitteeSize, tweaks);
+        ArrayList<StumpRule>[] cascade = new ArrayList[layerCount[0]];
+        int committeeStart = 0;
+        for (int i = 0; i < layerCount[0]; i++) {
+            cascade[i] = new ArrayList<>();
+            for (int committeeIndex = committeeStart; committeeIndex < layerCommitteeSize.get(i) + committeeStart; committeeIndex++) {
+                cascade[i].add(rules.get(committeeIndex));
+            }
+            committeeStart += layerCommitteeSize.get(i);
+        }
+        return cascade;
+    }
 }

@@ -2,10 +2,8 @@ package process;
 
 import GUI.Display;
 import GUI.ImageHandler;
-import javafx.util.Pair;
 import jeigen.DenseMatrix;
 import process.features.Face;
-import process.features.Rectangle;
 import utils.Serializer;
 
 import java.util.ArrayList;
@@ -128,6 +126,12 @@ public class Classifier {
         }
         return confidence;
     }
+
+    public static double isFace(ArrayList<StumpRule>[] cascade, ArrayList<Float> tweaks, int[] exampleFeatureValues, int defaultLayerNumber) {
+        return isFace(cascade, tweaks, exampleFeatureValues, defaultLayerNumber, null);
+    }
+
+
 
     /**
      * Used to compute results
@@ -345,14 +349,14 @@ public class Classifier {
             testBlackList[NEGATIVE] = DenseMatrix.ones(1, nNeg);
 
             for (int i = 0; i < nPos; i++) {
-                boolean face = isFace(cascade, tweaks, Serializer.readFeatures(testFaces.get(i) + Conf.FEATURE_EXTENSION), round+1, null) > 0;
+                boolean face = isFace(cascade, tweaks, Serializer.readFeatures(testFaces.get(i) + Conf.FEATURE_EXTENSION), round+1) > 0;
                 if (!face) {
                     testBlackList[POSITIVE].set(0, i, 1);
                     nFalseNegative += 1;
                 }
             }
             for (int i = 0; i < nNeg; i++) {
-                boolean face = isFace(cascade, tweaks, Serializer.readFeatures(testNonFaces.get(i) + Conf.FEATURE_EXTENSION), round+1, null) > 0;
+                boolean face = isFace(cascade, tweaks, Serializer.readFeatures(testNonFaces.get(i) + Conf.FEATURE_EXTENSION), round+1) > 0;
                 if (face) {
                     testBlackList[NEGATIVE].set(0, i, 0);
                     nFalsePositive += 1;
@@ -600,10 +604,6 @@ public class Classifier {
     }
 
     public float test(String dir) {
-        /*if (!computed) {
-            System.err.println("Train the classifier before testing it!");
-            System.exit(1);
-        }*/
 /*
         test_dir = dir;
         countTestPos = countFiles(test_dir + Conf.FACES, Conf.IMAGES_EXTENSION);
@@ -617,7 +617,8 @@ public class Classifier {
         long vraiNegatif = 0;
         long fauxPositif = 0;
 
-        EvaluateImage evaluateImage = new EvaluateImage(countTestPos, countTestNeg, test_dir, width, height, 200, 200, 2, 2, 19, 150);
+//        EvaluateImage evaluateImage = new EvaluateImage(width, height, 200, 200, 3, 2, 40, 70);
+        EvaluateImage evaluateImage = new EvaluateImage(width, height, 640, 436, 3, 3, 35, 55);
         /*for (String listTestFace : streamFiles(test_dir + "/faces", Conf.FEATURE_EXTENSION)) {
             boolean result = evaluateImage.guess(listTestFace);
 
@@ -664,7 +665,7 @@ public class Classifier {
         //Display.drawImage(imageHandler.getBufferedImage());
 
         // Your images, for now do not take too lages images, it will take too long...
-        String images[] = {"got.jpeg"};//{"face5.jpg", "face6.jpg","face7.jpg","face8.jpg", "face9.jpg", "face10.jpg", "face11.jpg", "face12.jpg"}; // put your images here (and in data/) to draw the faces
+        String images[] = {"fusia.jpg"};//{"face5.jpg", "face6.jpg","face7.jpg","face8.jpg", "face9.jpg", "face10.jpg", "face11.jpg", "face12.jpg"}; // put your images here (and in data/) to draw the faces
 
         for (String img : images) {
             long milliseconds = System.currentTimeMillis();
@@ -672,7 +673,7 @@ public class Classifier {
             ArrayList<Face> rectangles = evaluateImage.getFaces(image);
             System.out.println("Found " + rectangles.size() + " faces rectangle that contains a face");
             System.out.println("Time spent fot this image : " + (System.currentTimeMillis() - milliseconds) + " ms");
-            image.drawRectangles(rectangles);
+            image.drawFaces(rectangles);
             Display.drawImage(image.getBufferedImage());
         }
         return 0;

@@ -4,14 +4,12 @@ import jcuda.driver.CUdeviceptr;
 import jcuda.driver.CUmodule;
 import process.features.FeatureExtractor;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 
 import static jcuda.driver.JCudaDriver.cuMemFree;
 
 public abstract class HaarBase implements AutoCloseable {
 
-    protected static final int THREADS_IN_BLOCK = 1024;
     protected static final String CUDA_FILENAME = "HaarType";
     protected static final String KERNEL_NAME = "haar_type_";
 

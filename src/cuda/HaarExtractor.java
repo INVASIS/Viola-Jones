@@ -4,12 +4,11 @@ import jcuda.Pointer;
 import jcuda.Sizeof;
 import jcuda.driver.CUdeviceptr;
 import jcuda.driver.CUfunction;
-import jcuda.driver.CUmodule;
+import process.Conf;
 import process.features.FeatureExtractor;
 import process.features.Rectangle;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 
 import static jcuda.driver.JCudaDriver.*;
 
@@ -111,13 +110,13 @@ public class HaarExtractor extends HaarBase {
                 Pointer.to(dstPtr)
         );
 
-        int nb_blocks = (int) (numFeatures / THREADS_IN_BLOCK + ((numFeatures % THREADS_IN_BLOCK) == 0 ? 0 : 1));
+        int nb_blocks = (int) (numFeatures / Conf.maxThreadsPerBlock + ((numFeatures % Conf.maxThreadsPerBlock) == 0 ? 0 : 1));
 
         // Call the kernel function.
         cuLaunchKernel(
                 function, // CUDA function to be called
                 nb_blocks, 1, 1, // 3D (x, y, z) grid of block
-                THREADS_IN_BLOCK, 1, 1, // 3D (x, y, z) grid of threads
+                Conf.maxThreadsPerBlock, 1, 1, // 3D (x, y, z) grid of threads
                 0, // sharedMemBytes sets the amount of dynamic shared memory that will be available to each thread block.
                 null, // can optionally be associated to a stream by passing a non-zero hStream argument.
                 kernelParams, // Array of params to be passed to the function

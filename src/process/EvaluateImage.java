@@ -21,22 +21,11 @@ import static utils.Serializer.readFeatures;
 
 public class EvaluateImage {
 
-    public static float SCALE_COEFF = 1.25f;
+    public static float SCALE_COEFF = 1.3f;
 
     private int trainWidth;
     private int trainHeight;
 
-    private int imgWidth;
-    private int imgHeight;
-
-    private int countTestPos;
-    private int countTestNeg;
-    private int testN;
-
-    private String directory;
-
-    private ArrayList<StumpRule> rules;
-    private ArrayList<Integer> layerCommitteeSize;
     private ArrayList<Float> tweaks;
     private int layerCount;
 
@@ -47,58 +36,35 @@ public class EvaluateImage {
     private ArrayList<Rectangle> slidingWindows;
 
 
-    public EvaluateImage(int countTestPos, int countTestNeg, String directory, int trainWidth, int trainHeight, int imgWidth, int imgHeight,
+    public EvaluateImage(int trainWidth, int trainHeight, int imgWidth, int imgHeight,
                          int xDisplacer, int yDisplacer, int minSlidingSize, int maxSlidingSize) {
-        this.countTestPos = countTestPos;
-        this.countTestNeg = countTestNeg;
-        this.testN = countTestNeg + countTestPos;
-        this.directory = directory;
         this.trainHeight = trainHeight;
         this.trainWidth = trainWidth;
-        this.imgWidth = imgWidth;
-        this.imgHeight = imgHeight;
 
-        init(xDisplacer, yDisplacer, minSlidingSize, maxSlidingSize);
-    }
-
-    private void init(int xDisplacer, int yDisplacer, int minSlidingSize, int maxSlidingSize) {
-        this.rules = Serializer.readRule(Conf.TRAIN_FEATURES);
-
-        this.layerCommitteeSize = new ArrayList<>();
         this.tweaks = new ArrayList<>();
-        this.layerCount = Serializer.readLayerMemory(Conf.TRAIN_FEATURES, this.layerCommitteeSize, this.tweaks);
+        int[] tmp = new int[1];
+        this.cascade = Serializer.readLayerMemory(Conf.TRAIN_FEATURES, this.tweaks, tmp);
+        this.layerCount = tmp[0];
 
-        cascade = new ArrayList[this.layerCount];
-
-        int committeeStart = 0;
-        for (int i = 0; i < this.layerCount; i++) {
-            cascade[i] = new ArrayList<>();
-            for (int committeeIndex = committeeStart; committeeIndex < this.layerCommitteeSize.get(i) + committeeStart; committeeIndex++) {
-                cascade[i].add(rules.get(committeeIndex));
-            }
-            committeeStart += this.layerCommitteeSize.get(i);
-        }
-
-        neededHaarValues = new HashMap<>();
-
-        int i = 0;
-        for (int layer = 0; layer < layerCount; layer++) {
-            for (StumpRule rule : cascade[layer]) {
-                if (!neededHaarValues.containsKey((int) rule.featureIndex)) {
-                    neededHaarValues.put((int) rule.featureIndex, i);
-                    i++;
+        // Define new indexes for wanted haar features
+        {
+            this.neededHaarValues = new HashMap<>();
+            int i = 0;
+            for (int layer = 0; layer < layerCount; layer++) {
+                for (StumpRule rule : cascade[layer]) {
+                    if (!neededHaarValues.containsKey((int) rule.featureIndex)) {
+                        neededHaarValues.put((int) rule.featureIndex, i);
+                        i++;
+                    }
                 }
             }
+            System.out.println("Found " + i + " different indexes");
         }
-        System.out.println("Found " + i + " different indexes");
-        // FIXME CALL good ones
-        slidingWindows = getAllRectangles(imgWidth, imgHeight, SCALE_COEFF, xDisplacer, yDisplacer, minSlidingSize, maxSlidingSize);
+
+        this.slidingWindows = getAllRectangles(imgWidth, imgHeight, SCALE_COEFF, xDisplacer, yDisplacer, minSlidingSize, maxSlidingSize);
         this.haarDetector = new HaarDetector(neededHaarValues, trainHeight);
         this.haarDetector.setUp(imgWidth, imgHeight, slidingWindows);
     }
-
-    // TODO : remove unnecessary har features to compute only those needed
-    // TODO : test if this is really more efficient to go through cuda to compute those haar features needed...
 
     // DO NOT USE THIS !!!!!
     @Deprecated
@@ -112,7 +78,7 @@ public class EvaluateImage {
             haar = readFeatures(fileName);
         }
 
-        return Classifier.isFace(this.cascade, this.tweaks, haar, this.layerCount, null) > 0;
+        return Classifier.isFace(this.cascade, this.tweaks, haar, this.layerCount) > 0;
 
     }
 
@@ -124,50 +90,34 @@ public class EvaluateImage {
 
     // TODO : centrer-reduire les rectangles
     public ArrayList<Face> getFaces(ImageHandler imageHandler) {
-
         ArrayList<Face> res = new ArrayList<>();
 
-        // TODO : handle when the image is not the good size !
         int[] haar = computeImageFeaturesDetector(imageHandler, haarDetector, slidingWindows);
-
-        if (haar == null)
-            return res;
 
         int offset = 0;
         int haarSize = neededHaarValues.size();
         for (Rectangle rectangle : slidingWindows) {
-
-/*
-            int[][] tmpImage = new int[rectangle.getWidth()][rectangle.getHeight()];
-            for (int x = rectangle.getX(); x < rectangle.getWidth() + rectangle.getX(); x++)
-                System.arraycopy(imageHandler.getGrayImage()[x], rectangle.getY(), tmpImage[x - rectangle.getX()], 0, rectangle.getY() + rectangle.getHeight() - rectangle.getY());
-
-            ImageHandler tmpImageHandler = new ImageHandler(tmpImage, rectangle.getWidth(), rectangle.getHeight());
-*/
-
-
-            //haar = computeImageFeatures(downsamplingImage(tmpImageHandler), false, null);
-
+            // Get features for that rectangle
             int tmpHaar[] = new int[haarSize];
             System.arraycopy(haar, offset, tmpHaar, 0, haarSize);
             offset += haarSize;
 
-            //tmpHaar = computeImageFeatures(downsamplingImage(tmpImageHandler), false, null);
             double confidence = Classifier.isFace(cascade, tweaks, tmpHaar, layerCount, neededHaarValues);
             if (confidence > 0) {
                 res.add(new Face(rectangle, confidence));
             }
         }
 
-        res = postProcessing(res);
+//        res = postProcessing(res);
         // TODO : call post-processing to remove unnecessary rectangles
         return res;
     }
 
-    public ArrayList<Rectangle> getAllRectangles(ImageHandler imageHandler) {
+    private ArrayList<Rectangle> getAllRectangles(ImageHandler imageHandler) {
 
         int minDim = Math.min(imageHandler.getHeight(), imageHandler.getWidth());
         int frameSize = Math.max(trainWidth, trainHeight);
+
         // TODO : needs to be improved!
         int xDisplacer = imageHandler.getWidth() / 100;
         if (xDisplacer > 10)
@@ -184,8 +134,7 @@ public class EvaluateImage {
         return getAllRectangles(imageHandler.getWidth(), imageHandler.getHeight(), SCALE_COEFF, xDisplacer, yDisplacer, frameSize, minDim);
     }
 
-    // TODO : add in parameter interval of sliding window
-    public ArrayList<Rectangle> getAllRectangles(int imageWidth, int imageHeight, float coeff, int xDisplacer, int yDisplacer, int minSlidingWindowSize, int maxSlidingWindowSize) {
+    private ArrayList<Rectangle> getAllRectangles(int imageWidth, int imageHeight, float coeff, int xDisplacer, int yDisplacer, int minSlidingWindowSize, int maxSlidingWindowSize) {
 
         if (coeff <= 1) {
             System.err.println("Error for coeff in getAllRectanges, coeff should be > 1. coeff=" + coeff + " Aborting now!");

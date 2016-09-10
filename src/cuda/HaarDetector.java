@@ -6,6 +6,7 @@ import jcuda.Sizeof;
 import jcuda.driver.CUdeviceptr;
 import jcuda.driver.CUfunction;
 import jcuda.driver.CUmodule;
+import process.Conf;
 import process.features.Feature;
 import process.features.Rectangle;
 
@@ -20,6 +21,8 @@ import static process.features.FeatureExtractor.streamFeaturesByType;
 // TODO : all cuda should return int[] instead of ArrayList<Integer>
 // FIXME : make it work!
 public class HaarDetector extends HaarBase {
+    private static final int valuesByFeature = 5;
+    private static final int valuesByWindow = 3;
 
     protected static final String DETECTOR_CUDA_FILENAME = "ComputeWindowFeatures";
     protected static final String DETECTOR_KERNEL_NAME = "computeWindowFeatures";
@@ -53,16 +56,27 @@ public class HaarDetector extends HaarBase {
         this.height = height;
         this.tmpDataPtr = new CUdeviceptr[width];
 
-        if (neededHaarValues.size() > THREADS_IN_BLOCK || windows.size() >= 65535) {
-            System.err.println("Error with values neededHaarValues and number of windows : ");
-            System.err.println("neededHaarValues : " + neededHaarValues.size() + " num of windows : " + windows.size());
-            System.err.println("Max values are : " + THREADS_IN_BLOCK + " and 65535");
-            throw new InvalidParameterException("Invalid number of thread or block needed for cuda");
+
+        neededFeaturesSize = neededHaarValues.size();
+        slidingWindowsSize = windows.size();
+
+        // Check limitations
+        if (neededFeaturesSize > Conf.maxThreadsPerBlock
+                || slidingWindowsSize >= 65535
+                || (((long)(neededFeaturesSize)) * ((long)(slidingWindowsSize))) >= Integer.MAX_VALUE // For dstPtr
+                || (((long)(valuesByFeature)) * ((long)(neededFeaturesSize))) >= Integer.MAX_VALUE // For neededFeaturesPtr
+                || (((long)(valuesByWindow)) * ((long)(slidingWindowsSize))) >= Integer.MAX_VALUE) // For slidingWindowsPtr
+        {
+            System.err.println("Error with values neededHaarValues and number of windows: ");
+            System.err.println("neededHaarValues: " + neededHaarValues.size() + " num of windows: " + windows.size());
+            System.err.println("Max values are: " + Conf.maxThreadsPerBlock + " and 65535");
+            throw new InvalidParameterException("Invalid number of thread or block needed for CUDA");
         }
 
+        int cpt = 0;
+        ArrayList<Feature> ft = new ArrayList<>();
+        // Get features that correspond to given indexes
         {
-            ArrayList<Feature> ft = new ArrayList<>();
-            int cpt = 0;
             for (ArrayList<Feature> lf : streamFeaturesByType(new ImageHandler(new int[19][19], 19, 19))) {
                 for (Feature f : lf) {
                     if (neededHaarValues.containsKey(cpt))
@@ -71,43 +85,51 @@ public class HaarDetector extends HaarBase {
                 }
             }
 
-            neededFeaturesSize = ft.size();
-            if (neededFeaturesSize != neededHaarValues.size())
+            if (ft.size() != neededFeaturesSize) {
                 System.err.println("Error in computing neededFeaturesSize");
+                System.exit(1);
+            }
+        }
 
-            neededFeatures = new int[5 * neededFeaturesSize];
+        // Alloc memory for neededFeaturesPtr
+        {
+            neededFeatures = new int[valuesByFeature * neededFeaturesSize];
             cpt = 0;
             for (Feature f : ft) {
-                neededFeatures[(cpt * 5)] = f.getType();
-                neededFeatures[(cpt * 5 + 1)] = f.getRectangle().getX();
-                neededFeatures[(cpt * 5 + 2)] = f.getRectangle().getY();
-                neededFeatures[(cpt * 5 + 3)] = f.getRectangle().getWidth();
-                neededFeatures[(cpt * 5 + 4)] = f.getRectangle().getHeight();
+                neededFeatures[(cpt * valuesByFeature)] = f.getType();
+                neededFeatures[(cpt * valuesByFeature + 1)] = f.getRectangle().getX();
+                neededFeatures[(cpt * valuesByFeature + 2)] = f.getRectangle().getY();
+                neededFeatures[(cpt * valuesByFeature + 3)] = f.getRectangle().getWidth();
+                neededFeatures[(cpt * valuesByFeature + 4)] = f.getRectangle().getHeight();
                 cpt++;
             }
 
-            cuMemAlloc(neededFeaturesPtr, 5 * neededFeaturesSize * Sizeof.INT);
-            cuMemcpyHtoD(neededFeaturesPtr, Pointer.to(neededFeatures), 5 * neededFeaturesSize * Sizeof.INT);
+            cuMemAlloc(neededFeaturesPtr, valuesByFeature * neededFeaturesSize * Sizeof.INT);
+            cuMemcpyHtoD(neededFeaturesPtr, Pointer.to(neededFeatures), valuesByFeature * neededFeaturesSize * Sizeof.INT);
         }
 
-        // Compute windows where we slide in*
-        slidingWindowsSize = windows.size();
-        slidingWindows = new float[slidingWindowsSize * 3];
-        int i = 0;
-        for (Rectangle rectangle : windows) {
-            slidingWindows[i++] = rectangle.getX();
-            slidingWindows[i++] = rectangle.getY();
-            slidingWindows[i++] = (float) rectangle.getHeight() / (float)baseSize;
+        // Alloc memory for slidingWindowsPtr
+        {
+            slidingWindows = new float[valuesByWindow * slidingWindowsSize];
+            cpt = 0;
+            for (Rectangle rectangle : windows) {
+                slidingWindows[cpt * valuesByWindow] = rectangle.getX();
+                slidingWindows[cpt * valuesByWindow + 1] = rectangle.getY();
+                slidingWindows[cpt * valuesByWindow + 2] = (float) rectangle.getHeight() / (float) baseSize;
+                cpt++;
+            }
+
+            cuMemAlloc(slidingWindowsPtr, valuesByWindow * slidingWindowsSize * Sizeof.FLOAT);
+            cuMemcpyHtoD(slidingWindowsPtr, Pointer.to(slidingWindows), valuesByWindow * slidingWindowsSize * Sizeof.FLOAT);
         }
-        cuMemAlloc(slidingWindowsPtr, slidingWindowsSize * 3 * Sizeof.INT);
-        cuMemcpyHtoD(slidingWindowsPtr, Pointer.to(slidingWindows), slidingWindowsSize * 3 * Sizeof.INT);
     }
 
-    private void launchKernel(long outputSize) {
+    private void launchKernel() {
 
         CUfunction function = new CUfunction();
         cuModuleGetFunction(function, moduleDetector, DETECTOR_KERNEL_NAME);
 
+        int outputSize = slidingWindowsSize * neededFeaturesSize;
 
         this.dstPtr = new CUdeviceptr();
         cuMemAlloc(dstPtr, outputSize * Sizeof.INT);
@@ -115,7 +137,7 @@ public class HaarDetector extends HaarBase {
         Pointer kernelParams = Pointer.to(
                 Pointer.to(srcPtr),
                 Pointer.to(neededFeaturesPtr),
-                Pointer.to(new int[]{(int) outputSize}),
+                Pointer.to(new int[]{outputSize}),
                 Pointer.to(slidingWindowsPtr),
                 Pointer.to(dstPtr)
         );
@@ -134,7 +156,7 @@ public class HaarDetector extends HaarBase {
         );
         cuCtxSynchronize();
 
-        int hostOutput[] = new int[(int) outputSize];
+        int hostOutput[] = new int[outputSize];
         cuMemcpyDtoH(Pointer.to(hostOutput), dstPtr, outputSize * Sizeof.INT);
 
         allFeatures = hostOutput;
@@ -151,7 +173,7 @@ public class HaarDetector extends HaarBase {
         srcPtr = new CUdeviceptr();
         CudaUtils.newArray2D(integral, width, height, tmpDataPtr, srcPtr);
 
-        launchKernel(slidingWindowsSize * neededFeaturesSize);
+        launchKernel();
 
         CudaUtils.freeArray2D(tmpDataPtr, srcPtr, width);
 

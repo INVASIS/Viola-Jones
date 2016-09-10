@@ -2,6 +2,7 @@ package process;
 
 import cuda.CudaUtils;
 import cuda.HaarExtractor;
+import jcuda.runtime.cudaDeviceProp;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -12,6 +13,9 @@ public class Conf {
     public static HaarExtractor haarExtractor;
 
     public final static boolean USE_CUDA = isCUDAAvailable();
+    public static int maxThreadsPerBlock;
+    public static int multiProcessorCount;
+    public static int maxThreadsPerMultiProcessor;
     public final static String TMP_DIR = "tmp";
     public final static String TRAIN_DIR = TMP_DIR + "/training";
     public final static String TEST_DIR = TMP_DIR + "/test";
@@ -34,6 +38,9 @@ public class Conf {
         try {
             CudaUtils.initCuda();
             System.out.println("CUDA available!");
+            System.out.println("  - maxThreadsPerBlock: " + maxThreadsPerBlock);
+            System.out.println("  - multiProcessorCount: " + multiProcessorCount);
+            System.out.println("  - maxThreadsPerMultiProcessor: " + maxThreadsPerMultiProcessor);
             haarExtractor = new HaarExtractor();
             return true;
         }

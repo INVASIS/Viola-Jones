@@ -1,6 +1,5 @@
 package GUI;
 
-import javafx.util.Pair;
 import process.Conf;
 import process.Filters;
 import process.IntegralImage;
@@ -15,6 +14,7 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.stream.Collectors;
 
 import static process.features.FeatureExtractor.computeImageFeatures;
 import static utils.Utils.fileExists;
@@ -120,20 +120,25 @@ public class ImageHandler {
     }
 
 
-    public void drawRectangles(ArrayList<Face> rectangles) {
-        int red = new Color(255, 38, 38).getRGB();
-        for (Face rectangle : rectangles) {
-            for (int i = rectangle.getX(); i < rectangle.getX() + rectangle.getWidth(); i++) {
-                this.getBufferedImage().setRGB(i, rectangle.getY(), red);
-                this.getBufferedImage().setRGB(i, rectangle.getY() + rectangle.getHeight() - 1, red);
-            }
+    public void drawFaces(ArrayList<Face> faces) {
+        ArrayList<Rectangle> rectangles = faces.stream().map(f -> (Rectangle)f).collect(Collectors.toCollection(ArrayList::new));
+        drawRectangles(rectangles, Color.RED);
+    }
 
-            for (int j = rectangle.getY(); j < rectangle.getY() + rectangle.getHeight(); j++) {
-                this.getBufferedImage().setRGB(rectangle.getX(), j, red);
-                this.getBufferedImage().setRGB(rectangle.getX() + rectangle.getWidth() - 1, j, red);
-            }
+    public void drawRectangles(ArrayList<Rectangle> rectangles, Color c) {
+        for (Rectangle rectangle : rectangles)
+            drawRectangle(rectangle, c);
+    }
 
+    public void drawRectangle(Rectangle rectangle, Color c) {
+        for (int i = rectangle.getX(); i < rectangle.getX() + rectangle.getWidth(); i++) {
+            this.getBufferedImage().setRGB(i, rectangle.getY(), c.getRGB());
+            this.getBufferedImage().setRGB(i, rectangle.getY() + rectangle.getHeight() - 1, c.getRGB());
         }
 
+        for (int j = rectangle.getY(); j < rectangle.getY() + rectangle.getHeight(); j++) {
+            this.getBufferedImage().setRGB(rectangle.getX(), j, c.getRGB());
+            this.getBufferedImage().setRGB(rectangle.getX() + rectangle.getWidth() - 1, j, c.getRGB());
+        }
     }
 }
