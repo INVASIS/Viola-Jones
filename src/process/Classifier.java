@@ -612,7 +612,7 @@ public class Classifier {
         long vraiNegatif = 0;
         long fauxPositif = 0;
 
-        EvaluateImage evaluateImage = new EvaluateImage(countTestPos, countTestNeg, test_dir, width, height);
+        EvaluateImage evaluateImage = new EvaluateImage(countTestPos, countTestNeg, test_dir, width, height, 100, 100, 2, 2, 19, 99);
         /*for (String listTestFace : streamFiles(test_dir + "/faces", Conf.FEATURE_EXTENSION)) {
             boolean result = evaluateImage.guess(listTestFace);
 

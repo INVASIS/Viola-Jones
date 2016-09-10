@@ -4,15 +4,9 @@ import GUI.ImageHandler;
 import cuda.AnyFilter;
 import cuda.HaarDetector;
 import javafx.util.Pair;
-import org.jgrapht.DirectedGraph;
-import org.jgrapht.ListenableGraph;
 import org.jgrapht.UndirectedGraph;
 import org.jgrapht.alg.ConnectivityInspector;
-import org.jgrapht.alg.StrongConnectivityInspector;
-import org.jgrapht.alg.interfaces.StrongConnectivityAlgorithm;
 import org.jgrapht.graph.DefaultEdge;
-import org.jgrapht.graph.ListenableDirectedGraph;
-import org.jgrapht.graph.SimpleDirectedGraph;
 import org.jgrapht.graph.SimpleGraph;
 import process.features.Face;
 import process.features.Rectangle;
@@ -22,14 +16,18 @@ import utils.Utils;
 import java.util.*;
 
 import static process.features.FeatureExtractor.computeImageFeatures;
+import static process.features.FeatureExtractor.computeImageFeaturesDetector;
 import static utils.Serializer.readFeatures;
 
 public class EvaluateImage {
 
     public static float SCALE_COEFF = 1.25f;
 
-    private int baseWidth;
-    private int baseHeight;
+    private int trainWidth;
+    private int trainHeight;
+
+    private int imgWidth;
+    private int imgHeight;
 
     private int countTestPos;
     private int countTestNeg;
@@ -46,20 +44,24 @@ public class EvaluateImage {
 
     private HashMap<Integer, Integer> neededHaarValues;
     private HaarDetector haarDetector;
+    private ArrayList<Rectangle> slidingWindows;
 
-    public EvaluateImage(int countTestPos, int countTestNeg, String directory, int baseWidth, int baseHeight) {
+
+    public EvaluateImage(int countTestPos, int countTestNeg, String directory, int trainWidth, int trainHeight, int imgWidth, int imgHeight,
+                         int xDisplacer, int yDisplacer, int minSlidingSize, int maxSlidingSize) {
         this.countTestPos = countTestPos;
         this.countTestNeg = countTestNeg;
         this.testN = countTestNeg + countTestPos;
         this.directory = directory;
-        this.baseHeight = baseHeight;
-        this.baseWidth = baseWidth;
+        this.trainHeight = trainHeight;
+        this.trainWidth = trainWidth;
+        this.imgWidth = imgWidth;
+        this.imgHeight = imgHeight;
 
-
-        init();
+        init(xDisplacer, yDisplacer, minSlidingSize, maxSlidingSize);
     }
 
-    private void init() {
+    private void init(int xDisplacer, int yDisplacer, int minSlidingSize, int maxSlidingSize) {
         this.rules = Serializer.readRule(Conf.TRAIN_FEATURES);
 
         this.layerCommitteeSize = new ArrayList<>();
@@ -89,9 +91,10 @@ public class EvaluateImage {
             }
         }
         System.out.println("Found " + i + " different indexes");
-        this.haarDetector = new HaarDetector(neededHaarValues);
-        this.haarDetector.setUp(baseWidth, baseHeight);
-
+        // FIXME CALL good ones
+        slidingWindows = getAllRectangles(imgWidth, imgHeight, SCALE_COEFF, xDisplacer, yDisplacer, minSlidingSize, maxSlidingSize);
+        this.haarDetector = new HaarDetector(neededHaarValues, trainHeight);
+        this.haarDetector.setUp(imgWidth, imgHeight, slidingWindows);
     }
 
     // TODO : remove unnecessary har features to compute only those needed
@@ -120,25 +123,35 @@ public class EvaluateImage {
     // TODO : centrer-reduire les rectangles
     public ArrayList<Face> getFaces(ImageHandler imageHandler) {
 
-        ArrayList<Rectangle> allRectangles = getAllRectangles(imageHandler);
         ArrayList<Face> res = new ArrayList<>();
 
-        int[] haar;
-        for (Rectangle rectangle : allRectangles) {
+        // TODO : make it work (or find another solution)
+        int[] haar = computeImageFeaturesDetector(imageHandler, haarDetector, slidingWindows);
 
-            int[][] tmpImage = new int[rectangle.getWidth()][rectangle.getHeight()];
+        if (haar == null)
+            return res;
+
+        int offset = 0;
+        int haarSize = slidingWindows.size() * neededHaarValues.size();
+        for (Rectangle rectangle : slidingWindows) {
+
+            //int[][] tmpImage = new int[rectangle.getWidth()][rectangle.getHeight()];
 
             // TODO : improve copy or optimize this !
+
+            /*
             for (int x = rectangle.getX(); x < rectangle.getWidth() + rectangle.getX(); x++)
                 System.arraycopy(imageHandler.getGrayImage()[x], rectangle.getY(), tmpImage[x - rectangle.getX()], 0, rectangle.getY() + rectangle.getHeight() - rectangle.getY());
 
             ImageHandler tmpImageHandler = new ImageHandler(tmpImage, rectangle.getWidth(), rectangle.getHeight());
+            */
 
 
-            // TODO : make it work (or find another solution)
-            //haar = computeImageFeaturesDetector(imageHandler, haarDetector, (float) (rectangle.getHeight()) / (float) baseHeight);
+            //haar = computeImageFeatures(downsamplingImage(tmpImageHandler), false, null);
 
-            haar = computeImageFeatures(downsamplingImage(tmpImageHandler), false, null);
+            int tmpHaar[] = new int[haarSize];
+            System.arraycopy(haar, offset, tmpHaar, 0, haarSize);
+            offset += haarSize;
 
             double confidence = Classifier.isFace(cascade, tweaks, haar, layerCount);
             if (confidence > 0) {
@@ -152,37 +165,35 @@ public class EvaluateImage {
     }
 
     public ArrayList<Rectangle> getAllRectangles(ImageHandler imageHandler) {
-        return getAllRectangles(imageHandler.getWidth(), imageHandler.getHeight(), SCALE_COEFF);
+
+        int minDim = Math.min(imageHandler.getHeight(), imageHandler.getWidth());
+        int frameSize = Math.max(trainWidth, trainHeight);
+        // TODO : needs to be improved!
+        int xDisplacer = imageHandler.getWidth() / 100;
+        if (xDisplacer > 10)
+            xDisplacer = 10;
+        if (xDisplacer < 1)
+            xDisplacer = 1;
+
+        int yDisplacer = imageHandler.getHeight() / 100;
+        if (yDisplacer > 10)
+            yDisplacer = 10;
+        if (yDisplacer < 1)
+            yDisplacer = 1;
+
+        return getAllRectangles(imageHandler.getWidth(), imageHandler.getHeight(), SCALE_COEFF, xDisplacer, yDisplacer, frameSize, minDim);
     }
 
-    public ArrayList<Rectangle> getAllRectangles(int imageWidth, int imageHeight, float coeff) {
+    // TODO : add in parameter interval of sliding window
+    public ArrayList<Rectangle> getAllRectangles(int imageWidth, int imageHeight, float coeff, int xDisplacer, int yDisplacer, int minSlidingWindowSize, int maxSlidingWindowSize) {
 
         if (coeff <= 1) {
             System.err.println("Error for coeff in getAllRectanges, coeff should be > 1. coeff=" + coeff + " Aborting now!");
             System.exit(1);
         }
 
-        // Quick and dirty way to reduce the number of rectangles
-        // TODO : needs to be improved!
-        int xDisplacer = imageWidth / 100;
-        if (xDisplacer > 10)
-            xDisplacer = 10;
-        if (xDisplacer < 1)
-            xDisplacer = 1;
-
-        int yDisplacer = imageHeight / 100;
-        if (yDisplacer > 10)
-            yDisplacer = 10;
-        if (yDisplacer < 1)
-            yDisplacer = 1;
-
         ArrayList<Rectangle> rectangles = new ArrayList<>();
-
-        int minDim = Math.min(imageHeight, imageWidth);
-        int frameSize = Math.max(baseWidth, baseHeight);
-
-        // FIXME : ne pas avancer pixel par pixel mais plutôt 3-4 pixels à la fois
-        for (int frame = frameSize; frame <= minDim; frame *= coeff) {
+        for (int frame = minSlidingWindowSize; frame <= maxSlidingWindowSize; frame *= coeff) {
             for (int x = 0; x <= imageWidth - frame; x += xDisplacer) {
                 for (int y = 0; y <= imageHeight - frame; y += yDisplacer) {
                     rectangles.add(new Rectangle(x, y, frame, frame));
@@ -222,15 +233,15 @@ public class EvaluateImage {
 
         int[][] grayImage = blured.getGrayImage();
 
-        int[][] newImg = new int[baseWidth][baseHeight];
+        int[][] newImg = new int[trainWidth][trainHeight];
 
-        for (int i = 0; i < baseHeight * baseWidth; i++) {
+        for (int i = 0; i < trainHeight * trainWidth; i++) {
 
-            int row = i / baseHeight;
-            int col = i % baseWidth;
+            int row = i / trainHeight;
+            int col = i % trainWidth;
 
-            float rowPos = (float) (blured.getWidth() - 1) / (float) (baseWidth + 1) * (float) (row + 1);
-            float colPos = (float) (blured.getHeight() - 1) / (float) (baseHeight + 1) * (float) (col + 1);
+            float rowPos = (float) (blured.getWidth() - 1) / (float) (trainWidth + 1) * (float) (row + 1);
+            float colPos = (float) (blured.getHeight() - 1) / (float) (trainHeight + 1) * (float) (col + 1);
 
             int lowRow = Math.max((int) Math.floor(rowPos), 0);
             int upRow = Math.min(lowRow + 1, blured.getWidth() - 1);
@@ -242,7 +253,7 @@ public class EvaluateImage {
 
         }
 
-        return new ImageHandler(newImg, baseWidth, baseHeight);
+        return new ImageHandler(newImg, trainWidth, trainHeight);
 
     }
 

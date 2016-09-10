@@ -18,8 +18,8 @@ __global__ void haar_type_A(int** integralImage, int* allRectangles, int numRect
     if (tidX < numRectangles)
     {
 
-        int x = (int) (allRectangles[tidX * 4] * coeff);
-        int y = (int) (allRectangles[tidX * 4 + 1] * coeff);
+        int x = (int) allRectangles[tidX * 4];
+        int y = (int) allRectangles[tidX * 4 + 1];
         int w = (int) (allRectangles[tidX * 4 + 2] * coeff);
         int h = (int) (allRectangles[tidX * 4 + 3] * coeff);
 

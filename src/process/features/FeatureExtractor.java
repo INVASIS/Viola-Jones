@@ -275,24 +275,13 @@ public class FeatureExtractor {
 
     // TODO : to int[]
     // TODO : return it the size of all features
-    public static ArrayList<Integer> computeImageFeaturesDetector(ImageHandler image, HaarDetector haarDetector, float coeff) {
-        ArrayList<Integer> result = new ArrayList<>();
+    public static int[] computeImageFeaturesDetector(ImageHandler image, HaarDetector haarDetector, ArrayList<Rectangle> windows) {
         if (Conf.USE_CUDA) {
-            haarDetector.updateImage(image.getIntegralImage(), image.getWidth(), image.getHeight());
-            haarDetector.compute(coeff);
-            int offset = 0;
-            System.arraycopy(Conf.haarExtractor.getFeaturesA(), 0, result, offset, (int) Conf.haarExtractor.getNUM_FEATURES_A());
-            offset += (int) Conf.haarExtractor.getNUM_FEATURES_A();
-            System.arraycopy(Conf.haarExtractor.getFeaturesB(), 0, result, offset, (int) Conf.haarExtractor.getNUM_FEATURES_B());
-            offset += (int) Conf.haarExtractor.getNUM_FEATURES_B();
-            System.arraycopy(Conf.haarExtractor.getFeaturesB(), 0, result, offset, (int) Conf.haarExtractor.getNUM_FEATURES_C());
-            offset += (int) Conf.haarExtractor.getNUM_FEATURES_C();
-            System.arraycopy(Conf.haarExtractor.getFeaturesB(), 0, result, offset, (int) Conf.haarExtractor.getNUM_FEATURES_D());
-            offset += (int) Conf.haarExtractor.getNUM_FEATURES_D();
-            System.arraycopy(Conf.haarExtractor.getFeaturesB(), 0, result, offset, (int) Conf.haarExtractor.getNUM_FEATURES_E());
+            haarDetector.updateImage(image.getIntegralImage(), image.getWidth(), image.getHeight(), windows);
+            return haarDetector.compute();
         } else
             System.err.println("Error, should have CUDA");
-        return result;
+        return null;
     }
 
     // Warning: Need to train and evaluate on the same features : only on GPU or only on CPU

@@ -44,6 +44,7 @@ public abstract class HaarBase implements AutoCloseable {
     protected CUdeviceptr dstPtr;
     protected CUdeviceptr tmpDataPtr[];
 
+    // TODO REFACTOR !!!
 
     public HaarBase() {
         this.modules = new HashMap<>();

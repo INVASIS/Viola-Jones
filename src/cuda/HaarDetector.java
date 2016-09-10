@@ -5,8 +5,9 @@ import jcuda.Pointer;
 import jcuda.Sizeof;
 import jcuda.driver.CUdeviceptr;
 import jcuda.driver.CUfunction;
+import jcuda.driver.CUmodule;
 import process.features.Feature;
-import process.features.FeatureExtractor;
+import process.features.Rectangle;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -19,192 +20,105 @@ import static process.features.FeatureExtractor.streamFeaturesByType;
 // FIXME : make it work!
 public class HaarDetector extends HaarBase {
 
+    protected static final String DETECTOR_CUDA_FILENAME = "ComputeWindowFeatures";
+    protected static final String DETECTOR_KERNEL_NAME = "computeWindowFeatures";
     private HashMap<Integer, Integer> neededHaarValues;
 
-    public HaarDetector(HashMap<Integer, Integer> neededHaarValues) {
-        super();
+    private int[] neededFeatures;
+    private float[] slidingWindows;
+
+    private CUdeviceptr neededFeaturesPtr;
+    private CUdeviceptr slidingWindowsPtr;
+
+    private int neededFeaturesSize;
+    private int slidingWindowsSize;
+
+    private CUmodule moduleDetector;
+    private int[] allFeatures;
+    private int baseSize;
+
+    public HaarDetector(HashMap<Integer, Integer> neededHaarValues, int baseSize) {
 
         this.neededHaarValues = neededHaarValues;
+        this.neededFeaturesPtr = new CUdeviceptr();
+        this.slidingWindowsPtr = new CUdeviceptr();
+        this.moduleDetector = CudaUtils.getModule(DETECTOR_CUDA_FILENAME);
+        this.baseSize = baseSize;
     }
 
-    @Override
-    public void setUp(int width, int height) {
-        super.setUp(width, height);
+    public void setUp(int width, int height, ArrayList<Rectangle> windows) {
+        this.integral = null;
+        this.width = width;
+        this.height = height;
+        this.tmpDataPtr = new CUdeviceptr[width];
 
-        // TODO: possible optimization: do not use all rectangles, as we train on simple x*x squares already centered on faces, we don't need all rectangles.
-        // TODO: + we will only need certains haar-feature, not all, so why not compute only those needed ?
-        listNeededFeatures();
-    }
+        {
+            ArrayList<Feature> ft = new ArrayList<>();
+            int cpt = 0;
+            for (ArrayList<Feature> lf : streamFeaturesByType(new ImageHandler(new int[19][19], 19, 19))) {
+                for (Feature f : lf) {
+                    if (neededHaarValues.containsKey(cpt))
+                        ft.add(f);
+                    cpt++;
+                }
+            }
 
-    private void listNeededFeatures() {
+            neededFeaturesSize = ft.size();
+            if (neededFeaturesSize != neededHaarValues.size())
+                System.err.println("Error in computing neededFeaturesSize");
 
-        this.NUM_FEATURES_A = 0;
-        this.NUM_FEATURES_B = 0;
-        this.NUM_FEATURES_C = 0;
-        this.NUM_FEATURES_D = 0;
-        this.NUM_FEATURES_E = 0;
-
-        ArrayList<Feature> ft = new ArrayList<>();
-        int cpt = 0;
-        for (ArrayList<Feature> lf : streamFeaturesByType(new ImageHandler(new int[19][19], 19, 19))) {
-            for (Feature f : lf) {
-                if (neededHaarValues.containsKey(cpt))
-                    ft.add(f);
+            neededFeatures = new int[5 * neededFeaturesSize];
+            cpt = 0;
+            for (Feature f : ft) {
+                neededFeatures[(cpt * 5)] = f.getType();
+                neededFeatures[(cpt * 5 + 1)] = f.getRectangle().getX();
+                neededFeatures[(cpt * 5 + 2)] = f.getRectangle().getY();
+                neededFeatures[(cpt * 5 + 3)] = f.getRectangle().getWidth();
+                neededFeatures[(cpt * 5 + 4)] = f.getRectangle().getHeight();
                 cpt++;
             }
+
+            cuMemAlloc(neededFeaturesPtr, 5 * neededFeaturesSize * Sizeof.INT);
+            cuMemcpyHtoD(neededFeaturesPtr, Pointer.to(neededFeatures), 5 * neededFeaturesSize * Sizeof.INT);
         }
 
-        int[] neededFeatures = new int[5 * ft.size()];
-        cpt = 0;
-        for (Feature f : ft) {
-            neededFeatures[(cpt * 5)] = f.getType();
-            if (f.getType() == FeatureExtractor.typeA)
-                NUM_FEATURES_A++;
-            else if (f.getType() == FeatureExtractor.typeB)
-                NUM_FEATURES_B++;
-            else if (f.getType() == FeatureExtractor.typeC)
-                NUM_FEATURES_C++;
-            else if (f.getType() == FeatureExtractor.typeD)
-                NUM_FEATURES_D++;
-            else
-                NUM_FEATURES_E++;
-
-            neededFeatures[(cpt * 5 + 1)] = f.getRectangle().getX();
-            neededFeatures[(cpt * 5 + 2)] = f.getRectangle().getY();
-            neededFeatures[(cpt * 5 + 3)] = f.getRectangle().getWidth();
-            neededFeatures[(cpt * 5 + 4)] = f.getRectangle().getHeight();
-            cpt++;
+        // Compute windows where we slide in*
+        slidingWindowsSize = windows.size();
+        slidingWindows = new float[slidingWindowsSize * 3];
+        int i = 0;
+        for (Rectangle rectangle : windows) {
+            slidingWindows[i++] = rectangle.getX();
+            slidingWindows[i++] = rectangle.getY();
+            slidingWindows[i++] = (float) rectangle.getHeight() / (float)baseSize;
         }
-
-        long size_outputA = 4 * NUM_FEATURES_A;
-        long size_outputB = 4 * NUM_FEATURES_B;
-        long size_outputC = 4 * NUM_FEATURES_C;
-        long size_outputD = 4 * NUM_FEATURES_D;
-        long size_outputE = 4 * NUM_FEATURES_E;
-
-        int[] arrayTypeA = new int[(int) size_outputA];
-        int[] arrayTypeB = new int[(int) size_outputB];
-        int[] arrayTypeC = new int[(int) size_outputC];
-        int[] arrayTypeD = new int[(int) size_outputD];
-        int[] arrayTypeE = new int[(int) size_outputE];
-
-        int a = 0;
-        int b = 0;
-        int c = 0;
-        int d = 0;
-        int e = 0;
-        for (int i = 0; i < 5 * ft.size(); i += 5) {
-            if (neededFeatures[i] == FeatureExtractor.typeA) {
-                arrayTypeA[a] = neededFeatures[i + 1];
-                arrayTypeA[a + 1] = neededFeatures[i + 2];
-                arrayTypeA[a + 2] = neededFeatures[i + 3];
-                arrayTypeA[a + 3] = neededFeatures[i + 4];
-
-                a += 4;
-            } else if (neededFeatures[i] == FeatureExtractor.typeB) {
-                arrayTypeB[b] = neededFeatures[i + 1];
-                arrayTypeB[b + 1] = neededFeatures[i + 2];
-                arrayTypeB[b + 2] = neededFeatures[i + 3];
-                arrayTypeB[b + 3] = neededFeatures[i + 4];
-
-                b += 4;
-            } else if (neededFeatures[i] == FeatureExtractor.typeC) {
-                arrayTypeC[c] = neededFeatures[i + 1];
-                arrayTypeC[c + 1] = neededFeatures[i + 2];
-                arrayTypeC[c + 2] = neededFeatures[i + 3];
-                arrayTypeC[c + 3] = neededFeatures[i + 4];
-
-                c += 4;
-            } else if (neededFeatures[i] == FeatureExtractor.typeD) {
-                arrayTypeD[d] = neededFeatures[i + 1];
-                arrayTypeD[d + 1] = neededFeatures[i + 2];
-                arrayTypeD[d + 2] = neededFeatures[i + 3];
-                arrayTypeD[d + 3] = neededFeatures[i + 4];
-
-                d += 4;
-            } else {
-                arrayTypeE[e] = neededFeatures[i + 1];
-                arrayTypeE[e + 1] = neededFeatures[i + 2];
-                arrayTypeE[e + 2] = neededFeatures[i + 3];
-                arrayTypeE[e + 3] = neededFeatures[i + 4];
-
-                e += 4;
-            }
-        }
-
-        if (NUM_FEATURES_A != 0){
-            cuMemAlloc(this.allRectanglesA, NUM_FEATURES_A * Sizeof.INT);
-            cuMemcpyHtoD(this.allRectanglesA, Pointer.to(arrayTypeA), NUM_FEATURES_A * Sizeof.INT);
-        }
-
-        if (NUM_FEATURES_B != 0) {
-            cuMemAlloc(this.allRectanglesB, NUM_FEATURES_B * Sizeof.INT);
-            cuMemcpyHtoD(this.allRectanglesB, Pointer.to(arrayTypeB), NUM_FEATURES_B * Sizeof.INT);
-        }
-
-        if (NUM_FEATURES_C != 0) {
-            cuMemAlloc(this.allRectanglesC, NUM_FEATURES_C * Sizeof.INT);
-            cuMemcpyHtoD(this.allRectanglesC, Pointer.to(arrayTypeC), NUM_FEATURES_C * Sizeof.INT);
-        }
-
-        if (NUM_FEATURES_D != 0) {
-            cuMemAlloc(this.allRectanglesD, NUM_FEATURES_D * Sizeof.INT);
-            cuMemcpyHtoD(this.allRectanglesD, Pointer.to(arrayTypeD), NUM_FEATURES_D * Sizeof.INT);
-        }
-
-        if (NUM_FEATURES_E != 0) {
-            cuMemAlloc(this.allRectanglesE, NUM_FEATURES_E * Sizeof.INT);
-            cuMemcpyHtoD(this.allRectanglesE, Pointer.to(arrayTypeE), NUM_FEATURES_E * Sizeof.INT);
-        }
+        cuMemAlloc(slidingWindowsPtr, slidingWindowsSize * 3 * Sizeof.INT);
+        cuMemcpyHtoD(slidingWindowsPtr, Pointer.to(slidingWindows), slidingWindowsSize * 3 * Sizeof.INT);
     }
 
-
-    private void computeTypeN(long numFeatures, char type, float coeff) {
+    private void launchKernel(long outputSize) {
 
         CUfunction function = new CUfunction();
-        cuModuleGetFunction(function, modules.get(type), KERNEL_NAME + type);
+        cuModuleGetFunction(function, moduleDetector, DETECTOR_KERNEL_NAME);
 
 
-        // Allocate device output memory
-        // dstPtr will contain the results
         this.dstPtr = new CUdeviceptr();
-        cuMemAlloc(dstPtr, numFeatures * Sizeof.INT);
+        cuMemAlloc(dstPtr, outputSize * Sizeof.INT);
 
-        CUdeviceptr tmp_ptr = null;
-        switch (type) {
-            case 'A':
-                tmp_ptr = this.allRectanglesA;
-                break;
-            case 'B':
-                tmp_ptr = this.allRectanglesB;
-                break;
-            case 'C':
-                tmp_ptr = this.allRectanglesC;
-                break;
-            case 'D':
-                tmp_ptr = this.allRectanglesD;
-                break;
-            case 'E':
-                tmp_ptr = this.allRectanglesE;
-                break;
-        }
-
-        // Set up the kernel parameters
         Pointer kernelParams = Pointer.to(
                 Pointer.to(srcPtr),
-                Pointer.to(tmp_ptr),
-                Pointer.to(new int[]{(int) numFeatures}),
-                Pointer.to(new float[]{coeff}),
+                Pointer.to(neededFeaturesPtr),
+                Pointer.to(new int[]{(int) outputSize}),
+                Pointer.to(slidingWindowsPtr),
                 Pointer.to(dstPtr)
         );
 
-        int nb_blocks = (int) (numFeatures / THREADS_IN_BLOCK + ((numFeatures % THREADS_IN_BLOCK) == 0 ? 0 : 1));
+        // Nb block limit : 65535 per dimension per grid
+        //int nb_blocks = (int) (outputSize / THREADS_IN_BLOCK + ((outputSize % THREADS_IN_BLOCK) == 0 ? 0 : 1));
 
-        // Call the kernel function.
         cuLaunchKernel(
                 function, // CUDA function to be called
-                nb_blocks, 1, 1, // 3D (x, y, z) grid of block
-                THREADS_IN_BLOCK, 1, 1, // 3D (x, y, z) grid of threads
+                slidingWindowsSize, 1, 1, // 3D (x, y, z) grid of block
+                neededFeaturesSize, 1, 1, // 3D (x, y, z) grid of threads
                 0, // sharedMemBytes sets the amount of dynamic shared memory that will be available to each thread block.
                 null, // can optionally be associated to a stream by passing a non-zero hStream argument.
                 kernelParams, // Array of params to be passed to the function
@@ -212,60 +126,46 @@ public class HaarDetector extends HaarBase {
         );
         cuCtxSynchronize();
 
-        int hostOutput[] = new int[(int) numFeatures];
-        cuMemcpyDtoH(Pointer.to(hostOutput), dstPtr, numFeatures * Sizeof.INT);
+        int hostOutput[] = new int[(int) outputSize];
+        cuMemcpyDtoH(Pointer.to(hostOutput), dstPtr, outputSize * Sizeof.INT);
 
-        switch (type) {
-            case 'A':
-                this.featuresA = hostOutput;
-                break;
-            case 'B':
-                this.featuresB = hostOutput;
-                break;
-            case 'C':
-                this.featuresC = hostOutput;
-                break;
-            case 'D':
-                this.featuresD = hostOutput;
-                break;
-            case 'E':
-                this.featuresE = hostOutput;
-                break;
-        }
-
+        allFeatures = hostOutput;
         cuMemFree(dstPtr);
     }
 
 
-    public void compute(float coeff) {
+    public int[] compute() {
         if (this.tmpDataPtr == null) {
             System.err.println("ERROR HaarDetector not init - Aborting");
             System.exit(42);
         }
-        // Initialisation of the input data that will be passed to Cuda
-        // The image is larger to compute the filter without bounds checking
 
-        // Allocate input data to CUDA memory
-        // Pas utiliser ça...
         srcPtr = new CUdeviceptr();
         CudaUtils.newArray2D(integral, width, height, tmpDataPtr, srcPtr);
 
-        computeTypeN(this.NUM_FEATURES_A, 'A', coeff);
-        computeTypeN(this.NUM_FEATURES_B, 'B', coeff);
-        computeTypeN(this.NUM_FEATURES_C, 'C', coeff);
-        computeTypeN(this.NUM_FEATURES_D, 'D', coeff);
-        computeTypeN(this.NUM_FEATURES_E, 'E', coeff);
+        launchKernel(slidingWindowsSize * neededFeaturesSize);
 
         CudaUtils.freeArray2D(tmpDataPtr, srcPtr, width);
 
+        return allFeatures;
     }
 
-    public void updateImage(int[][] newIntegral, int width, int height) {
-        super.updateImage(newIntegral);
-
+    // TODO : make it compute the image also ?
+    public void updateImage(int[][] newIntegral, int width, int height, ArrayList<Rectangle> windows) {
+        if (!(this.width == width && this.height == height)) {
+            this.setUp(width, height, windows);
+        }
+        this.integral = newIntegral;
         this.tmpDataPtr = new CUdeviceptr[width];
         this.width = width;
         this.height = height;
+    }
+
+    @Override
+    public void close() throws Exception {
+        // Free CUDA
+        System.out.println("Freeing CUDA memory for detector...");
+        cuMemFree(this.neededFeaturesPtr);
     }
 
 }
