@@ -100,6 +100,8 @@ public class EvaluateImage {
     // TODO : remove unnecessary har features to compute only those needed
     // TODO : test if this is really more efficient to go through cuda to compute those haar features needed...
 
+    // DO NOT USE THIS !!!!!
+    @Deprecated
     public boolean guess(String fileName) {
 
         // Handle the case this is not a haar file
@@ -110,7 +112,7 @@ public class EvaluateImage {
             haar = readFeatures(fileName);
         }
 
-        return Classifier.isFace(this.cascade, this.tweaks, haar, this.layerCount) > 0;
+        return Classifier.isFace(this.cascade, this.tweaks, haar, this.layerCount, null) > 0;
 
     }
 
@@ -125,26 +127,23 @@ public class EvaluateImage {
 
         ArrayList<Face> res = new ArrayList<>();
 
-        // TODO : make it work (or find another solution)
+        // TODO : handle when the image is not the good size !
         int[] haar = computeImageFeaturesDetector(imageHandler, haarDetector, slidingWindows);
 
         if (haar == null)
             return res;
 
         int offset = 0;
-        int haarSize = slidingWindows.size() * neededHaarValues.size();
+        int haarSize = neededHaarValues.size();
         for (Rectangle rectangle : slidingWindows) {
 
-            //int[][] tmpImage = new int[rectangle.getWidth()][rectangle.getHeight()];
-
-            // TODO : improve copy or optimize this !
-
-            /*
+/*
+            int[][] tmpImage = new int[rectangle.getWidth()][rectangle.getHeight()];
             for (int x = rectangle.getX(); x < rectangle.getWidth() + rectangle.getX(); x++)
                 System.arraycopy(imageHandler.getGrayImage()[x], rectangle.getY(), tmpImage[x - rectangle.getX()], 0, rectangle.getY() + rectangle.getHeight() - rectangle.getY());
 
             ImageHandler tmpImageHandler = new ImageHandler(tmpImage, rectangle.getWidth(), rectangle.getHeight());
-            */
+*/
 
 
             //haar = computeImageFeatures(downsamplingImage(tmpImageHandler), false, null);
@@ -153,7 +152,8 @@ public class EvaluateImage {
             System.arraycopy(haar, offset, tmpHaar, 0, haarSize);
             offset += haarSize;
 
-            double confidence = Classifier.isFace(cascade, tweaks, haar, layerCount);
+            //tmpHaar = computeImageFeatures(downsamplingImage(tmpImageHandler), false, null);
+            double confidence = Classifier.isFace(cascade, tweaks, tmpHaar, layerCount, neededHaarValues);
             if (confidence > 0) {
                 res.add(new Face(rectangle, confidence));
             }

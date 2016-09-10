@@ -10,6 +10,7 @@ import utils.Serializer;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.concurrent.*;
 
 import static java.lang.Math.log;
@@ -92,7 +93,7 @@ public class Classifier {
         System.out.println("Feature count for " + width + "x" + height + ": " + featureCount);
     }
 
-    public static double isFace(ArrayList<StumpRule>[] cascade, ArrayList<Float> tweaks, int[] exampleFeatureValues, int defaultLayerNumber) {
+    public static double isFace(ArrayList<StumpRule>[] cascade, ArrayList<Float> tweaks, int[] exampleFeatureValues, int defaultLayerNumber, HashMap<Integer, Integer> neededHaarValues) {
         // Everything is a face if no layer is involved
         if (defaultLayerNumber == 0) {
             System.out.println("Does it really happen? It seems!"); // LoL
@@ -105,7 +106,11 @@ public class Classifier {
             int committeeSize = cascade[layer].size();
             for(int ruleIndex = 0; ruleIndex < committeeSize; ruleIndex++){
                 StumpRule rule = cascade[layer].get(ruleIndex);
-                double featureValue = (double)exampleFeatureValues[(int) rule.featureIndex];
+                int ftIndex = (int) rule.featureIndex;
+                if (neededHaarValues != null) {
+                    ftIndex = neededHaarValues.get(ftIndex);
+                }
+                double featureValue = (double)exampleFeatureValues[ftIndex];
                 double vote = (featureValue > rule.threshold ? 1 : -1) * rule.toggle + tweaks.get(layer);
                 if (rule.error == 0) {
                     if (ruleIndex == 0)
@@ -340,14 +345,14 @@ public class Classifier {
             testBlackList[NEGATIVE] = DenseMatrix.ones(1, nNeg);
 
             for (int i = 0; i < nPos; i++) {
-                boolean face = isFace(cascade, tweaks, Serializer.readFeatures(testFaces.get(i) + Conf.FEATURE_EXTENSION), round+1) > 0;
+                boolean face = isFace(cascade, tweaks, Serializer.readFeatures(testFaces.get(i) + Conf.FEATURE_EXTENSION), round+1, null) > 0;
                 if (!face) {
                     testBlackList[POSITIVE].set(0, i, 1);
                     nFalseNegative += 1;
                 }
             }
             for (int i = 0; i < nNeg; i++) {
-                boolean face = isFace(cascade, tweaks, Serializer.readFeatures(testNonFaces.get(i) + Conf.FEATURE_EXTENSION), round+1) > 0;
+                boolean face = isFace(cascade, tweaks, Serializer.readFeatures(testNonFaces.get(i) + Conf.FEATURE_EXTENSION), round+1, null) > 0;
                 if (face) {
                     testBlackList[NEGATIVE].set(0, i, 0);
                     nFalsePositive += 1;
@@ -612,7 +617,7 @@ public class Classifier {
         long vraiNegatif = 0;
         long fauxPositif = 0;
 
-        EvaluateImage evaluateImage = new EvaluateImage(countTestPos, countTestNeg, test_dir, width, height, 100, 100, 2, 2, 19, 99);
+        EvaluateImage evaluateImage = new EvaluateImage(countTestPos, countTestNeg, test_dir, width, height, 100, 100, 1, 1, 19, 100);
         /*for (String listTestFace : streamFiles(test_dir + "/faces", Conf.FEATURE_EXTENSION)) {
             boolean result = evaluateImage.guess(listTestFace);
 
@@ -659,7 +664,7 @@ public class Classifier {
         //Display.drawImage(imageHandler.getBufferedImage());
 
         // Your images, for now do not take too lages images, it will take too long...
-        String images[] = {"got.jpeg"}; // put your images here (and in data/) to draw the faces
+        String images[] = {"got.jpeg"};//, "face1.jpg", "face2.jpg","face3.jpg","face4.jpg"}; // put your images here (and in data/) to draw the faces
 
         for (String img : images) {
             ImageHandler image = new ImageHandler("data/" + img);
