@@ -617,7 +617,7 @@ public class Classifier {
         long vraiNegatif = 0;
         long fauxPositif = 0;
 
-        EvaluateImage evaluateImage = new EvaluateImage(countTestPos, countTestNeg, test_dir, width, height, 100, 100, 1, 1, 19, 100);
+        EvaluateImage evaluateImage = new EvaluateImage(countTestPos, countTestNeg, test_dir, width, height, 200, 200, 2, 2, 19, 150);
         /*for (String listTestFace : streamFiles(test_dir + "/faces", Conf.FEATURE_EXTENSION)) {
             boolean result = evaluateImage.guess(listTestFace);
 
@@ -664,12 +664,14 @@ public class Classifier {
         //Display.drawImage(imageHandler.getBufferedImage());
 
         // Your images, for now do not take too lages images, it will take too long...
-        String images[] = {"got.jpeg"};//, "face1.jpg", "face2.jpg","face3.jpg","face4.jpg"}; // put your images here (and in data/) to draw the faces
+        String images[] = {"got.jpeg"};//{"face5.jpg", "face6.jpg","face7.jpg","face8.jpg", "face9.jpg", "face10.jpg", "face11.jpg", "face12.jpg"}; // put your images here (and in data/) to draw the faces
 
         for (String img : images) {
+            long milliseconds = System.currentTimeMillis();
             ImageHandler image = new ImageHandler("data/" + img);
             ArrayList<Face> rectangles = evaluateImage.getFaces(image);
             System.out.println("Found " + rectangles.size() + " faces rectangle that contains a face");
+            System.out.println("Time spent fot this image : " + (System.currentTimeMillis() - milliseconds) + " ms");
             image.drawRectangles(rectangles);
             Display.drawImage(image.getBufferedImage());
         }

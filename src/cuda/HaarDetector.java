@@ -9,6 +9,7 @@ import jcuda.driver.CUmodule;
 import process.features.Feature;
 import process.features.Rectangle;
 
+import java.security.InvalidParameterException;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -51,6 +52,13 @@ public class HaarDetector extends HaarBase {
         this.width = width;
         this.height = height;
         this.tmpDataPtr = new CUdeviceptr[width];
+
+        if (neededHaarValues.size() > THREADS_IN_BLOCK || windows.size() >= 65535) {
+            System.err.println("Error with values neededHaarValues and number of windows : ");
+            System.err.println("neededHaarValues : " + neededHaarValues.size() + " num of windows : " + windows.size());
+            System.err.println("Max values are : " + THREADS_IN_BLOCK + " and 65535");
+            throw new InvalidParameterException("Invalid number of thread or block needed for cuda");
+        }
 
         {
             ArrayList<Feature> ft = new ArrayList<>();

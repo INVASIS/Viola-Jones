@@ -10,6 +10,7 @@ import utils.Converters;
 import utils.Serializer;
 
 import javax.imageio.ImageIO;
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -120,16 +121,16 @@ public class ImageHandler {
 
 
     public void drawRectangles(ArrayList<Face> rectangles) {
-
+        int red = new Color(255, 38, 38).getRGB();
         for (Face rectangle : rectangles) {
             for (int i = rectangle.getX(); i < rectangle.getX() + rectangle.getWidth(); i++) {
-                this.getBufferedImage().setRGB(i, rectangle.getY(), 0);
-                this.getBufferedImage().setRGB(i, rectangle.getY() + rectangle.getHeight() - 1, 0);
+                this.getBufferedImage().setRGB(i, rectangle.getY(), red);
+                this.getBufferedImage().setRGB(i, rectangle.getY() + rectangle.getHeight() - 1, red);
             }
 
             for (int j = rectangle.getY(); j < rectangle.getY() + rectangle.getHeight(); j++) {
-                this.getBufferedImage().setRGB(rectangle.getX(), j, 0);
-                this.getBufferedImage().setRGB(rectangle.getX() + rectangle.getWidth() - 1, j, 0);
+                this.getBufferedImage().setRGB(rectangle.getX(), j, red);
+                this.getBufferedImage().setRGB(rectangle.getX() + rectangle.getWidth() - 1, j, red);
             }
 
         }
