@@ -617,8 +617,8 @@ public class Classifier {
         long vraiNegatif = 0;
         long fauxPositif = 0;
 
-//        EvaluateImage evaluateImage = new EvaluateImage(width, height, 200, 200, 3, 2, 40, 70);
-        EvaluateImage evaluateImage = new EvaluateImage(width, height, 640, 436, 3, 3, 35, 55);
+        EvaluateImage evaluateImage = new EvaluateImage(width, height, 640, 436, 1, 2, 30, 80);
+//        EvaluateImage evaluateImage = new EvaluateImage(width, height, 200, 200, 1, 1, 20, 80);
         /*for (String listTestFace : streamFiles(test_dir + "/faces", Conf.FEATURE_EXTENSION)) {
             boolean result = evaluateImage.guess(listTestFace);
 
@@ -665,7 +665,8 @@ public class Classifier {
         //Display.drawImage(imageHandler.getBufferedImage());
 
         // Your images, for now do not take too lages images, it will take too long...
-        String images[] = {"fusia.jpg"};//{"face5.jpg", "face6.jpg","face7.jpg","face8.jpg", "face9.jpg", "face10.jpg", "face11.jpg", "face12.jpg"}; // put your images here (and in data/) to draw the faces
+        String images[] = {"fusia.jpg"};
+//        String images[] = {"got.jpeg"};
 
         for (String img : images) {
             long milliseconds = System.currentTimeMillis();

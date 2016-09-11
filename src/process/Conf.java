@@ -16,6 +16,7 @@ public class Conf {
     public static int maxThreadsPerBlock;
     public static int multiProcessorCount;
     public static int maxThreadsPerMultiProcessor;
+    public static final int maxBlocksByDim = 65535;
     public final static String TMP_DIR = "tmp";
     public final static String TRAIN_DIR = TMP_DIR + "/training";
     public final static String TEST_DIR = TMP_DIR + "/test";

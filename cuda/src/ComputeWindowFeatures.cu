@@ -14,15 +14,16 @@ extern "C"
 void computeWindowFeatures(int** integralImage, int* features, int totalNumFeatures, float* window, int* haarFeatures)
 {
 	// Get an "unique id" of the thread
-	const unsigned int tidX = blockIdx.x * blockDim.x + threadIdx.x;
+	const unsigned int blockId = ((blockIdx.y * 65535) + blockIdx.x);
+	const unsigned int tidX = blockId * blockDim.x + threadIdx.x;
 
 	if (tidX < totalNumFeatures)
 	{
 		int type = features[threadIdx.x * 5];
-		int x = features[threadIdx.x * 5 + 1] + (int)window[blockIdx.x * 3];
-		int y = features[threadIdx.x * 5 + 2] + (int)window[blockIdx.x * 3 + 1];
-		int w = (int) (((float) (features[threadIdx.x * 5 + 3])) * window[blockIdx.x * 3 + 2]);
-		int h = (int) (((float) (features[threadIdx.x * 5 + 4])) * window[blockIdx.x * 3 + 2]);
+		int x = features[threadIdx.x * 5 + 1] + (int)window[blockId * 3];
+		int y = features[threadIdx.x * 5 + 2] + (int)window[blockId * 3 + 1];
+		int w = (int) (((float) (features[threadIdx.x * 5 + 3])) * window[blockId * 3 + 2]);
+		int h = (int) (((float) (features[threadIdx.x * 5 + 4])) * window[blockId * 3 + 2]);
 
 		if (type == 1)
 		{

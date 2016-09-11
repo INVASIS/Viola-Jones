@@ -21,7 +21,7 @@ import static utils.Serializer.readFeatures;
 
 public class EvaluateImage {
 
-    public static float SCALE_COEFF = 1.3f;
+    public static float SCALE_COEFF = 1.05f;
 
     private int trainWidth;
     private int trainHeight;

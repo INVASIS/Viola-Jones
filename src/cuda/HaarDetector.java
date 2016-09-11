@@ -18,8 +18,6 @@ import static jcuda.driver.JCudaDriver.*;
 import static process.features.FeatureExtractor.streamFeaturesByType;
 
 
-// TODO : all cuda should return int[] instead of ArrayList<Integer>
-// FIXME : make it work!
 public class HaarDetector extends HaarBase {
     private static final int valuesByFeature = 5;
     private static final int valuesByWindow = 3;
@@ -36,6 +34,7 @@ public class HaarDetector extends HaarBase {
 
     private int neededFeaturesSize;
     private int slidingWindowsSize;
+    private int outputSize;
 
     private CUmodule moduleDetector;
     private int[] allFeatures;
@@ -62,7 +61,6 @@ public class HaarDetector extends HaarBase {
 
         // Check limitations
         if (neededFeaturesSize > Conf.maxThreadsPerBlock
-                || slidingWindowsSize >= 65535
                 || (((long)(neededFeaturesSize)) * ((long)(slidingWindowsSize))) >= Integer.MAX_VALUE // For dstPtr
                 || (((long)(valuesByFeature)) * ((long)(neededFeaturesSize))) >= Integer.MAX_VALUE // For neededFeaturesPtr
                 || (((long)(valuesByWindow)) * ((long)(slidingWindowsSize))) >= Integer.MAX_VALUE) // For slidingWindowsPtr
@@ -72,6 +70,8 @@ public class HaarDetector extends HaarBase {
             System.err.println("Max values are: " + Conf.maxThreadsPerBlock + " and 65535");
             throw new InvalidParameterException("Invalid number of thread or block needed for CUDA");
         }
+
+        outputSize = slidingWindowsSize * neededFeaturesSize;
 
         int cpt = 0;
         ArrayList<Feature> ft = new ArrayList<>();
@@ -122,6 +122,10 @@ public class HaarDetector extends HaarBase {
             cuMemAlloc(slidingWindowsPtr, valuesByWindow * slidingWindowsSize * Sizeof.FLOAT);
             cuMemcpyHtoD(slidingWindowsPtr, Pointer.to(slidingWindows), valuesByWindow * slidingWindowsSize * Sizeof.FLOAT);
         }
+
+        this.dstPtr = new CUdeviceptr();
+        cuMemAlloc(dstPtr, outputSize * Sizeof.INT);
+        allFeatures = new int[outputSize];
     }
 
     private void launchKernel() {
@@ -129,10 +133,7 @@ public class HaarDetector extends HaarBase {
         CUfunction function = new CUfunction();
         cuModuleGetFunction(function, moduleDetector, DETECTOR_KERNEL_NAME);
 
-        int outputSize = slidingWindowsSize * neededFeaturesSize;
 
-        this.dstPtr = new CUdeviceptr();
-        cuMemAlloc(dstPtr, outputSize * Sizeof.INT);
 
         Pointer kernelParams = Pointer.to(
                 Pointer.to(srcPtr),
@@ -142,12 +143,20 @@ public class HaarDetector extends HaarBase {
                 Pointer.to(dstPtr)
         );
 
-        // Nb block limit : 65535 per dimension per grid
-        //int nb_blocks = (int) (outputSize / THREADS_IN_BLOCK + ((outputSize % THREADS_IN_BLOCK) == 0 ? 0 : 1));
+        int nbBlocksX;
+        int nbBlocksY;
+        if (slidingWindowsSize > Conf.maxBlocksByDim) {
+            nbBlocksX = Conf.maxBlocksByDim;
+            nbBlocksY = (int) Math.ceil( (double)slidingWindowsSize / (double)Conf.maxBlocksByDim);
+        }
+        else {
+            nbBlocksX = slidingWindowsSize;
+            nbBlocksY = 1;
+        }
 
         cuLaunchKernel(
                 function, // CUDA function to be called
-                slidingWindowsSize, 1, 1, // 3D (x, y, z) grid of block
+                nbBlocksX, nbBlocksY, 1, // 3D (x, y, z) grid of block
                 neededFeaturesSize, 1, 1, // 3D (x, y, z) grid of threads
                 0, // sharedMemBytes sets the amount of dynamic shared memory that will be available to each thread block.
                 null, // can optionally be associated to a stream by passing a non-zero hStream argument.
@@ -156,10 +165,7 @@ public class HaarDetector extends HaarBase {
         );
         cuCtxSynchronize();
 
-        int hostOutput[] = new int[outputSize];
-        cuMemcpyDtoH(Pointer.to(hostOutput), dstPtr, outputSize * Sizeof.INT);
-
-        allFeatures = hostOutput;
+        cuMemcpyDtoH(Pointer.to(allFeatures), dstPtr, outputSize * Sizeof.INT);
         cuMemFree(dstPtr);
     }
 
@@ -173,7 +179,9 @@ public class HaarDetector extends HaarBase {
         srcPtr = new CUdeviceptr();
         CudaUtils.newArray2D(integral, width, height, tmpDataPtr, srcPtr);
 
+        long milliseconds = System.currentTimeMillis();
         launchKernel();
+        System.out.println("haar time: " + (System.currentTimeMillis() - milliseconds) + " ms");
 
         CudaUtils.freeArray2D(tmpDataPtr, srcPtr, width);
 
