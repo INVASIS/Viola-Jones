@@ -273,7 +273,6 @@ public class FeatureExtractor {
     }
 
 
-    // TODO : to int[]
     // TODO : return it the size of all features
     public static int[] computeImageFeaturesDetector(ImageHandler image, HaarDetector haarDetector, ArrayList<Rectangle> windows) {
         if (Conf.USE_CUDA) {

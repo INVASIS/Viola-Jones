@@ -73,4 +73,26 @@ public class Perfs {
         System.out.println("BENCHMARK BEST STUMP");
 
     }
+
+
+    public static void benchmarkDetect() {
+
+        // TODO : benchmark for detect!
+
+        int[] result = new int[(int) Conf.haarExtractor.getNUM_TOTAL_FEATURES()];
+        long cudaMilliseconds = 0;
+        long cudaTotalTime = 0;
+
+        long cpuTotalTime = 0;
+        long cpuMilliseconds = 0;
+
+        int maxIter = 1000;
+
+
+        // -------------------- CPU --------------------
+
+        System.out.println("------ TEST 3 ------");
+        System.out.println("  BENCHMARK DETECT");
+
+    }
 }

@@ -170,7 +170,6 @@ public class HaarDetector extends HaarBase {
         cuCtxSynchronize();
 
         cuMemcpyDtoH(Pointer.to(allFeatures), dstPtr, outputSize * Sizeof.INT);
-        cuMemFree(dstPtr);
     }
 
 
@@ -195,6 +194,7 @@ public class HaarDetector extends HaarBase {
     // TODO : make it compute the image also ?
     public void updateImage(int[][] newIntegral, int width, int height, ArrayList<Rectangle> windows) {
         if (!(this.width == width && this.height == height)) {
+            cuMemFree(dstPtr);
             this.setUp(width, height, windows);
         }
         this.integral = newIntegral;
@@ -208,6 +208,7 @@ public class HaarDetector extends HaarBase {
         // Free CUDA
         System.out.println("Freeing CUDA memory for detector...");
         cuMemFree(this.neededFeaturesPtr);
+        cuMemFree(dstPtr);
     }
 
 }
