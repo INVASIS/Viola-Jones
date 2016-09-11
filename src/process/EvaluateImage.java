@@ -21,7 +21,7 @@ import static utils.Serializer.readFeatures;
 
 public class EvaluateImage {
 
-    public static float SCALE_COEFF = 1.05f;
+    private static final float SCALE_COEFF = 1.25f;
 
     private int trainWidth;
     private int trainHeight;
@@ -35,9 +35,13 @@ public class EvaluateImage {
     private HaarDetector haarDetector;
     private ArrayList<Rectangle> slidingWindows;
 
-
     public EvaluateImage(int trainWidth, int trainHeight, int imgWidth, int imgHeight,
                          int xDisplacer, int yDisplacer, int minSlidingSize, int maxSlidingSize) {
+        this(trainWidth, trainHeight, imgWidth, imgHeight, xDisplacer, yDisplacer, minSlidingSize, maxSlidingSize, SCALE_COEFF);
+    }
+
+    public EvaluateImage(int trainWidth, int trainHeight, int imgWidth, int imgHeight,
+                         int xDisplacer, int yDisplacer, int minSlidingSize, int maxSlidingSize, float coeff) {
         this.trainHeight = trainHeight;
         this.trainWidth = trainWidth;
 
@@ -61,7 +65,12 @@ public class EvaluateImage {
             System.out.println("Found " + i + " different indexes");
         }
 
-        this.slidingWindows = getAllRectangles(imgWidth, imgHeight, SCALE_COEFF, xDisplacer, yDisplacer, minSlidingSize, maxSlidingSize);
+        if(coeff < 1.08 && coeff > 1.5) {
+            System.err.println("WARNING : SCALE_COEFF out of bounds [1.08 ; 1.5] - SCALE_COEFF used : " + SCALE_COEFF);
+            this.slidingWindows = getAllRectangles(imgWidth, imgHeight, SCALE_COEFF, xDisplacer, yDisplacer, minSlidingSize, maxSlidingSize);
+        }
+        else
+            this.slidingWindows = getAllRectangles(imgWidth, imgHeight, coeff, xDisplacer, yDisplacer, minSlidingSize, maxSlidingSize);
         this.haarDetector = new HaarDetector(neededHaarValues, trainHeight);
         this.haarDetector.setUp(imgWidth, imgHeight, slidingWindows);
     }
@@ -108,7 +117,7 @@ public class EvaluateImage {
             }
         }
 
-//        res = postProcessing(res);
+        //res = postProcessing(res);
         // TODO : call post-processing to remove unnecessary rectangles
         return res;
     }

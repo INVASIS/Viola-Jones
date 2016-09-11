@@ -8,10 +8,12 @@ import jcuda.driver.CUfunction;
 import jcuda.driver.CUmodule;
 import process.Conf;
 import process.features.Feature;
+import process.features.FeatureExtractor;
 import process.features.Rectangle;
 
 import java.security.InvalidParameterException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 
 import static jcuda.driver.JCudaDriver.*;
@@ -77,13 +79,15 @@ public class HaarDetector extends HaarBase {
         ArrayList<Feature> ft = new ArrayList<>();
         // Get features that correspond to given indexes
         {
+            Feature feattt[] = new Feature[neededFeaturesSize];
             for (ArrayList<Feature> lf : streamFeaturesByType(new ImageHandler(new int[19][19], 19, 19))) {
                 for (Feature f : lf) {
                     if (neededHaarValues.containsKey(cpt))
-                        ft.add(f);
+                        feattt[neededHaarValues.get(cpt)] = f;
                     cpt++;
                 }
             }
+            Collections.addAll(ft, feattt);
 
             if (ft.size() != neededFeaturesSize) {
                 System.err.println("Error in computing neededFeaturesSize");
