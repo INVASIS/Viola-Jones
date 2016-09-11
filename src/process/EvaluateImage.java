@@ -98,6 +98,7 @@ public class EvaluateImage {
     }
 
     // TODO : centrer-reduire les rectangles
+    // TODO : make it parallel ??
     public ArrayList<Face> getFaces(ImageHandler imageHandler) {
         ArrayList<Face> res = new ArrayList<>();
 
@@ -117,7 +118,7 @@ public class EvaluateImage {
             }
         }
 
-        //res = postProcessing(res);
+        res = postProcessing(res);
         // TODO : call post-processing to remove unnecessary rectangles
         return res;
     }
@@ -215,7 +216,7 @@ public class EvaluateImage {
 
     }
 
-    // TODO : can improve perf here !
+    // TODO : can improve perf  + res here !
     // TODO : Improve by discarging rectangles with not enouth red on the original face (on the image)
     private ArrayList<Face> postProcessing(ArrayList<Face> allFaces) {
         ArrayList<Face> result = new ArrayList<>();
@@ -242,14 +243,18 @@ public class EvaluateImage {
             HashSet set = (HashSet) aList;
 
             Face face = new Face(new Rectangle(0, 0, 0, 0), -1);
+            float cumulatedConfidence = 0;
+            int lap = 0;
             for (Object o : set) {
                 if (o instanceof Face) {
                     Face candidate = (Face) o;
+                    cumulatedConfidence += candidate.getConfidence();
+                    lap++;
                     if (candidate.getConfidence() > face.getConfidence())
                         face = candidate;
                 }
             }
-            if (face.getConfidence() > 0)
+            if (lap >= 3 && cumulatedConfidence > 18 && face.getConfidence() > 0)
                 result.add(face);
         }
 

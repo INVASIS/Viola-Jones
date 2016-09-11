@@ -1,3 +1,4 @@
+import Statistics.Perfs;
 import process.Classifier;
 import process.Conf;
 import utils.Serializer;
@@ -30,5 +31,9 @@ public class Main {
         Classifier classifier = new Classifier(width, height);
         //classifier.train("data/trainset", "data/testset", 0.5f, overallTargetDetectionRate, overallTargetFalsePositiveRate, targetFalsePositiveRate, true);
         classifier.test("data/testset");
+
+
+        System.out.println("Uncomment to launch perfs tests");
+        //Perfs.benchmarksTrainFeatures();
     }
 }
