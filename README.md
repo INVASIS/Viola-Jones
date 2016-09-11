@@ -31,6 +31,10 @@ We provide .dll (for windows) and .so (for linux) CUDA 7.5 lib files in this rep
 In order to let the program access to these files, you must add their directory in your PATH environment variable.
 
 
+## Training and Test set
+
+1. [CBCL FACE DATABASE](http://cbcl.mit.edu/cbcl/software-datasets/FaceData2.html)
+
 ## References
 
 1. [An Analysis of the Viola-Jones Face Detection Algorithm](http://www.ipol.im/pub/art/2014/104/article.pdf)
