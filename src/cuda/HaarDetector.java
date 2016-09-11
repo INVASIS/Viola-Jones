@@ -8,7 +8,6 @@ import jcuda.driver.CUfunction;
 import jcuda.driver.CUmodule;
 import process.Conf;
 import process.features.Feature;
-import process.features.FeatureExtractor;
 import process.features.Rectangle;
 
 import java.security.InvalidParameterException;
@@ -17,6 +16,7 @@ import java.util.Collections;
 import java.util.HashMap;
 
 import static jcuda.driver.JCudaDriver.*;
+import static process.IntegralImage.rectangleSum;
 import static process.features.FeatureExtractor.streamFeaturesByType;
 
 
@@ -42,21 +42,24 @@ public class HaarDetector extends HaarBase {
     private int[] allFeatures;
     private int baseSize;
 
-    public HaarDetector(HashMap<Integer, Integer> neededHaarValues, int baseSize) {
+    public HaarDetector(HashMap<Integer, Integer> neededHaarValues, int baseSize, int width, int height, ArrayList<Rectangle> windows) {
 
         this.neededHaarValues = neededHaarValues;
-        this.neededFeaturesPtr = new CUdeviceptr();
-        this.slidingWindowsPtr = new CUdeviceptr();
-        this.moduleDetector = CudaUtils.getModule(DETECTOR_CUDA_FILENAME);
         this.baseSize = baseSize;
-    }
-
-    public void setUp(int width, int height, ArrayList<Rectangle> windows) {
         this.integral = null;
         this.width = width;
         this.height = height;
-        this.tmpDataPtr = new CUdeviceptr[width];
 
+        if (Conf.USE_CUDA) {
+            System.out.println("HaarDetector uses GPU (CUDA)");
+
+            this.neededFeaturesPtr = new CUdeviceptr();
+            this.slidingWindowsPtr = new CUdeviceptr();
+            this.moduleDetector = CudaUtils.getModule(DETECTOR_CUDA_FILENAME);
+            this.tmpDataPtr = new CUdeviceptr[width];
+        }
+        else
+            System.out.println("HaarDetector uses CPU");
 
         neededFeaturesSize = neededHaarValues.size();
         slidingWindowsSize = windows.size();
@@ -108,8 +111,10 @@ public class HaarDetector extends HaarBase {
                 cpt++;
             }
 
-            cuMemAlloc(neededFeaturesPtr, valuesByFeature * neededFeaturesSize * Sizeof.INT);
-            cuMemcpyHtoD(neededFeaturesPtr, Pointer.to(neededFeatures), valuesByFeature * neededFeaturesSize * Sizeof.INT);
+            if (Conf.USE_CUDA) {
+                cuMemAlloc(neededFeaturesPtr, valuesByFeature * neededFeaturesSize * Sizeof.INT);
+                cuMemcpyHtoD(neededFeaturesPtr, Pointer.to(neededFeatures), valuesByFeature * neededFeaturesSize * Sizeof.INT);
+            }
         }
 
         // Alloc memory for slidingWindowsPtr
@@ -123,21 +128,91 @@ public class HaarDetector extends HaarBase {
                 cpt++;
             }
 
-            cuMemAlloc(slidingWindowsPtr, valuesByWindow * slidingWindowsSize * Sizeof.FLOAT);
-            cuMemcpyHtoD(slidingWindowsPtr, Pointer.to(slidingWindows), valuesByWindow * slidingWindowsSize * Sizeof.FLOAT);
+            if (Conf.USE_CUDA) {
+                cuMemAlloc(slidingWindowsPtr, valuesByWindow * slidingWindowsSize * Sizeof.FLOAT);
+                cuMemcpyHtoD(slidingWindowsPtr, Pointer.to(slidingWindows), valuesByWindow * slidingWindowsSize * Sizeof.FLOAT);
+            }
         }
 
-        this.dstPtr = new CUdeviceptr();
-        cuMemAlloc(dstPtr, outputSize * Sizeof.INT);
+        if (Conf.USE_CUDA) {
+            this.dstPtr = new CUdeviceptr();
+            cuMemAlloc(dstPtr, outputSize * Sizeof.INT);
+        }
         allFeatures = new int[outputSize];
     }
 
-    private void launchKernel() {
+    private void computeFeaturesCPU() {
+        for (int i = 0; i < slidingWindowsSize; i++) {
+            for (int j = 0; j < neededFeaturesSize; j++) {
 
+	            int tidX = i * neededFeaturesSize + j;
+
+                int type = neededFeatures[j * 5];
+                int x = neededFeatures[j * 5 + 1] + (int)slidingWindows[i * 3];
+                int y = neededFeatures[j * 5 + 2] + (int)slidingWindows[i * 3 + 1];
+                int w = (int) (((float) (neededFeatures[j * 5 + 3])) * slidingWindows[i * 3 + 2]);
+                int h = (int) (((float) (neededFeatures[j * 5 + 4])) * slidingWindows[i * 3 + 2]);
+
+                if (type == 1)
+                {
+                    int mid = w / 2;
+                    int r1 = rectangleSum(integral, x, y, mid, h);
+                    int r2 = rectangleSum(integral, x + mid, y, mid, h);
+                    allFeatures[tidX] = r1 - r2;
+                }
+                else if (type == 2)
+                {
+                    int mid = w / 3;
+
+                    int r1 = rectangleSum(integral, x, y, mid, h);
+                    int r2 = rectangleSum(integral, x + mid, y, mid, h);
+                    int r3 = rectangleSum(integral, x + 2 * mid, y, mid, h);
+
+                    allFeatures[tidX] = r1 - r2 + r3;
+                }
+                else if (type == 3)
+                {
+                    int mid = h / 2;
+                    int r1 = rectangleSum(integral, x, y, w, mid);
+                    int r2 = rectangleSum(integral, x, y + mid, w, mid);
+                    allFeatures[tidX] = r2 - r1;
+                }
+                else if (type == 4)
+                {
+                    int mid = h / 3;
+
+                    int r1 = rectangleSum(integral, x, y, w, mid);
+                    int r2 = rectangleSum(integral, x, y + mid, w, mid);
+                    int r3 = rectangleSum(integral, x, y + 2 * mid, w, mid);
+
+                    allFeatures[tidX] = r1 - r2 + r3;
+                }
+                else if (type == 5)
+                {
+                    int mid_w = w / 2;
+                    int mid_h = h / 2;
+
+                    int r1 = rectangleSum(integral, x, y, mid_w, mid_h);
+                    int r2 = rectangleSum(integral, x + mid_w, y, mid_w, mid_h);
+                    int r3 = rectangleSum(integral, x, y + mid_h, mid_w, mid_h);
+                    int r4 = rectangleSum(integral, x + mid_w, y + mid_h, mid_w, mid_h);
+
+                    allFeatures[tidX] = r1 - r2 - r3 + r4;
+                }
+            }
+        }
+    }
+
+    private void computeFeaturesGPU() {
+        srcPtr = new CUdeviceptr();
+        CudaUtils.newArray2D(integral, width, height, tmpDataPtr, srcPtr);
+        launchKernel();
+        CudaUtils.freeArray2D(tmpDataPtr, srcPtr, width);
+    }
+
+    private void launchKernel() {
         CUfunction function = new CUfunction();
         cuModuleGetFunction(function, moduleDetector, DETECTOR_KERNEL_NAME);
-
-
 
         Pointer kernelParams = Pointer.to(
                 Pointer.to(srcPtr),
@@ -172,44 +247,32 @@ public class HaarDetector extends HaarBase {
         cuMemcpyDtoH(Pointer.to(allFeatures), dstPtr, outputSize * Sizeof.INT);
     }
 
-
-    public int[] compute() {
-        if (this.tmpDataPtr == null) {
-            System.err.println("ERROR HaarDetector not init - Aborting");
-            System.exit(42);
+    public int[] computeImage(ImageHandler ih) {
+        if (!(this.width == ih.getWidth() && this.height == ih.getHeight())) {
+            System.err.println("HaarDetector only works with same-sized images!");
+            System.exit(1);
         }
 
-        srcPtr = new CUdeviceptr();
-        CudaUtils.newArray2D(integral, width, height, tmpDataPtr, srcPtr);
+        this.integral = ih.getIntegralImage();
 
-        long milliseconds = System.currentTimeMillis();
-        launchKernel();
-        System.out.println("haar time: " + (System.currentTimeMillis() - milliseconds) + " ms");
-
-        CudaUtils.freeArray2D(tmpDataPtr, srcPtr, width);
+        // Compute features in sliding windows
+        if (Conf.USE_CUDA)
+            computeFeaturesGPU();
+        else
+            computeFeaturesCPU();
 
         return allFeatures;
-    }
-
-    // TODO : make it compute the image also ?
-    public void updateImage(int[][] newIntegral, int width, int height, ArrayList<Rectangle> windows) {
-        if (!(this.width == width && this.height == height)) {
-            cuMemFree(dstPtr);
-            this.setUp(width, height, windows);
-        }
-        this.integral = newIntegral;
-        this.tmpDataPtr = new CUdeviceptr[width];
-        this.width = width;
-        this.height = height;
     }
 
     @Override
     public void close() throws Exception {
         // Free CUDA
-        System.out.println("Freeing CUDA memory for detector...");
-        cuMemFree(this.neededFeaturesPtr);
-        cuMemFree(dstPtr);
+        if (Conf.USE_CUDA) {
+            System.out.println("Freeing CUDA memory for HaarDetector...");
+            cuMemFree(this.neededFeaturesPtr);
+            cuMemFree(this.slidingWindowsPtr);
+            cuMemFree(dstPtr);
+        }
     }
-
 }
 

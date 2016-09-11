@@ -11,15 +11,10 @@ import org.jgrapht.graph.SimpleGraph;
 import process.features.Face;
 import process.features.Rectangle;
 import utils.Serializer;
-import utils.Utils;
 
 import java.util.*;
 
-import static process.features.FeatureExtractor.computeImageFeatures;
-import static process.features.FeatureExtractor.computeImageFeaturesDetector;
-import static utils.Serializer.readFeatures;
-
-public class EvaluateImage {
+public class ImageEvaluator {
 
     private static final float SCALE_COEFF = 1.25f;
 
@@ -35,15 +30,19 @@ public class EvaluateImage {
     private HaarDetector haarDetector;
     private ArrayList<Rectangle> slidingWindows;
 
-    public EvaluateImage(int trainWidth, int trainHeight, int imgWidth, int imgHeight,
-                         int xDisplacer, int yDisplacer, int minSlidingSize, int maxSlidingSize) {
+    public long computingTimeMS;
+
+    public ImageEvaluator(int trainWidth, int trainHeight, int imgWidth, int imgHeight,
+                          int xDisplacer, int yDisplacer, int minSlidingSize, int maxSlidingSize) {
         this(trainWidth, trainHeight, imgWidth, imgHeight, xDisplacer, yDisplacer, minSlidingSize, maxSlidingSize, SCALE_COEFF);
     }
 
-    public EvaluateImage(int trainWidth, int trainHeight, int imgWidth, int imgHeight,
-                         int xDisplacer, int yDisplacer, int minSlidingSize, int maxSlidingSize, float coeff) {
+    public ImageEvaluator(int trainWidth, int trainHeight, int imgWidth, int imgHeight,
+                          int xDisplacer, int yDisplacer, int minSlidingSize, int maxSlidingSize, float coeff) {
         this.trainHeight = trainHeight;
         this.trainWidth = trainWidth;
+
+        this.computingTimeMS = 0;
 
         this.tweaks = new ArrayList<>();
         int[] tmp = new int[1];
@@ -71,38 +70,23 @@ public class EvaluateImage {
         }
         else
             this.slidingWindows = getAllRectangles(imgWidth, imgHeight, coeff, xDisplacer, yDisplacer, minSlidingSize, maxSlidingSize);
-        this.haarDetector = new HaarDetector(neededHaarValues, trainHeight);
-        this.haarDetector.setUp(imgWidth, imgHeight, slidingWindows);
+        this.haarDetector = new HaarDetector(neededHaarValues, trainHeight, imgWidth, imgHeight, slidingWindows);
     }
 
-    // DO NOT USE THIS !!!!!
-    @Deprecated
-    public boolean guess(String fileName) {
-
-        // Handle the case this is not a haar file
-        int[] haar;
-        if (fileName.endsWith(Conf.IMAGES_EXTENSION) || !Utils.fileExists(fileName)) {
-            haar = computeImageFeatures(fileName, false);
-        } else {
-            haar = readFeatures(fileName);
-        }
-
-        return Classifier.isFace(this.cascade, this.tweaks, haar, this.layerCount) > 0;
-
-    }
-
-    public ArrayList<Face> getFaces(String fileName) {
+    public ArrayList<Face> getFaces(String fileName, boolean postProcess) {
         ImageHandler imageHandler = new ImageHandler(fileName);
-
-        return getFaces(imageHandler);
+        return getFaces(imageHandler, postProcess);
     }
 
     // TODO : centrer-reduire les rectangles
     // TODO : make it parallel ??
-    public ArrayList<Face> getFaces(ImageHandler imageHandler) {
+    public ArrayList<Face> getFaces(ImageHandler image, boolean postProcess) {
         ArrayList<Face> res = new ArrayList<>();
 
-        int[] haar = computeImageFeaturesDetector(imageHandler, haarDetector, slidingWindows);
+
+        long cudaMilliseconds = System.currentTimeMillis();
+        int[] haar = haarDetector.computeImage(image);
+        computingTimeMS += System.currentTimeMillis() - cudaMilliseconds;
 
         int offset = 0;
         int haarSize = neededHaarValues.size();
@@ -118,8 +102,8 @@ public class EvaluateImage {
             }
         }
 
-        res = postProcessing(res);
-        // TODO : call post-processing to remove unnecessary rectangles
+        if (postProcess)
+            res = postProcessing(res);
         return res;
     }
 
@@ -144,7 +128,7 @@ public class EvaluateImage {
         return getAllRectangles(imageHandler.getWidth(), imageHandler.getHeight(), SCALE_COEFF, xDisplacer, yDisplacer, frameSize, minDim);
     }
 
-    private ArrayList<Rectangle> getAllRectangles(int imageWidth, int imageHeight, float coeff, int xDisplacer, int yDisplacer, int minSlidingWindowSize, int maxSlidingWindowSize) {
+    public static ArrayList<Rectangle> getAllRectangles(int imageWidth, int imageHeight, float coeff, int xDisplacer, int yDisplacer, int minSlidingWindowSize, int maxSlidingWindowSize) {
 
         if (coeff <= 1) {
             System.err.println("Error for coeff in getAllRectanges, coeff should be > 1. coeff=" + coeff + " Aborting now!");

@@ -272,19 +272,6 @@ public class FeatureExtractor {
         return count;
     }
 
-
-    // TODO : return it the size of all features
-    public static int[] computeImageFeaturesDetector(ImageHandler image, HaarDetector haarDetector, ArrayList<Rectangle> windows) {
-        if (Conf.USE_CUDA) {
-            haarDetector.updateImage(image.getIntegralImage(), image.getWidth(), image.getHeight(), windows);
-            return haarDetector.compute();
-        } else {
-            System.err.println("Error, should have CUDA");
-            System.exit(1);
-        }
-        return new int[0];
-    }
-
     // Warning: Need to train and evaluate on the same features : only on GPU or only on CPU
     public static int[] computeImageFeatures(String imagePath, boolean writeToDisk) {
         ImageHandler image = new ImageHandler(imagePath);

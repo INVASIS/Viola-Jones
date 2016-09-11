@@ -21,19 +21,19 @@ public class Main {
         if (Conf.USE_CUDA)
             Conf.haarExtractor.setUp(width, height);
 
-        System.out.println("Max memory : " + Runtime.getRuntime().maxMemory());
-        System.out.println("Free memory : " + Runtime.getRuntime().freeMemory());
-        System.out.println("Total memory : " + Runtime.getRuntime().totalMemory());
+        System.out.println("JDK Version: " + System.getProperty("java.specification.version"));
+        System.out.println("Max memory: " + Runtime.getRuntime().maxMemory());
+        System.out.println("Free memory: " + Runtime.getRuntime().freeMemory());
+        System.out.println("Total memory: " + Runtime.getRuntime().totalMemory());
         System.out.println("Available Processors (num of max threads) : " + Runtime.getRuntime().availableProcessors());
 
         Serializer.featureCount = countAllFeatures(width, height);
 
         Classifier classifier = new Classifier(width, height);
-        //classifier.train("data/trainset", "data/testset", 0.5f, overallTargetDetectionRate, overallTargetFalsePositiveRate, targetFalsePositiveRate, true);
+//        classifier.train("data/trainset", "data/testset", 0.5f, overallTargetDetectionRate, overallTargetFalsePositiveRate, targetFalsePositiveRate, true);
         classifier.test("data/testset");
 
-
-        System.out.println("Uncomment to launch perfs tests");
-        //Perfs.benchmarksTrainFeatures();
+//        Perfs.benchmarksTrainFeatures();
+        Perfs.benchmarkDetect();
     }
 }

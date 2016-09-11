@@ -604,44 +604,42 @@ public class Classifier {
     }
 
     public float test(String dir) {
-/*
         test_dir = dir;
         countTestPos = countFiles(test_dir + Conf.FACES, Conf.IMAGES_EXTENSION);
         countTestNeg = countFiles(test_dir + Conf.NONFACES, Conf.IMAGES_EXTENSION);
         testN = countTestPos + countTestNeg;
 
-        computeFeaturesTimed(test_dir, Conf.IMAGES_FEATURES_TEST, false);
-*/
+//        computeFeaturesTimed(test_dir, Conf.IMAGES_FEATURES_TEST, false);
+
         long vraiPositif = 0;
         long fauxNegatif = 0;
         long vraiNegatif = 0;
         long fauxPositif = 0;
 
-        //EvaluateImage evaluateImage = new EvaluateImage(width, height, 640, 436, 1, 1, 29, 37);
-        //EvaluateImage evaluateImage = new EvaluateImage(width, height, 714, 456, 3, 3, 20, 26, 1.25f);
-        EvaluateImage evaluateImage = new EvaluateImage(width, height, 200, 200, 1, 1, 19, 32, 1.20f);
-        /*for (String listTestFace : streamFiles(test_dir + "/faces", Conf.FEATURE_EXTENSION)) {
-            boolean result = evaluateImage.guess(listTestFace);
+        Conf.USE_CUDA =false;
+        ImageEvaluator imageEvaluator = new ImageEvaluator(width, height, 19, 19, 1, 1, 19, 19);
 
-            if (result)
-                vraiPositif++;
-            else
+        for (String listTestFace : streamFiles(test_dir + Conf.FACES, Conf.IMAGES_EXTENSION)) {
+            ArrayList<Face> faces = imageEvaluator.getFaces(listTestFace, false);
+            if (faces.isEmpty())
                 fauxNegatif++;
-        }
-
-        System.out.println("------------------------ TMP ------------------------");
-        System.out.println("Vrai Positifs : " + vraiPositif + " / " + countTestPos + " (" + (((double)vraiPositif)/(double)countTestPos + "%)") + "Should be high");
-        System.out.println("Faux Negatifs : " + fauxNegatif + " / " + countTestPos + " (" + (((double)fauxNegatif)/(double)countTestPos + "%)") + "Should be low");
-        System.out.println("------------------------ TMP ------------------------");
-
-
-        for (String listTestNonFace : streamFiles(test_dir + "/non-faces", Conf.FEATURE_EXTENSION)) {
-            boolean result = evaluateImage.guess(listTestNonFace);
-
-            if (result)
-                fauxPositif++;
             else
+                vraiPositif++;
+        }
+//
+//        System.out.println("------------------------ TMP ------------------------");
+//        System.out.println("Vrai Positifs : " + vraiPositif + " / " + countTestPos + " (" + (((double)vraiPositif)/(double)countTestPos + "%)") + "Should be high");
+//        System.out.println("Faux Negatifs : " + fauxNegatif + " / " + countTestPos + " (" + (((double)fauxNegatif)/(double)countTestPos + "%)") + "Should be low");
+//        System.out.println("------------------------ TMP ------------------------");
+
+
+        for (String listTestNonFace : streamFiles(test_dir + Conf.NONFACES, Conf.IMAGES_EXTENSION)) {
+            ArrayList<Face> faces = imageEvaluator.getFaces(listTestNonFace, false);
+
+            if (faces.isEmpty())
                 vraiNegatif++;
+            else
+                fauxPositif++;
         }
 
         System.out.println("Vrai Positifs : " + vraiPositif + " / " + countTestPos + " (" + (((double)vraiPositif)/(double)countTestPos + "%)") + "Should be high");
@@ -659,27 +657,28 @@ public class Classifier {
         System.out.println("fauxNegatif : " + fauxNegatif);
         System.out.println("vraiNegatif : " + vraiNegatif);
         System.out.println("fauxPositif : " + fauxPositif);
-*/
-        // TODO: after the training has been done, we can test on a new set of images.
 
-        //ImageHandler imageHandler = evaluateImage.downsamplingImage(new ImageHandler("data/face.jpg"));
+        System.out.println("Total computing time for HaarDetector: " + imageEvaluator.computingTimeMS + "ms for " + (vraiPositif + fauxPositif + vraiNegatif + fauxNegatif) + " images");
+
+
+
+        //ImageHandler imageHandler = imageEvaluator.downsamplingImage(new ImageHandler("data/face.jpg"));
         //Display.drawImage(imageHandler.getBufferedImage());
 
-        // Your images, for now do not take too lages images, it will take too long...
-        //String images[] = {"face5.jpg", "face6.jpg", "face7.jpg", "face8.jpg", "face9.jpg", "face10.jpg", "face11.jpg", "face12.jpg"};
-        String images[] = {"got.jpeg"};
-        //String images[] = {"face1.jpg", "face2.jpg", "face3.jpg", "face4.jpg"};
-
-        for (String img : images) {
-            long milliseconds = System.currentTimeMillis();
-            ImageHandler image = new ImageHandler("data/" + img);
-            ArrayList<Face> rectangles = evaluateImage.getFaces(image);
-            System.out.println("Found " + rectangles.size() + " faces rectangle that contains a face");
-            System.out.println("Time spent fot this image : " + (System.currentTimeMillis() - milliseconds) + " ms");
-            image.drawFaces(rectangles);
-            Display.drawImage(image.getBufferedImage());
-        }
+        // Your images, for now do not take too larges images, it will take too long...
+//        String images[] = {"fusia.jpg"};
+//        //String images[] = {"got.jpeg"};
+//        //String images[] = {"conference.jpg"};
+//
+//        for (String img : images) {
+//            long milliseconds = System.currentTimeMillis();
+//            ImageHandler image = new ImageHandler("data/" + img);
+//            ArrayList<Face> rectangles = imageEvaluator.getFaces(image);
+//            System.out.println("Found " + rectangles.size() + " faces rectangle that contains a face");
+//            System.out.println("Time spent fot this image : " + (System.currentTimeMillis() - milliseconds) + " ms");
+//            image.drawFaces(rectangles);
+//            Display.drawImage(image.getBufferedImage());
+//        }
         return 0;
     }
 }
-

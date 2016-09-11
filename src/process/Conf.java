@@ -12,7 +12,7 @@ public class Conf {
 
     public static HaarExtractor haarExtractor;
 
-    public final static boolean USE_CUDA = isCUDAAvailable();
+    public static boolean USE_CUDA = isCUDAAvailable();
     public static int maxThreadsPerBlock;
     public static int multiProcessorCount;
     public static int maxThreadsPerMultiProcessor;

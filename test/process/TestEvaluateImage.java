@@ -6,34 +6,31 @@ import process.features.Rectangle;
 
 import java.util.ArrayList;
 
+import static process.ImageEvaluator.getAllRectangles;
+
 public class TestEvaluateImage {
 
     @Test
     public void getAllRectanglesTest() {
-
-        // TODO : maybe verif the rectangles ?
-
-        EvaluateImage evaluateImage = new EvaluateImage(0, 0, null, 19, 19);
-
-        ArrayList<Rectangle> rectangles = evaluateImage.getAllRectangles(19, 19, EvaluateImage.SCALE_COEFF);
+        ArrayList<Rectangle> rectangles = getAllRectangles(19, 19, 1.25f, 1, 1, 1, 19);
         Assert.assertEquals(1, rectangles.size());
 
-        rectangles = evaluateImage.getAllRectangles(19, 18, EvaluateImage.SCALE_COEFF);
+        rectangles = getAllRectangles(19, 18, 1.25f, 1, 1, 1, 19);
         Assert.assertEquals(0, rectangles.size());
 
-        rectangles = evaluateImage.getAllRectangles(19, 20, EvaluateImage.SCALE_COEFF);
+        rectangles = getAllRectangles(19, 20, 1.25f, 1, 1, 1, 19);
         Assert.assertEquals(2, rectangles.size());
 
-        rectangles = evaluateImage.getAllRectangles(22, 22, EvaluateImage.SCALE_COEFF);
+        rectangles = getAllRectangles(22, 22, 1.25f, 1, 1, 1, 19);
         Assert.assertEquals(16, rectangles.size());
 
-        rectangles = evaluateImage.getAllRectangles(23, 22, EvaluateImage.SCALE_COEFF);
+        rectangles = getAllRectangles(23, 22, 1.25f, 1, 1, 1, 19);
         Assert.assertEquals(20, rectangles.size());
 
-        rectangles = evaluateImage.getAllRectangles(23, 23, EvaluateImage.SCALE_COEFF);
+        rectangles = getAllRectangles(23, 23, 1.25f, 1, 1, 1, 19);
         Assert.assertEquals(26, rectangles.size());
 
-        rectangles = evaluateImage.getAllRectangles(23, 23, 1.30f);
+        rectangles = getAllRectangles(23, 23, 1.30f, 1, 1, 1, 19);
         Assert.assertEquals(25, rectangles.size());
 
     }

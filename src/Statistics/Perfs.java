@@ -2,11 +2,14 @@ package Statistics;
 
 import GUI.ImageHandler;
 import process.Conf;
+import process.ImageEvaluator;
 import process.features.Feature;
 import process.features.FeatureExtractor;
 import utils.Utils;
 
 import java.util.ArrayList;
+
+import static utils.Utils.streamFiles;
 
 public class Perfs {
 
@@ -62,7 +65,6 @@ public class Perfs {
         System.out.println("CUDA  : total time: " + cudaTotalTime);
         System.out.println("CPU   : total time: " + cpuTotalTime);
         System.out.println("RATIO : CPU/CUDA  : " + (float) cpuTotalTime / (float) cudaTotalTime);
-
     }
 
     public static void benchmarkBestStump() {
@@ -74,25 +76,38 @@ public class Perfs {
 
     }
 
-
     public static void benchmarkDetect() {
-
-        // TODO : benchmark for detect!
-
-        int[] result = new int[(int) Conf.haarExtractor.getNUM_TOTAL_FEATURES()];
-        long cudaMilliseconds = 0;
-        long cudaTotalTime = 0;
-
-        long cpuTotalTime = 0;
-        long cpuMilliseconds = 0;
-
-        int maxIter = 1000;
-
-
-        // -------------------- CPU --------------------
+        ImageEvaluator imageEvaluator;
 
         System.out.println("------ TEST 3 ------");
         System.out.println("  BENCHMARK DETECT");
 
+        // On test set
+        {
+            Conf.USE_CUDA = true;
+            imageEvaluator = new ImageEvaluator(19, 19, 19, 19, 1, 1, 19, 19);
+
+            for (String listTestFace : streamFiles("data/testset" + Conf.FACES, Conf.IMAGES_EXTENSION)) {
+                imageEvaluator.getFaces(listTestFace, false);
+            }
+            for (String listTestFace : streamFiles("data/testset" + Conf.NONFACES, Conf.IMAGES_EXTENSION)) {
+                imageEvaluator.getFaces(listTestFace, false);
+            }
+
+            System.out.println("Total computing time for HaarDetector (GPU): " + imageEvaluator.computingTimeMS + "ms for 24044 images");
+
+
+            Conf.USE_CUDA = false;
+            imageEvaluator = new ImageEvaluator(19, 19, 19, 19, 1, 1, 19, 19);
+
+            for (String listTestFace : streamFiles("data/testset" + Conf.FACES, Conf.IMAGES_EXTENSION)) {
+                imageEvaluator.getFaces(listTestFace, false);
+            }
+            for (String listTestFace : streamFiles("data/testset" + Conf.NONFACES, Conf.IMAGES_EXTENSION)) {
+                imageEvaluator.getFaces(listTestFace, false);
+            }
+
+            System.out.println("Total computing time for HaarDetector (CPU): " + imageEvaluator.computingTimeMS + "ms for 24044 images");
+        }
     }
 }
