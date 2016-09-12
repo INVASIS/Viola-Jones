@@ -64,7 +64,7 @@ public class ImageEvaluator {
             System.out.println("Found " + i + " different indexes");
         }
 
-        if(coeff < 1.08 && coeff > 1.5) {
+        if(coeff < 1.08 && coeff > 1.5) { // TODO
             System.err.println("WARNING : SCALE_COEFF out of bounds [1.08 ; 1.5] - SCALE_COEFF used : " + SCALE_COEFF);
             this.slidingWindows = getAllRectangles(imgWidth, imgHeight, SCALE_COEFF, xDisplacer, yDisplacer, minSlidingSize, maxSlidingSize);
         }

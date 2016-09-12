@@ -31,7 +31,6 @@ public class IntegralImage {
     // Warning : this does not compute the mean of the image, just the sum of pixels
     // To have the mean you must divide by the number of pixels in your rectangle
     public static int rectangleSum(int[][] summedAreaTable, int x, int y, int width, int height) {
-
         int A = x > 0 && y > 0 ? summedAreaTable[x - 1][y - 1] : 0;
         int B = x + width > 0 && y > 0 ? summedAreaTable[x + width - 1][y - 1] : 0;
         int C = x > 0 && y + height > 0 ? summedAreaTable[x - 1][y + height - 1] : 0;
