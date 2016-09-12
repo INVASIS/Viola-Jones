@@ -3,6 +3,7 @@ package Statistics;
 import GUI.ImageHandler;
 import process.Conf;
 import process.ImageEvaluator;
+import process.features.Face;
 import process.features.Feature;
 import process.features.FeatureExtractor;
 import utils.Utils;
@@ -82,32 +83,64 @@ public class Perfs {
         System.out.println("------ TEST 3 ------");
         System.out.println("  BENCHMARK DETECT");
 
+        int r = 0;
         // On test set
         {
             Conf.USE_CUDA = true;
             imageEvaluator = new ImageEvaluator(19, 19, 19, 19, 1, 1, 19, 19);
 
             for (String listTestFace : streamFiles("data/testset" + Conf.FACES, Conf.IMAGES_EXTENSION)) {
-                imageEvaluator.getFaces(listTestFace, false);
-            }
-            for (String listTestFace : streamFiles("data/testset" + Conf.NONFACES, Conf.IMAGES_EXTENSION)) {
-                imageEvaluator.getFaces(listTestFace, false);
+                r += imageEvaluator.getFaces(listTestFace, false).size();
             }
 
-            System.out.println("Total computing time for HaarDetector (GPU): " + imageEvaluator.computingTimeMS + "ms for 24044 images");
+            for (String listTestFace : streamFiles("data/testset" + Conf.NONFACES, Conf.IMAGES_EXTENSION)) {
+                r += imageEvaluator.getFaces(listTestFace, false).size();
+            }
+
+            System.out.println("Total computing time for HaarDetector (GPU): " + imageEvaluator.computingTimeMS + "ms for 24044 images 19x19 (" + r + " faces detected)");
 
 
             Conf.USE_CUDA = false;
             imageEvaluator = new ImageEvaluator(19, 19, 19, 19, 1, 1, 19, 19);
 
             for (String listTestFace : streamFiles("data/testset" + Conf.FACES, Conf.IMAGES_EXTENSION)) {
-                imageEvaluator.getFaces(listTestFace, false);
+                r = imageEvaluator.getFaces(listTestFace, false).size();
             }
             for (String listTestFace : streamFiles("data/testset" + Conf.NONFACES, Conf.IMAGES_EXTENSION)) {
-                imageEvaluator.getFaces(listTestFace, false);
+                r += imageEvaluator.getFaces(listTestFace, false).size();
             }
 
-            System.out.println("Total computing time for HaarDetector (CPU): " + imageEvaluator.computingTimeMS + "ms for 24044 images");
+            System.out.println("Total computing time for HaarDetector (CPU): " + imageEvaluator.computingTimeMS + "ms for 24044 images 19x19 (" + r + " faces detected)");
+        }
+        {
+            Conf.USE_CUDA = true;
+            imageEvaluator = new ImageEvaluator(19, 19, 2048, 1536, 3, 3, 100, 300);
+
+            int i = 0;
+            for (String listTestFace : streamFiles("data/high-res", ".jpg")) {
+                r += imageEvaluator.getFaces(listTestFace, false).size();
+                i++;
+                System.out.println("i=" + i);
+                if (i > 20)
+                    break;
+            }
+
+            System.out.println("Total computing time for HaarDetector (GPU): " + imageEvaluator.computingTimeMS + "ms for " + i + " images 2048x1536 (" + r + " faces detected)");
+
+
+            i = 0;
+            Conf.USE_CUDA = false;
+            imageEvaluator = new ImageEvaluator(19, 19, 2048, 1536, 3, 3, 100, 300);
+
+            for (String listTestFace : streamFiles("data/high-res", ".jpg")) {
+                r = imageEvaluator.getFaces(listTestFace, false).size();
+                i++;
+                System.out.println("i=" + i);
+                if (i > 20)
+                    break;
+            }
+
+            System.out.println("Total computing time for HaarDetector (CPU): " + imageEvaluator.computingTimeMS + "ms for " + i + " images 2048x1536 (" + r + " faces detected)");
         }
     }
 }
