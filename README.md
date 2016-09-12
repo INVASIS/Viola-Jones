@@ -61,7 +61,7 @@ In order to let the program access to these files, you must add their directory 
 | 2 | 220.73 | 3.297 | 67 |
 | 3 | 147.113 | 1.999 | 74 |
 
-[![alt tag](stats/stats2.png)](stats/stats2.png)
+[![alt tag](stats/stats2.png)](https://raw.githubusercontent.com/INVASIS/Viola-Jones/master/stats/stats2.png)
 
 
 
@@ -98,7 +98,7 @@ In order to let the program access to these files, you must add their directory 
 | 132 435 136 | 1 179,00 | 825      | 2 808,00 | 
 
 
-[![alt tag](stats/stats1.png)](stats/stats1.png)
+[![alt tag](stats/stats1.png)](https://raw.githubusercontent.com/INVASIS/Viola-Jones/master/stats/stats1.png)
 
 
 [travis-url]: https://travis-ci.org/INVASIS/Viola-Jones
