@@ -35,7 +35,7 @@ public class HaarDetector extends HaarBase {
     private CUdeviceptr slidingWindowsPtr;
 
     private int neededFeaturesSize;
-    private int slidingWindowsSize;
+    public int slidingWindowsSize;
     private int outputSize;
 
     private CUmodule moduleDetector;

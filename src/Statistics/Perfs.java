@@ -3,7 +3,6 @@ package Statistics;
 import GUI.ImageHandler;
 import process.Conf;
 import process.ImageEvaluator;
-import process.features.Face;
 import process.features.Feature;
 import process.features.FeatureExtractor;
 import utils.Utils;
@@ -97,7 +96,7 @@ public class Perfs {
                 r += imageEvaluator.getFaces(listTestFace, false).size();
             }
 
-            System.out.println("Total computing time for HaarDetector (GPU): " + imageEvaluator.computingTimeMS + "ms for 24044 images 19x19 (" + r + " faces detected)");
+            System.out.println("Total computing time for HaarDetector (GPU): " + imageEvaluator.computingTimeMS + "ms for 24044 images 19x19 (" + r + " faces detected - " + imageEvaluator.haarDetector.slidingWindowsSize + " sliding windows)");
 
 
             Conf.USE_CUDA = false;
@@ -110,7 +109,7 @@ public class Perfs {
                 r += imageEvaluator.getFaces(listTestFace, false).size();
             }
 
-            System.out.println("Total computing time for HaarDetector (CPU): " + imageEvaluator.computingTimeMS + "ms for 24044 images 19x19 (" + r + " faces detected)");
+            System.out.println("Total computing time for HaarDetector (CPU): " + imageEvaluator.computingTimeMS + "ms for 24044 images 19x19 (" + r + " faces detected - " + imageEvaluator.haarDetector.slidingWindowsSize + " sliding windows)");
         }
         {
             Conf.USE_CUDA = true;
@@ -125,7 +124,7 @@ public class Perfs {
                     break;
             }
 
-            System.out.println("Total computing time for HaarDetector (GPU): " + imageEvaluator.computingTimeMS + "ms for " + i + " images 2048x1536 (" + r + " faces detected)");
+            System.out.println("Total computing time for HaarDetector (GPU): " + imageEvaluator.computingTimeMS + "ms for " + i + " images 2048x1536 (" + r + " faces detected - " + imageEvaluator.haarDetector.slidingWindowsSize + " sliding windows)");
 
 
             i = 0;
@@ -140,7 +139,7 @@ public class Perfs {
                     break;
             }
 
-            System.out.println("Total computing time for HaarDetector (CPU): " + imageEvaluator.computingTimeMS + "ms for " + i + " images 2048x1536 (" + r + " faces detected)");
+            System.out.println("Total computing time for HaarDetector (CPU): " + imageEvaluator.computingTimeMS + "ms for " + i + " images 2048x1536 (" + r + " faces detected - " + imageEvaluator.haarDetector.slidingWindowsSize + " sliding windows)");
         }
     }
 }

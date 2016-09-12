@@ -27,7 +27,7 @@ public class ImageEvaluator {
     private ArrayList<StumpRule>[] cascade;
 
     private HashMap<Integer, Integer> neededHaarValues;
-    private HaarDetector haarDetector;
+    public HaarDetector haarDetector;
     private ArrayList<Rectangle> slidingWindows;
 
     public long computingTimeMS;
