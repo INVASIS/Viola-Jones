@@ -153,11 +153,11 @@ public class HaarDetector extends HaarBase {
                 int w = (int) (((float) (neededFeatures[j * 5 + 3])) * slidingWindows[i * 3 + 2]);
                 int h = (int) (((float) (neededFeatures[j * 5 + 4])) * slidingWindows[i * 3 + 2]);
 
-                System.out.println("x=" + x + " y=" + y + " w=" + width + " h=" + height + " nf[1]=" + neededFeatures[j * 5 + 1] + " nf[2]=" + neededFeatures[j * 5 + 2] + " nf[3]=" + neededFeatures[j * 5 + 3] + " nf[4]=" + neededFeatures[j * 5 + 4] + " sw[1]=" + slidingWindows[i * 3] + " sw[2]=" + slidingWindows[i * 3 +1] + " sw[3]=" + slidingWindows[i * 3 +2]);
-
-                if (x==7 && y==20) {
-                    System.out.println();
-                }
+//                System.out.println("x=" + x + " y=" + y + " w=" + width + " h=" + height + " nf[1]=" + neededFeatures[j * 5 + 1] + " nf[2]=" + neededFeatures[j * 5 + 2] + " nf[3]=" + neededFeatures[j * 5 + 3] + " nf[4]=" + neededFeatures[j * 5 + 4] + " sw[1]=" + slidingWindows[i * 3] + " sw[2]=" + slidingWindows[i * 3 +1] + " sw[3]=" + slidingWindows[i * 3 +2]);
+//
+//                if (x==7 && y==20) {
+//                    System.out.println();
+//                }
 
                 if (type == 1)
                 {

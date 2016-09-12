@@ -93,21 +93,21 @@ public class Perfs {
         int r = 0;
         // On test set
         {
-//            Conf.USE_CUDA = true;
-//            imageEvaluator = new ImageEvaluator(19, 19, 19, 19, 1, 1, 19, 19);
-//            r = computeImageEval("data/testset", Conf.IMAGES_EXTENSION, imageEvaluator);
-//            System.out.println("Total computing time for HaarDetector (GPU): " + imageEvaluator.computingTimeMS + "ms for 24044 images 19x19 (" + r + " faces detected - " + imageEvaluator.haarDetector.slidingWindowsSize + " sliding windows)");
-//
-//            Conf.USE_CUDA = false;
-//            imageEvaluator = new ImageEvaluator(19, 19, 19, 19, 1, 1, 19, 19);
-//            r = computeImageEval("data/testset", Conf.IMAGES_EXTENSION, imageEvaluator);
-//            System.out.println("Total computing time for HaarDetector (CPU): " + imageEvaluator.computingTimeMS + "ms for 24044 images 19x19 (" + r + " faces detected - " + imageEvaluator.haarDetector.slidingWindowsSize + " sliding windows)");
+            Conf.USE_CUDA = true;
+            imageEvaluator = new ImageEvaluator(19, 19, 19, 19, 1, 1, 19, 19);
+            r = computeImageEval("data/testset", Conf.IMAGES_EXTENSION, imageEvaluator);
+            System.out.println("Total computing time for HaarDetector (GPU): " + imageEvaluator.computingTimeMS + "ms for 24044 images 19x19 (" + r + " faces detected - " + imageEvaluator.haarDetector.slidingWindowsSize + " sliding windows)");
+
+            Conf.USE_CUDA = false;
+            imageEvaluator = new ImageEvaluator(19, 19, 19, 19, 1, 1, 19, 19);
+            r = computeImageEval("data/testset", Conf.IMAGES_EXTENSION, imageEvaluator);
+            System.out.println("Total computing time for HaarDetector (CPU): " + imageEvaluator.computingTimeMS + "ms for 24044 images 19x19 (" + r + " faces detected - " + imageEvaluator.haarDetector.slidingWindowsSize + " sliding windows)");
 
 
-//            Conf.USE_CUDA = true;
-//            imageEvaluator = new ImageEvaluator(19, 19, 19, 19, 1, 1, 10, 19);
-//            r = computeImageEval("data/testset", Conf.IMAGES_EXTENSION, imageEvaluator);
-//            System.out.println("Total computing time for HaarDetector (CPU): " + imageEvaluator.computingTimeMS + "ms for 24044 images 19x19 (" + r + " faces detected - " + imageEvaluator.haarDetector.slidingWindowsSize + " sliding windows)");
+            Conf.USE_CUDA = true;
+            imageEvaluator = new ImageEvaluator(19, 19, 19, 19, 1, 1, 10, 19);
+            r = computeImageEval("data/testset", Conf.IMAGES_EXTENSION, imageEvaluator);
+            System.out.println("Total computing time for HaarDetector (CPU): " + imageEvaluator.computingTimeMS + "ms for 24044 images 19x19 (" + r + " faces detected - " + imageEvaluator.haarDetector.slidingWindowsSize + " sliding windows)");
 
 
             Conf.USE_CUDA = false;
@@ -145,5 +145,44 @@ public class Perfs {
 
             System.out.println("Total computing time for HaarDetector (CPU): " + imageEvaluator.computingTimeMS + "ms for " + i + " images 2048x1536 (" + r + " faces detected - " + imageEvaluator.haarDetector.slidingWindowsSize + " sliding windows)");
         }
+    }
+
+    public static void compareDetectFacesTime(int width, int height) {
+
+        String images[] = {"face1.jpg", "got.jpeg", "face5.jpg", "groupe2.jpg", "fusia.jpg", "groupe.jpg", "hardcore.jpg"};
+        Conf.USE_CUDA =true;
+
+        long timeCuda = 0;
+        long timeCPU = 0;
+        int nbSlidingWindowsCuda = 0;
+        int nbSlidingWindowsCPU = 0;
+        int nbFacesFoundCuda = 0;
+        int nbFacesFoundCPU = 0;
+
+        for (String img : images) {
+            ImageHandler image = new ImageHandler("data/" + img);
+            int maxDim = Math.max(image.getHeight(), image.getWidth());
+            int minDim = Math.min(image.getHeight(), image.getWidth());
+            int displacer = maxDim / 500;
+            if (displacer < 1)
+                displacer = 1;
+
+            Conf.USE_CUDA =true;
+            ImageEvaluator imageEvaluatorCUDA = new ImageEvaluator(width, height, image.getWidth(), image.getHeight(), displacer, displacer, 19, minDim, 1.25f);
+            nbFacesFoundCuda = imageEvaluatorCUDA.getFaces(image, false).size();
+            timeCuda = imageEvaluatorCUDA.computingTimeMS;
+            nbSlidingWindowsCuda = imageEvaluatorCUDA.slidingWindows.size();
+
+            Conf.USE_CUDA =false;
+            ImageEvaluator imageEvaluatorCPU = new ImageEvaluator(width, height, image.getWidth(), image.getHeight(), displacer, displacer, 19, minDim, 1.25f);
+            nbFacesFoundCPU = imageEvaluatorCPU.getFaces(image, false).size();
+            timeCPU = imageEvaluatorCPU.computingTimeMS;
+            nbSlidingWindowsCPU = imageEvaluatorCPU.slidingWindows.size();
+
+
+            System.out.println("Size image: " + image.getWidth() + "*" + image.getHeight() + " ; CUDA time: " + timeCuda + "ms ; CUDA nb rectangles found: " + nbFacesFoundCuda +
+                    " ; CPU time: " + timeCPU + "ms ; CPU rectangles found: " + nbFacesFoundCPU + " ; sliding windows: " + (nbSlidingWindowsCPU == nbSlidingWindowsCuda ? nbSlidingWindowsCPU : "error not equal!"));
+        }
+
     }
 }

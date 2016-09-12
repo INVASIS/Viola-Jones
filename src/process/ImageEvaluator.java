@@ -28,7 +28,7 @@ public class ImageEvaluator {
 
     private HashMap<Integer, Integer> neededHaarValues;
     public HaarDetector haarDetector;
-    private ArrayList<Rectangle> slidingWindows;
+    public ArrayList<Rectangle> slidingWindows;
 
     public long computingTimeMS;
 
