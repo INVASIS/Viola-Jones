@@ -664,18 +664,20 @@ public class Classifier {
 
         //ImageHandler imageHandler = imageEvaluator.downsamplingImage(new ImageHandler("data/face.jpg"));
         //Display.drawImage(imageHandler.getBufferedImage());
-
-        // Your images, for now do not take too larges images, it will take too long...
-//        String images[] = {"fusia.jpg"};
-//        //String images[] = {"got.jpeg"};
+//
+//        Conf.USE_CUDA =false;
+//        ImageEvaluator imageEvaluator = new ImageEvaluator(width, height, 200, 200, 1, 1, 19, 200, 1.25f);
+//        // Your images, for now do not take too larges images, it will take too long...
+//        //String images[] = {"face3.jpg"};
+//        String images[] = {"got.jpeg"};
 //        //String images[] = {"conference.jpg"};
 //
 //        for (String img : images) {
-//            long milliseconds = System.currentTimeMillis();
 //            ImageHandler image = new ImageHandler("data/" + img);
-//            ArrayList<Face> rectangles = imageEvaluator.getFaces(image);
+//            ArrayList<Face> rectangles = imageEvaluator.getFaces(image, false);
 //            System.out.println("Found " + rectangles.size() + " faces rectangle that contains a face");
-//            System.out.println("Time spent fot this image : " + (System.currentTimeMillis() - milliseconds) + " ms");
+//            System.out.println("Time spent fot this image : " + imageEvaluator.computingTimeMS + " ms");
+//            System.out.println("Slinding Windows : " + imageEvaluator.slidingWindows.size());
 //            image.drawFaces(rectangles);
 //            Display.drawImage(image.getBufferedImage());
 //        }
