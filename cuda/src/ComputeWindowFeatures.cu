@@ -20,8 +20,8 @@ void computeWindowFeatures(int** integralImage, int* features, int totalNumFeatu
 	if (tidX < totalNumFeatures)
 	{
 		int type = features[threadIdx.x * 5];
-		int x = features[threadIdx.x * 5 + 1] + (int)window[blockId * 3];
-		int y = features[threadIdx.x * 5 + 2] + (int)window[blockId * 3 + 1];
+        int x = (int) ((float)features[threadIdx.x * 5 + 1] * window[blockId * 3 + 2] + window[blockId * 3]);
+        int y = (int) ((float)features[threadIdx.x * 5 + 2] * window[blockId * 3 + 2] + window[blockId * 3 + 1]);
 		int w = (int) (((float) (features[threadIdx.x * 5 + 3])) * window[blockId * 3 + 2]);
 		int h = (int) (((float) (features[threadIdx.x * 5 + 4])) * window[blockId * 3 + 2]);
 

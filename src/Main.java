@@ -34,7 +34,7 @@ public class Main {
         //classifier.test("data/testset");
 
 //        Perfs.benchmarksTrainFeatures();
-        //Perfs.benchmarkDetect();
+//        Perfs.benchmarkDetect();
         Perfs.compareDetectFacesTime(width, height);
     }
 }

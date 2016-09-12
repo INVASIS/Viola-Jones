@@ -148,8 +148,8 @@ public class HaarDetector extends HaarBase {
 	            int tidX = i * neededFeaturesSize + j;
 
                 int type = neededFeatures[j * 5];
-                int x = neededFeatures[j * 5 + 1] + (int)slidingWindows[i * 3];
-                int y = neededFeatures[j * 5 + 2] + (int)slidingWindows[i * 3 + 1];
+                int x = (int)((float)neededFeatures[j * 5 + 1] * slidingWindows[i * 3 + 2] + slidingWindows[i * 3]);
+                int y = (int)((float)neededFeatures[j * 5 + 2] * slidingWindows[i * 3 + 2] + slidingWindows[i * 3 + 1]);
                 int w = (int) (((float) (neededFeatures[j * 5 + 3])) * slidingWindows[i * 3 + 2]);
                 int h = (int) (((float) (neededFeatures[j * 5 + 4])) * slidingWindows[i * 3 + 2]);
 
@@ -270,8 +270,7 @@ public class HaarDetector extends HaarBase {
         return allFeatures;
     }
 
-    @Override
-    public void close() throws Exception {
+    public void close() {
         // Free CUDA
         if (Conf.USE_CUDA) {
             System.out.println("Freeing CUDA memory for HaarDetector...");
