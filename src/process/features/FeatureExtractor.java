@@ -303,7 +303,7 @@ public class FeatureExtractor {
                     result[cpt++] = f.getValue();
         }
         if (writeToDisk)
-            writeArrayToDisk(imagePath + Conf.FEATURE_EXTENSION, result, Conf.haarExtractor.getNUM_TOTAL_FEATURES());
+            writeArrayToDisk(imagePath + Conf.FEATURE_EXTENSION, result, Serializer.featureCount);
 
         return result;
     }
