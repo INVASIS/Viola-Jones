@@ -4,6 +4,7 @@ import GUI.ImageHandler;
 import cuda.HaarDetector;
 import javafx.util.Pair;
 import process.Conf;
+import utils.Serializer;
 import utils.yield.Yielderable;
 
 import java.util.ArrayList;
@@ -281,7 +282,7 @@ public class FeatureExtractor {
 
     public static int[] computeImageFeatures(ImageHandler image, boolean writeToDisk, String imagePath) {
 
-        int[] result = new int[(int) Conf.haarExtractor.getNUM_TOTAL_FEATURES()];
+        int[] result = new int[(int) Serializer.featureCount];
         if (Conf.USE_CUDA) {
             Conf.haarExtractor.updateImage(image.getIntegralImage());
             Conf.haarExtractor.compute();

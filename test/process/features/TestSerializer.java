@@ -84,6 +84,7 @@ public class TestSerializer {
 
     @Test
     public void computeWriteAndRead() {
+        Serializer.featureCount = countAllFeatures(19, 19);
         if (Conf.USE_CUDA)
             Conf.haarExtractor.setUp(19, 19);
         String img = "data/trainset/faces/face00001.png";
