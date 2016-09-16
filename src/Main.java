@@ -31,10 +31,10 @@ public class Main {
 
         Classifier classifier = new Classifier(width, height);
 //        classifier.train("data/trainset", "data/testset", 0.5f, overallTargetDetectionRate, overallTargetFalsePositiveRate, targetFalsePositiveRate, true);
-        //classifier.test("data/testset");
+        classifier.test("data/testset");
 
 //        Perfs.benchmarksTrainFeatures();
 //        Perfs.benchmarkDetect();
-        Perfs.compareDetectFacesTime(width, height);
+//        Perfs.compareDetectFacesTime(width, height);
     }
 }
