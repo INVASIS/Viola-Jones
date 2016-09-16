@@ -78,8 +78,11 @@ public class ImageEvaluator {
         return getFaces(imageHandler, postProcess);
     }
 
-    // TODO : centrer-reduire les rectangles
-    // TODO : make it parallel ??
+    /**
+     * TODO : centrer-reduire les rectangles
+     * TODO : make it parallel ??
+     * Algorithm 7 from the original paper
+     */
     public ArrayList<Face> getFaces(ImageHandler image, boolean postProcess) {
         ArrayList<Face> res = new ArrayList<>();
 
