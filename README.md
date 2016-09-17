@@ -1,5 +1,3 @@
-/!\ WORK IN PROGRESS /!\
-
 # Viola Jones implementation
 
 Based on the following paper: http://www.ipol.im/pub/art/2014/104/article.pdf
@@ -27,8 +25,26 @@ Tested for:
 
 ## Installation
 
-We provide .dll (for windows) and .so (for linux) CUDA 7.5 lib files in this repository.
-In order to let the program access to these files, you must add their directory in your PATH environment variable.
+We provide .dll (for windows) and .so (for linux) JCUDA lib files in this repository.
+In order to let the program access to these files, you must add their directory in your LD_LIBRARY_PATH environment variable.
+For example, if you run linux:
+```
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/path/to/the/project/libs/JCuda-All-0.7.5b-bin-linux-x86_64/
+```
+For windows:
+```
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/path/to/the/project/libs/JCuda-All-0.7.5b-bin-windows-x86_64/
+```
+
+Also, don't forget to set JAVA_HOME & JRE_HOME environment variable respectively to the JDK & JRE folders.
+For example:
+```
+export JAVA_HOME=/path/to/jdk1.8.0_102
+export JRE_HOME=/path/to/jre1.8.0_101
+```
+
+If you use CUDA under windows, you will also need Visual Studio 2013 so that nvcc can compile CUDA cu files.
+
 
 
 ## Training and Test set
@@ -43,6 +59,7 @@ In order to let the program access to these files, you must add their directory 
 4. [5KK73 GPU Assignment 2012](https://sites.google.com/site/5kk73gpu2012/assignment/viola-jones-face-detection)
 5. [Object detection using cascades of boosted classifiers](http://www.die.uchile.cl/ieee-cis/files/RuizdelSolar_T9.pdf)
 
+
 # Statistics
 
 ## Machines
@@ -51,9 +68,9 @@ In order to let the program access to these files, you must add their directory 
 | --- | --- | --- | --- | --- | --- |
 | 1 | i7-2600k @ 4,0Ghz OC | 2*8Go + 2*4Go (24Go) Corsair 1600Mhz | SSD - Samsung 840 Pro 256Go | GTX660 Ti (2Go) | W10 Pro X64 |
 | 2 | i7-4790k @ 4,0Ghz | 2*8Go (16Go) | SSD - Crucial BX100 500Go | GTX980 (4Go) | W7 Pro X64 |
-| 3 | i5-2430M @3,4Ghz | 2*4Go (8Go) | HDD - 750Go @ 7200rpm | GT555M (2Go) | Ubuntu 16.04 X64 |
+| 3 | i5-2430M @2,4Ghz | 2*4Go (8Go) | HDD - 750Go @ 7200rpm | GT555M (2Go) | Ubuntu 16.04 X64 |
 
-## Computing features of images (set of 1000 images 19x19 - 1Ko/image)				
+## Computing features of images (set of 1000 images 19x19 - 1Ko/image)
 
 | PC ID | CPU | GPU | Ratio CPU/GPU |
 | --- | --- | --- | --- |
