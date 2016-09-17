@@ -138,6 +138,11 @@ public class ImageEvaluator {
             System.exit(1);
         }
 
+        if (minSlidingWindowSize * coeff == minSlidingWindowSize) {
+            System.err.println("Coeff too small, cannot scale minwindow. Aborting now!");
+            System.exit(1);
+        }
+
         ArrayList<Rectangle> rectangles = new ArrayList<>();
         for (int frame = minSlidingWindowSize; frame <= maxSlidingWindowSize; frame *= coeff) {
             for (int x = 0; x <= imageWidth - frame; x += xDisplacer) {

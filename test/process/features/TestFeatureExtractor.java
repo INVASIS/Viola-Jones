@@ -87,8 +87,9 @@ public class TestFeatureExtractor {
         files.add(img3);
         files.add(img4);
 
-        int numFeatures = (int) Conf.haarExtractor.getNUM_TOTAL_FEATURES();
         Serializer.featureCount = countAllFeatures(19, 19);
+
+        int numFeatures = (int) Serializer.featureCount;
         int[] features1 = new int[numFeatures];
         if (Utils.fileExists(img1 + Conf.FEATURE_EXTENSION))
             System.arraycopy(Serializer.readFeatures(img1 + Conf.FEATURE_EXTENSION), 0, features1, 0, numFeatures);
