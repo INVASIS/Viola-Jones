@@ -14,6 +14,7 @@ import static jcuda.driver.CUdevice_attribute.CU_DEVICE_ATTRIBUTE_MAX_THREADS_PE
 import static jcuda.driver.CUdevice_attribute.CU_DEVICE_ATTRIBUTE_MAX_THREADS_PER_MULTIPROCESSOR;
 import static jcuda.driver.CUdevice_attribute.CU_DEVICE_ATTRIBUTE_MULTIPROCESSOR_COUNT;
 import static jcuda.driver.JCudaDriver.*;
+import static jcuda.runtime.JCuda.cudaMemGetInfo;
 
 public class CudaUtils {
 
@@ -89,10 +90,11 @@ public class CudaUtils {
         JCudaDriver.setExceptionsEnabled(true);
 
         // Initialize the driver and create a context for the first device.
+
         cuInit(0);
         CUcontext pctx = new CUcontext();
         CUdevice dev = new CUdevice();
-        cuDeviceGet(dev, 0);
+        cuDeviceGet(dev, Conf.CUDA_DEVICE_ID);
         cuCtxCreate(pctx, 0, dev);
         int array[] = {0};
         cuDeviceGetAttribute(array, CU_DEVICE_ATTRIBUTE_MAX_THREADS_PER_BLOCK, dev);
@@ -101,6 +103,12 @@ public class CudaUtils {
         Conf.multiProcessorCount = array[0];
         cuDeviceGetAttribute(array, CU_DEVICE_ATTRIBUTE_MAX_THREADS_PER_MULTIPROCESSOR, dev);
         Conf.maxThreadsPerMultiProcessor = array[0];
+
+        long[] free = {0};
+        long[] total = {0};
+        cudaMemGetInfo(free, total);
+        Conf.maxGPUMemory = total[0];
+
     }
 
     static CUmodule getModule(String cudaFilename) {

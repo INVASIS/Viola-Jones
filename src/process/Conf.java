@@ -20,6 +20,7 @@ public class Conf {
     public static int maxThreadsPerBlock;
     public static int multiProcessorCount;
     public static int maxThreadsPerMultiProcessor;
+    public static long maxGPUMemory;
     public static final int maxBlocksByDim = 65535;
     public final static String TMP_DIR = "tmp";
     public final static String LIB_DIR = "libs";
@@ -37,6 +38,7 @@ public class Conf {
     public final static int TRAIN_MAX_ROUNDS = 20;
     public final static String FEATURE_EXTENSION = ".haar";
     public final static String IMAGES_EXTENSION = ".png";
+    public final static int CUDA_DEVICE_ID = 0;
 
 
 
@@ -47,6 +49,7 @@ public class Conf {
             System.out.println("  - maxThreadsPerBlock: " + maxThreadsPerBlock);
             System.out.println("  - multiProcessorCount: " + multiProcessorCount);
             System.out.println("  - maxThreadsPerMultiProcessor: " + maxThreadsPerMultiProcessor);
+            System.out.println("  - maxGPUMemory: " + (((maxGPUMemory/1024)/1024)/1024) + "Gio");
             haarExtractor = new HaarExtractor();
             return true;
         }
