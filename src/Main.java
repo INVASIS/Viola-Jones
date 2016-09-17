@@ -23,6 +23,8 @@ public class Main {
         if (Conf.USE_CUDA)
             Conf.haarExtractor.setUp(width, height);
 
+        Conf.loadLibraries();
+
         System.out.println("JDK Version: " + System.getProperty("java.specification.version"));
         System.out.println("Max memory: " + Runtime.getRuntime().maxMemory());
         System.out.println("Free memory: " + Runtime.getRuntime().freeMemory());

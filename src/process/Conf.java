@@ -4,9 +4,13 @@ import cuda.CudaUtils;
 import cuda.HaarExtractor;
 import jcuda.runtime.cudaDeviceProp;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+
+import static utils.Utils.listFiles;
 
 public class Conf {
 
@@ -18,6 +22,7 @@ public class Conf {
     public static int maxThreadsPerMultiProcessor;
     public static final int maxBlocksByDim = 65535;
     public final static String TMP_DIR = "tmp";
+    public final static String LIB_DIR = "libs";
     public final static String TRAIN_DIR = TMP_DIR + "/training";
     public final static String TEST_DIR = TMP_DIR + "/test";
     public final static String FACES = "/faces";
@@ -60,6 +65,26 @@ public class Conf {
         } catch (IOException e) {
             e.printStackTrace();
             return false;
+        }
+    }
+
+    public static void loadLibraries() {
+        String lib_ext;
+        String jcuda;
+        if (System.getProperty("os.name").contains("Windows")) {
+            jcuda = "\\JCuda-All-0.7.5b-bin-windows-x86_64";
+            lib_ext = "dll";
+        } else {
+            jcuda = "/JCuda-All-0.7.5b-bin-linux-x86_64";
+            lib_ext = "so";
+        }
+
+        ArrayList<String> files = new ArrayList<>();
+        files.addAll(listFiles(Conf.LIB_DIR + jcuda + "", lib_ext));
+        for (String f : files) {
+            String abspath = new File(f).getAbsolutePath();
+            System.out.println("Loading external library: " + abspath);
+            System.load(abspath);
         }
     }
 }

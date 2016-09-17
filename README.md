@@ -26,17 +26,9 @@ Tested for:
 ## Installation
 
 We provide .dll (for windows) and .so (for linux) JCUDA lib files in this repository.
-In order to let the program access to these files, you must add their directory in your LD_LIBRARY_PATH environment variable.
-For example, if you run linux:
-```
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/path/to/the/project/libs/JCuda-All-0.7.5b-bin-linux-x86_64/
-```
-For windows:
-```
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/path/to/the/project/libs/JCuda-All-0.7.5b-bin-windows-x86_64/
-```
+All files are automatically loaded when the program starts.
 
-Also, don't forget to set JAVA_HOME & JRE_HOME environment variable respectively to the JDK & JRE folders.
+Don't forget to set JAVA_HOME & JRE_HOME environment variable respectively to the JDK & JRE folders.
 For example:
 ```
 export JAVA_HOME=/path/to/jdk1.8.0_102
