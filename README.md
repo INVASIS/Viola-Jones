@@ -66,9 +66,9 @@ If you use CUDA under windows, you will also need Visual Studio 2013 so that nvc
 
 | ID |  CPU | RAM |  DISK | GPU | OS |
 | --- | --- | --- | --- | --- | --- |
-| 1 | i7-2600k @ 4,0Ghz OC | 2*8Go + 2*4Go (24Go) Corsair 1600Mhz | SSD - Samsung 840 Pro 256Go | GTX660 Ti (2Go) | W10 Pro X64 |
-| 2 | i7-4790k @ 4,0Ghz | 2*8Go (16Go) | SSD - Crucial BX100 500Go | GTX980 (4Go) | W7 Pro X64 |
-| 3 | i5-2430M @2,4Ghz | 2*4Go (8Go) | HDD - 750Go @ 7200rpm | GT555M (2Go) | Ubuntu 16.04 X64 |
+| 1 | i7-2600k @ 4,0Ghz OC | 2\*8Go + 2\*4Go (24Go) Corsair 1600Mhz | SSD - Samsung 840 Pro 256Go | GTX660 Ti (2Go) | W10 Pro X64 |
+| 2 | i7-4790k @ 4,0Ghz | 2\*8Go (16Go) | SSD - Crucial BX100 500Go | GTX980 (4Go) | W7 Pro X64 |
+| 3 | i5-2430M @2,4Ghz | 2\*4Go (8Go) | HDD - 750Go @ 7200rpm | GT555M (2Go) | Ubuntu 16.04 X64 |
 
 ## Computing features of images (set of 1000 images 19x19 - 1Ko/image)
 
