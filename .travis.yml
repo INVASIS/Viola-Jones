@@ -1,11 +1,9 @@
 language: java
 jdk:
-- oraclejdk8
+  - oraclejdk8
 before_deploy:
   - provider: script
-    script: gradle test --info && gradle release
-    skip_cleanup: true
-    overwrite: true
+    script: gradle test --info && gradle release --info
 deploy:
   - provider: releases
     api_key:
