@@ -13,3 +13,4 @@ deploy:
     overwrite: true
     on:
       repo: INVASIS/Viola-Jones
+      branch: master
