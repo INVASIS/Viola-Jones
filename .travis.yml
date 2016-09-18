@@ -3,7 +3,7 @@ jdk:
 - oraclejdk8
 before_deploy:
   - provider: script
-    script: "./gradlew test --info; ./gradlew release"
+    script: ./gradlew test --info && ./gradlew release
     skip_cleanup: true
     overwrite: true
 deploy:
