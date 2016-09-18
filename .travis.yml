@@ -2,6 +2,7 @@ language: java
 jdk:
   - oraclejdk8
 before_deploy:
+  - rm -f build/distributions/release.zip
   - gradle test --info && gradle release --info
 deploy:
   - provider: releases
