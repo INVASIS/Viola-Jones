@@ -1,10 +1,9 @@
 language: java
 jdk:
 - oraclejdk8
-before_deploy:
-  script: "./gradlew test --info; ./gradlew release"
 deploy:
   provider: releases
+  script: "./gradlew test --info; ./gradlew release"
   api_key:
     secure: FoHnHfZnv81fYGkh8aRoe+A+4HgC/wBnY6cruqe5tq0zNa0yLeAiKyR/74CLiupHzni8r4Mauzj5lrDfLDKdbxZTwSunyGD12exvDTjuo831TF5ILjjRQiBhc49sss08pOKZUmpDEUp8Hyc0OL1NrGzQwDmYxfZDD9o66XxAg+meM2NH41RhSdt/EPuOESxYvtb8NdRMIDnE4PjJDkc2WlPDkAHWz1qvY4BpWEgZxHwbDTc5Z/7wF6Zs4IOU3fOCWSVJdYxKsAjpK5OLURZTEQkpt11w266F2j2xFn8ZzHMarqJntEDX85yN4vONK3MVWKb0pjkauGi0kHr5hLL0jKhYF6puIPCfLYMqFktSoNwP60FbGZHpZtJNx6ApOCzNPEtMsSdMkCSrqBOGSl9zUdYFwZaEr+dK2yXs5x7bK5THbsZbSoGy/3+N/q+HsGlLlC08QsmgFhMQ6UKPTDLbLngftn7jhPO7VB0COMHmIV3FdhpNv060+rQYtyiu8TZfxmIBHhVv0w0hs7/C6xibPqHuyMlilFr1wTqCcC02iBAokZbgj95uTtL4iE7EWPGJz7enalTzDgQbvOz+uPMsEK6Uq/3MsgIy4t7KnP+fH1wZqB3PpEhs8e3GJbozI3+Ak1lKFHzw6GMwL7QtdU+MEv+PYh8IlpvjSPuxnzSrAbw=
   file: build/distributions/release.zip
