@@ -38,7 +38,7 @@ dependencies {
 
 task release(type: Zip, overwrite: true) {
     archiveName = 'release.zip'
-    from "$buildDir/libs/Viola-Jones-all-" + version + ".jar"
+    from "build/libs/Viola-Jones-all-" + version + ".jar"
     from "libs"
 }
 
