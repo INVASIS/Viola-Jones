@@ -2,8 +2,7 @@ language: java
 jdk:
   - oraclejdk8
 before_deploy:
-  - provider: script
-    script: gradle test --info && gradle release --info
+  - gradle test --info && gradle release --info
 deploy:
   - provider: releases
     api_key:
