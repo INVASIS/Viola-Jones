@@ -394,6 +394,9 @@ public class Classifier {
 
         // TODO : limit it for the first rounds ?
         int committeeSizeGuide = Math.min(20 + round * 10, 200);
+        if (round == 0 && committeeSizeGuide >= 20)
+            committeeSizeGuide = 10;
+
         System.out.println("    - CommitteeSizeGuide = " + committeeSizeGuide);
 
         cascade[round] = new ArrayList<>();
@@ -419,10 +422,10 @@ public class Classifier {
                 tweaks.set(round, tweak);
 
                 double[] resTrain = calcEmpiricalError(true, round, false);
-                double[] resTest = calcEmpiricalError(false, round, false);
+                //double[] resTest = calcEmpiricalError(false, round, false);
 
-                double worstFalsePositive = Math.max(resTrain[0], resTest[0]);
-                double worstDetectionRate = Math.min(resTrain[1], resTest[1]);
+                double worstFalsePositive = Math.max(resTrain[0], resTrain[0]);
+                double worstDetectionRate = Math.min(resTrain[1], resTrain[1]);
 
                 if (finalTweak) {
                     if (worstDetectionRate >= 0.99) {
@@ -500,6 +503,7 @@ public class Classifier {
         usedTrainPos = countTrainPos;
         System.out.println("Total number of training images: " + trainN + " (pos: " + countTrainPos + ", neg: " + countTrainNeg + ")");
 
+        /*
         test_dir = testDir;
         testFaces = listFiles(test_dir + Conf.FACES, Conf.IMAGES_EXTENSION);
         testNonFaces = listFiles(test_dir + Conf.NONFACES, Conf.IMAGES_EXTENSION);
@@ -507,24 +511,26 @@ public class Classifier {
         countTestNeg = testNonFaces.size();
         testN = countTestPos + countTestNeg;
 
+
         usedTestNeg = countTestNeg;
         usedTestPos = countTestPos;
         System.out.println("Total number of test images: " + testN + " (pos: " + countTestPos + ", neg: " + countTestNeg + ")");
+        */
 
         removedFromTrain = new boolean[trainN];
-        removedFromTest = new boolean[testN];
+        //removedFromTest = new boolean[testN];
         for (int i = 0; i < trainN; i++) {
             removedFromTrain[i] = false;
-            removedFromTest[i] = false;
+          //  removedFromTest[i] = false;
         }
 
         layerMemory = new ArrayList<>();
 
         // Compute all features for train & test set
         computeFeaturesTimed(train_dir, Conf.IMAGES_FEATURES_TRAIN, true);
-        computeFeaturesTimed(test_dir, Conf.IMAGES_FEATURES_TEST, false);
+        // computeFeaturesTimed(test_dir, Conf.IMAGES_FEATURES_TEST, false);
         buildImagesFeatures(trainFaces, trainNonFaces, true);
-        buildImagesFeatures(testFaces, testNonFaces, false);
+        // buildImagesFeatures(testFaces, testNonFaces, false);
 
         // Now organize all training features, so that it is easier to make requests on it
         organizeFeatures(featureCount, orderedExamples(), Conf.ORGANIZED_FEATURES, Conf.ORGANIZED_SAMPLE);
@@ -544,10 +550,10 @@ public class Classifier {
 
         // Init labels
         labelsTrain = new DenseMatrix(1, trainN);
-        labelsTest = new DenseMatrix(1, testN);
+        //labelsTest = new DenseMatrix(1, testN);
         for (int i = 0; i < trainN; i++) {
             labelsTrain.set(0, i, i < countTrainPos ? 1 : -1); // face == 1 VS non-face == -1
-            labelsTest.set(0, i, i < countTestPos ? 1 : -1); // face == 1 VS non-face == -1
+            //labelsTest.set(0, i, i < countTestPos ? 1 : -1); // face == 1 VS non-face == -1
         }
 
         double accumulatedFalsePositive = 1;
@@ -556,7 +562,7 @@ public class Classifier {
         int round;
         for (round = 0; round < boostingRounds && accumulatedFalsePositive > GOAL; round++) {
             long startTimeFor = System.currentTimeMillis();
-            System.out.println("  - Round N." + round + ":");
+            System.out.println("  - Round N." + (round + 1) + ":");
 
             // Update weights (needed because adaboost changes weights when running)
             totalWeightPos = initialPositiveWeight;
@@ -603,15 +609,15 @@ public class Classifier {
             usedTrainNeg = countTrainNeg;
             usedTrainPos = countTrainPos;
 
-            usedTestNeg = countTestNeg;
-            usedTestPos = countTestPos;
+            // usedTestNeg = countTestNeg;
+            // usedTestPos = countTestPos;
 
             // Compute empirical error and find false negatives & true negatives (blacklists)
             // We reset blacklists if round > 0
             double[] tmp = calcEmpiricalError(true, round, round > 0);
             System.out.println("    - The current tweak " + tweaks.get(round) + " has falsePositive " + tmp[0] + " and detectionRate " + tmp[1] + " on the training examples.");
             if (withTweaks) {
-                tmp = calcEmpiricalError(false, round, round > 0);
+                //tmp = calcEmpiricalError(false, round, round > 0);
                 System.out.println("    - The current tweak " + tweaks.get(round) + " has falsePositive " + tmp[0] + " and detectionRate " + tmp[1] + " on the validation examples.");
                 accumulatedFalsePositive *= tmp[0];
                 System.out.println("    - Accumulated False Positive Rate is around " + accumulatedFalsePositive);
@@ -628,10 +634,10 @@ public class Classifier {
         computed = true;
 
         System.out.println("Training done in " + ((new Date()).getTime() - startTimeTrain)/1000 + "s!");
-        System.out.println("  - Cascade of " + (round - 1) + " rounds");
+        System.out.println("  - Cascade of " + round + " rounds");
         System.out.println("  - Weak classifiers count by round:");
         for (int i = 0; i < round-1; i++)
-            System.out.println("    - Round " + i + ": " + cascade[i].size());
+            System.out.println("    - Round " + (i + 1) + ": " + cascade[i].size());
     }
 
     public void test(String dir) {

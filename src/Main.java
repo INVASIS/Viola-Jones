@@ -13,10 +13,10 @@ public class Main {
         int height = 19;
 
         // TODO : TO CONSTANTS
-        float overallTargetDetectionRate = 0.97f;
+        float overallTargetDetectionRate = 0.985f;
         float overallTargetFalsePositiveRate = 0.0000005f;
         float targetDetectionRate = 0.995f;
-        float targetFalsePositiveRate = 0.49f;
+        float targetFalsePositiveRate = 0.48f;
 
         Serializer.featureCount = countAllFeatures(width, height);
 
