@@ -31,6 +31,9 @@ public class Main {
         System.out.println("Total memory: " + Runtime.getRuntime().totalMemory());
         System.out.println("Available Processors (num of max threads) : " + Runtime.getRuntime().availableProcessors());
 
+        Serializer.featureCount = countAllFeatures(width, height);
+
+
         Classifier classifier = new Classifier(width, height);
         classifier.train("data/trainset", "data/testset", 0.5f, overallTargetDetectionRate, overallTargetFalsePositiveRate, targetFalsePositiveRate, true);
         classifier.test("data/testset");

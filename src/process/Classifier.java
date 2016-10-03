@@ -708,5 +708,93 @@ public class Classifier {
 //            image.drawFaces(rectangles);
 //            Display.drawImage(image.getBufferedImage());
 //        }
+
+        soutenanceFct();
+
+    }
+
+    private void soutenanceFct() {
+
+
+        //                                                                         16, 30
+        ImageEvaluator gotEval = new ImageEvaluator(width, height, 200, 200, 1, 1, 16, 30, 1.21f);
+
+        ImageEvaluator evaloator100 = new ImageEvaluator(width, height, 100, 100, 1, 1, 30, 60, 1.25f);
+
+        ImageEvaluator evaloator300 = new ImageEvaluator(width, height, 300, 300, 4, 4, 120, 121, 1.25f);
+
+        ImageEvaluator evaloator640 = new ImageEvaluator(width, height, 640, 436, 3, 3, 28, 35, 1.25f);
+
+        ImageEvaluator evaloator500 = new ImageEvaluator(width, height, 500, 281, 4, 4, 65, 78, 1.25f);
+
+
+        ImageHandler image = new ImageHandler("data/got.jpeg");
+        ArrayList<Face> rectangles = gotEval.getFaces(image, true);
+        System.out.println("Found " + rectangles.size() + " faces rectangle that contains a face");
+        System.out.println("Time spent fot this image : " + gotEval.computingTimeMS + " ms");
+        image.drawFaces(rectangles);
+        Display.drawImage(image.getBufferedImage());
+
+        image = new ImageHandler("data/baelish.jpg");
+        rectangles = evaloator100.getFaces(image, true);
+        System.out.println("Found " + rectangles.size() + " faces rectangle that contains a face");
+        System.out.println("Time spent fot this image : " + evaloator100.computingTimeMS + " ms");
+        image.drawFaces(rectangles);
+        Display.drawImage(image.getBufferedImage());
+
+        evaloator100.computingTimeMS = 0;
+
+        image = new ImageHandler("data/face1.jpg");
+        rectangles = evaloator100.getFaces(image, true);
+        System.out.println("Found " + rectangles.size() + " faces rectangle that contains a face");
+        System.out.println("Time spent fot this image : " + evaloator100.computingTimeMS + " ms");
+        image.drawFaces(rectangles);
+        Display.drawImage(image.getBufferedImage());
+        evaloator100.computingTimeMS = 0;
+
+        image = new ImageHandler("data/tesla.jpg");
+        rectangles = evaloator100.getFaces(image, true);
+        System.out.println("Found " + rectangles.size() + " faces rectangle that contains a face");
+        System.out.println("Time spent fot this image : " + evaloator100.computingTimeMS + " ms");
+        image.drawFaces(rectangles);
+        Display.drawImage(image.getBufferedImage());
+        evaloator100.computingTimeMS = 0;
+
+        image = new ImageHandler("data/man.jpg");
+        rectangles = evaloator100.getFaces(image, true);
+        System.out.println("Found " + rectangles.size() + " faces rectangle that contains a face");
+        System.out.println("Time spent fot this image : " + evaloator100.computingTimeMS + " ms");
+        image.drawFaces(rectangles);
+        Display.drawImage(image.getBufferedImage());
+        evaloator100.computingTimeMS = 0;
+
+        image = new ImageHandler("data/land.jpeg");
+        rectangles = evaloator100.getFaces(image, true);
+        System.out.println("Found " + rectangles.size() + " faces rectangle that contains a face");
+        System.out.println("Time spent fot this image : " + evaloator100.computingTimeMS + " ms");
+        image.drawFaces(rectangles);
+        Display.drawImage(image.getBufferedImage());
+
+        image = new ImageHandler("data/face5.jpg");
+        rectangles = evaloator300.getFaces(image, true);
+        System.out.println("Found " + rectangles.size() + " faces rectangle that contains a face");
+        System.out.println("Time spent fot this image : " + evaloator300.computingTimeMS + " ms");
+        image.drawFaces(rectangles);
+        Display.drawImage(image.getBufferedImage());
+
+        image = new ImageHandler("data/fusia.jpg");
+        rectangles = evaloator640.getFaces(image, true);
+        System.out.println("Found " + rectangles.size() + " faces rectangle that contains a face");
+        System.out.println("Time spent fot this image : " + evaloator640.computingTimeMS + " ms");
+        image.drawFaces(rectangles);
+        Display.drawImage(image.getBufferedImage());
+
+        image = new ImageHandler("data/groupe2.jpg");
+        rectangles = evaloator500.getFaces(image, true);
+        System.out.println("Found " + rectangles.size() + " faces rectangle that contains a face");
+        System.out.println("Time spent fot this image : " + evaloator500.computingTimeMS + " ms");
+        image.drawFaces(rectangles);
+        Display.drawImage(image.getBufferedImage());
+
     }
 }

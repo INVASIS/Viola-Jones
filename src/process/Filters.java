@@ -13,7 +13,6 @@ public class Filters {
                 Color c = new Color(bi.getRGB(x, y));
                 int med = (int) (c.getRed() * 0.299 + c.getBlue() * 0.587 + c.getGreen() * 0.114);
                 result[x][y] = med;
-
             }
         }
         return result;
