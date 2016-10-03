@@ -32,7 +32,7 @@ public class Main {
         System.out.println("Available Processors (num of max threads) : " + Runtime.getRuntime().availableProcessors());
 
         Classifier classifier = new Classifier(width, height);
-        classifier.train("data/trainset", "data/testset", 0.5f, overallTargetDetectionRate, overallTargetFalsePositiveRate, targetFalsePositiveRate, true);
+        classifier.train("data2/trainset", "data2/testset", 0.5f, overallTargetDetectionRate, overallTargetFalsePositiveRate, targetFalsePositiveRate, true);
         classifier.test("data/testset");
 
 //        Perfs.benchmarksTrainFeatures();

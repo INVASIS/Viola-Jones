@@ -314,7 +314,7 @@ public class Classifier {
 
             DenseMatrix verdicts = DenseMatrix.ones(1, trainN);
             DenseMatrix predictions = DenseMatrix.zeros(1, trainN);
-            for (int layer = 0; layer < round+1; layer++) {
+            for (int layer = round; layer < round+1; layer++) { // FIXME: layer = 0, not round
                 predictLabel(cascade[layer], trainN, tweaks.get(layer), false, predictions);
                 verdicts = verdicts.min(predictions); // Those at -1, remain where you are!
             }
@@ -492,45 +492,46 @@ public class Classifier {
 
         long startTimeTrain = System.currentTimeMillis();
 
-        train_dir = trainDir;
-        trainFaces = listFiles(train_dir + Conf.FACES, Conf.IMAGES_EXTENSION);
-        trainNonFaces = listFiles(train_dir + Conf.NONFACES, Conf.IMAGES_EXTENSION);
-        countTrainPos = trainFaces.size();
-        countTrainNeg = trainNonFaces.size();
-        trainN = countTrainPos + countTrainNeg;
+        // Loading train and test images
+        {
+            train_dir = trainDir;
+            trainFaces = listFiles(train_dir + Conf.FACES, Conf.IMAGES_EXTENSION);
+            trainNonFaces = listFiles(train_dir + Conf.NONFACES, Conf.IMAGES_EXTENSION);
+            countTrainPos = trainFaces.size();
+            countTrainNeg = trainNonFaces.size();
+            trainN = countTrainPos + countTrainNeg;
 
-        usedTrainNeg = countTrainNeg;
-        usedTrainPos = countTrainPos;
-        System.out.println("Total number of training images: " + trainN + " (pos: " + countTrainPos + ", neg: " + countTrainNeg + ")");
+            usedTrainNeg = countTrainNeg;
+            usedTrainPos = countTrainPos;
+            System.out.println("Total number of training images: " + trainN + " (pos: " + countTrainPos + ", neg: " + countTrainNeg + ")");
 
-        /*
-        test_dir = testDir;
-        testFaces = listFiles(test_dir + Conf.FACES, Conf.IMAGES_EXTENSION);
-        testNonFaces = listFiles(test_dir + Conf.NONFACES, Conf.IMAGES_EXTENSION);
-        countTestPos = testFaces.size();
-        countTestNeg = testNonFaces.size();
-        testN = countTestPos + countTestNeg;
+            test_dir = testDir;
+            testFaces = listFiles(test_dir + Conf.FACES, Conf.IMAGES_EXTENSION);
+            testNonFaces = listFiles(test_dir + Conf.NONFACES, Conf.IMAGES_EXTENSION);
+            countTestPos = testFaces.size();
+            countTestNeg = testNonFaces.size();
+            testN = countTestPos + countTestNeg;
 
+            usedTestNeg = countTestNeg;
+            usedTestPos = countTestPos;
+            System.out.println("Total number of test images: " + testN + " (pos: " + countTestPos + ", neg: " + countTestNeg + ")");
+        }
 
-        usedTestNeg = countTestNeg;
-        usedTestPos = countTestPos;
-        System.out.println("Total number of test images: " + testN + " (pos: " + countTestPos + ", neg: " + countTestNeg + ")");
-        */
-
+        // Setting up the Blacklist
         removedFromTrain = new boolean[trainN];
-        //removedFromTest = new boolean[testN];
+        removedFromTest = new boolean[testN];
         for (int i = 0; i < trainN; i++) {
             removedFromTrain[i] = false;
-          //  removedFromTest[i] = false;
+            removedFromTest[i] = false;
         }
 
         layerMemory = new ArrayList<>();
 
         // Compute all features for train & test set
-        computeFeaturesTimed(train_dir, Conf.IMAGES_FEATURES_TRAIN, true);
-        // computeFeaturesTimed(test_dir, Conf.IMAGES_FEATURES_TEST, false);
+        computeFeaturesTimed(train_dir);
+        computeFeaturesTimed(test_dir);
         buildImagesFeatures(trainFaces, trainNonFaces, true);
-        // buildImagesFeatures(testFaces, testNonFaces, false);
+        buildImagesFeatures(testFaces, testNonFaces, false);
 
         // Now organize all training features, so that it is easier to make requests on it
         organizeFeatures(featureCount, orderedExamples(), Conf.ORGANIZED_FEATURES, Conf.ORGANIZED_SAMPLE);
@@ -550,19 +551,21 @@ public class Classifier {
 
         // Init labels
         labelsTrain = new DenseMatrix(1, trainN);
-        //labelsTest = new DenseMatrix(1, testN);
+        labelsTest = new DenseMatrix(1, testN);
         for (int i = 0; i < trainN; i++) {
             labelsTrain.set(0, i, i < countTrainPos ? 1 : -1); // face == 1 VS non-face == -1
-            //labelsTest.set(0, i, i < countTestPos ? 1 : -1); // face == 1 VS non-face == -1
+            labelsTest.set(0, i, i < countTestPos ? 1 : -1); // face == 1 VS non-face == -1
         }
 
         double accumulatedFalsePositive = 1;
 
         // Training: run Cascade until we arrive to a certain wanted rate of success
         int round;
-        for (round = 0; round < boostingRounds && accumulatedFalsePositive > GOAL; round++) {
+//        for (round = 0; round < boostingRounds && accumulatedFalsePositive > GOAL; round++) {
+        for (round = 0; round < 30; round++) {
             long startTimeFor = System.currentTimeMillis();
             System.out.println("  - Round N." + (round + 1) + ":");
+
 
             // Update weights (needed because adaboost changes weights when running)
             totalWeightPos = initialPositiveWeight;
@@ -609,15 +612,15 @@ public class Classifier {
             usedTrainNeg = countTrainNeg;
             usedTrainPos = countTrainPos;
 
-            // usedTestNeg = countTestNeg;
-            // usedTestPos = countTestPos;
+             usedTestNeg = countTestNeg;
+             usedTestPos = countTestPos;
 
             // Compute empirical error and find false negatives & true negatives (blacklists)
             // We reset blacklists if round > 0
             double[] tmp = calcEmpiricalError(true, round, round > 0);
             System.out.println("    - The current tweak " + tweaks.get(round) + " has falsePositive " + tmp[0] + " and detectionRate " + tmp[1] + " on the training examples.");
             if (withTweaks) {
-                //tmp = calcEmpiricalError(false, round, round > 0);
+                tmp = calcEmpiricalError(false, round, round > 0);
                 System.out.println("    - The current tweak " + tweaks.get(round) + " has falsePositive " + tmp[0] + " and detectionRate " + tmp[1] + " on the validation examples.");
                 accumulatedFalsePositive *= tmp[0];
                 System.out.println("    - Accumulated False Positive Rate is around " + accumulatedFalsePositive);
@@ -625,7 +628,6 @@ public class Classifier {
 
             //record the boosted rule into a target file
             Serializer.writeRule(cascade[round], round == 0, Conf.TRAIN_FEATURES);
-
         }
 
         // Serialize training
@@ -661,13 +663,6 @@ public class Classifier {
             else
                 vraiPositif++;
         }
-
-        System.out.println("------------------------ TMP ------------------------");
-        System.out.println("Vrai Positifs : " + vraiPositif + " / " + countTestPos + " (" + (((double)vraiPositif)/(double)countTestPos + "%)") + "Should be high");
-        System.out.println("Faux Negatifs : " + fauxNegatif + " / " + countTestPos + " (" + (((double)fauxNegatif)/(double)countTestPos + "%)") + "Should be low");
-        System.out.println("------------------------ TMP ------------------------");
-
-
         for (String img : streamFiles(test_dir + Conf.NONFACES, Conf.IMAGES_EXTENSION)) {
             ArrayList<Face> faces = imageEvaluator.getFaces(img, false);
 
@@ -677,36 +672,31 @@ public class Classifier {
                 fauxPositif++;
         }
 
-        System.out.println("Vrai Positifs : " + vraiPositif + " / " + countTestPos + " (" + (((double)vraiPositif)/(double)countTestPos + "%)") + "Should be high");
-        System.out.println("Faux Negatifs : " + fauxNegatif + " / " + countTestPos + " (" + (((double)fauxNegatif)/(double)countTestPos + "%)") + "Should be low");
-        System.out.println("Vrai Negatifs : " + vraiNegatif + " / " + countTestNeg + " (" + (((double)vraiNegatif)/(double)countTestNeg + "%)") + "Should be high");
-        System.out.println("Faux Positifs : " + fauxPositif + " / " + countTestNeg + " (" + (((double)fauxPositif)/(double)countTestNeg + "%)") + "Should be low");
+        System.out.println("==== STATISTICS ====");
 
-        System.out.println("Positifs : " + (vraiPositif + fauxPositif) + " / " + (countTestPos + countTestNeg) + " (" + (((double)(vraiPositif + fauxPositif))/(double)(countTestPos + countTestNeg)+ "%)"));
-        System.out.println("Negatifs : " + (vraiNegatif + fauxNegatif) + " / " + (countTestPos + countTestNeg) + " (" + (((double)(vraiNegatif + fauxNegatif))/(double)(countTestPos + countTestNeg)+ "%)"));
+        System.out.println("True positive rate  TPR (recall/sensibility): " + vraiPositif + " / " + countTestPos + " (" + String.format("%1.3f", ((double)vraiPositif)/(double)countTestPos) + "%)" + " Should be high");
+        System.out.println("False negative rate FNR                     : " + fauxNegatif + " / " + countTestPos + " (" + String.format("%1.3f", ((double)fauxNegatif)/(double)countTestPos) + "%)" + " Should be low");
+        System.out.println("True negative rate TNR (specificity)        : " + vraiNegatif + " / " + countTestNeg + " (" + String.format("%1.3f", ((double)vraiNegatif)/(double)countTestNeg) + "%)" + " Should be high");
+        System.out.println("False positive rate FPR                     : " + fauxPositif + " / " + countTestNeg + " (" + String.format("%1.3f", ((double)fauxPositif)/(double)countTestNeg) + "%)" + " Should be low");
 
-        System.out.println("Taux de detection : " + ((((double)vraiPositif) + ((double)vraiNegatif))/((double)(countTestPos + countTestNeg))) + "%");
+        System.out.println("Positives: " + (vraiPositif + fauxPositif) + " / " + (countTestPos + countTestNeg) + " (expecting " + (double)(vraiPositif) + "/" + (double)(countTestPos + countTestNeg)+ ")");
+        System.out.println("Negatives: " + (vraiNegatif + fauxNegatif) + " / " + (countTestPos + countTestNeg) + " (expecting " + (double)(fauxNegatif) + "/" + (double)(countTestPos + countTestNeg)+ ")");
+
+        System.out.println("Taux de detection (accuracy) : " + String.format("%1.3f", (((double)vraiPositif) + ((double)vraiNegatif))/((double)(countTestPos + countTestNeg))) + "%");
 
         System.out.println("Total computing time for HaarDetector: " + imageEvaluator.computingTimeMS + "ms for " + (vraiPositif + fauxPositif + vraiNegatif + fauxNegatif) + " images");
+    }
 
-
-//        ImageEvaluator imageEvaluator = new ImageEvaluator(width, height, 200, 200, 1, 1, 10, 38, 1.15f);
-        //ImageEvaluator imageEvaluator = new ImageEvaluator(width, height, 200, 100, 1, 1, 15, 24, 1.15f);
-
-        // Your images, for now do not take too larges images, it will take too long...
-        //String images[] = {"face3.jpg"};
-//        String images[] = {"got.jpeg"};
-        //String images[] = {"republicains.jpg"};
-
-//        // TODO retry with all
-//        for (String img : images) {
-//            ImageHandler image = new ImageHandler("data/" + img);
-//            ArrayList<Face> rectangles = imageEvaluator.getFaces(image, true);
-//            System.out.println("Found " + rectangles.size() + " faces rectangle that contains a face");
-//            System.out.println("Time spent fot this image : " + imageEvaluator.computingTimeMS + " ms");
-//            System.out.println("Slinding Windows : " + imageEvaluator.slidingWindows.size());
-//            image.drawFaces(rectangles);
-//            Display.drawImage(image.getBufferedImage());
-//        }
+    public void evaluateImage(String[] images, ImageEvaluator imageEvaluator) {
+        for (String img : images) {
+            imageEvaluator.computingTimeMS = 0;
+            ImageHandler image = new ImageHandler("data/" + img);
+            ArrayList<Face> rectangles = imageEvaluator.getFaces(image, true);
+            System.out.println("Found " + rectangles.size() + " faces rectangle that contains a face");
+            System.out.println("Time spent for this image: " + imageEvaluator.computingTimeMS + "ms");
+            System.out.println("Sliding Windows: " + imageEvaluator.slidingWindows.size());
+            image.drawFaces(rectangles);
+            Display.drawImage(image.getBufferedImage());
+        }
     }
 }

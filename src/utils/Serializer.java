@@ -137,7 +137,6 @@ public class Serializer {
         return result;
     }
 
-
     /**
      * Checks if filePath contains exactly expectedSize values.
      */
@@ -191,97 +190,10 @@ public class Serializer {
             return testImagesFeatures[fileIndex.get(filePath)][(int) featureIndex];
     }
 
-    public static void writeRule(ArrayList<StumpRule> committee, boolean firstRound, String fileName) {
-        try {
+    public static void buildImagesFeatures(ArrayList<String> faces, ArrayList<String> nonfaces, boolean trainingSet) {
+        // Build xxxImagesFeatures arrays for O(1) access to feature values
 
-            if (firstRound && Utils.fileExists(fileName))
-                Utils.deleteFile(fileName);
-
-            PrintWriter writer = new PrintWriter(new FileWriter(fileName, true));
-
-            if (firstRound)
-                writer.println("double stumps[][4]=");
-
-            for (StumpRule stumpRule : committee) {
-                writer.println(stumpRule.featureIndex + ";" + stumpRule.error + ";"
-                        + stumpRule.threshold + ";" + stumpRule.toggle);
-            }
-
-            writer.flush();
-            writer.close();
-
-        } catch (IOException e) {
-            System.err.println("Error : Could Not Write committee, aborting");
-            e.printStackTrace();
-            System.exit(1);
-        }
-    }
-
-    public static ArrayList<StumpRule> readRule(String fileName) {
-        ArrayList<StumpRule> result = new ArrayList<>();
-
-        try {
-            BufferedReader br = new BufferedReader(new FileReader(fileName));
-            String line = br.readLine();
-
-            while (line != null) {
-                line = br.readLine();
-                if (line == null || line.equals(""))
-                    break;
-
-                String[] parts = line.split(";");
-
-                StumpRule stumpRule = new StumpRule(Long.parseLong(parts[0]),
-                                                    Double.parseDouble(parts[1]),
-                                                    Double.parseDouble(parts[2]),
-                                                    -1,
-                                                    Integer.parseInt(parts[3]));
-
-                result.add(stumpRule);
-            }
-
-            br.close();
-
-        } catch (IOException e) {
-            System.err.println("Error while reading the list of decisionStumps");
-            //e.printStackTrace();
-            //System.exit(1);
-        }
-        return result;
-    }
-
-    public static void writeLayerMemory(ArrayList<Integer> layerMemory, ArrayList<Float> tweaks, String fileName) {
-        try {
-
-            int layerCount = layerMemory.size();
-            PrintWriter writer = new PrintWriter(new FileWriter(fileName, true));
-
-            writer.println(System.lineSeparator());
-            writer.println("int layerCount=" + layerCount);
-            writer.println("int layerCommitteeSize[]=");
-
-            layerMemory.forEach(writer::println);
-
-            writer.println("float tweaks[]=");
-
-            tweaks.forEach(writer::println);
-            /*
-            for (int i = 0; i < layerCount; i++) {
-                writer.println(tweaks.get(i));
-            }
-            */
-
-            writer.close();
-
-        } catch (IOException e) {
-            System.err.println("Error : Could Not Write layer Memory or tweaks, aborting");
-            e.printStackTrace();
-            System.exit(1);
-        }
-    }
-
-    public static void buildImagesFeatures(ArrayList<String> faces, ArrayList<String> nonfaces, boolean training) {
-        System.out.println("Caching images features values for " + (training ? "training" : "validation") + " set:");
+        System.out.println("Caching images features values for " + (trainingSet ? "training" : "validation") + " set:");
         int posN = faces.size();
         int negN = nonfaces.size();
         int N = posN + negN;
@@ -301,7 +213,7 @@ public class Serializer {
         }
 
         System.out.println("  - Initializing int[" + N + "][" + featureCount + "]...");
-        if (training)
+        if (trainingSet)
             trainImagesFeatures = new int[N][(int) featureCount];
         else
             testImagesFeatures = new int[N][(int) featureCount];
@@ -311,9 +223,9 @@ public class Serializer {
         for (int i = 0; i < N; i++) {
             String filePath = (i < posN ? faces.get(i) : nonfaces.get(i - posN)) + Conf.FEATURE_EXTENSION;
             fileIndex.putIfAbsent(filePath, i);
-            fileTraining.putIfAbsent(filePath, training ? 1 : 0);
+            fileTraining.putIfAbsent(filePath, trainingSet ? 1 : 0);
 
-            if (training) {
+            if (trainingSet) {
                 trainImagesFeatures[i] = Arrays.copyOf(readFeatures(filePath), (int) featureCount);
             }
             else {
@@ -321,9 +233,12 @@ public class Serializer {
             }
 
         }
-        inMemory = true;
+        
+        if (trainingSet)
+            inMemory = true;
 
 
+// Following commented code is for random file access for lightweight storage
 //        try {
 //            if (fileExists(imagesFeatureFilepath)) {
 //                if (force)
@@ -371,6 +286,95 @@ public class Serializer {
 //            e.printStackTrace();
 //            System.exit(1);
 //        }
+    }
+
+    public static void writeRule(ArrayList<StumpRule> committee, boolean firstRound, String fileName) {
+        try {
+
+            if (firstRound && Utils.fileExists(fileName))
+                Utils.deleteFile(fileName);
+
+            PrintWriter writer = new PrintWriter(new FileWriter(fileName, true));
+
+            if (firstRound)
+                writer.println("double stumps[][4]=");
+
+            for (StumpRule stumpRule : committee) {
+                writer.println(stumpRule.featureIndex + ";" + stumpRule.error + ";"
+                        + stumpRule.threshold + ";" + stumpRule.toggle);
+            }
+
+            writer.flush();
+            writer.close();
+
+        } catch (IOException e) {
+            System.err.println("Error : Could Not Write committee, aborting");
+            e.printStackTrace();
+            System.exit(1);
+        }
+    }
+
+    public static ArrayList<StumpRule> readRule(String fileName) {
+        ArrayList<StumpRule> result = new ArrayList<>();
+
+        try {
+            BufferedReader br = new BufferedReader(new FileReader(fileName));
+            String line = br.readLine();
+
+            while (line != null) {
+                line = br.readLine();
+                if (line == null || line.equals(""))
+                    break;
+
+                String[] parts = line.split(";");
+
+                StumpRule stumpRule = new StumpRule(Long.parseLong(parts[0]),
+                        Double.parseDouble(parts[1]),
+                        Double.parseDouble(parts[2]),
+                        -1,
+                        Integer.parseInt(parts[3]));
+
+                result.add(stumpRule);
+            }
+
+            br.close();
+
+        } catch (IOException e) {
+            System.err.println("Error while reading the list of decisionStumps");
+            //e.printStackTrace();
+            //System.exit(1);
+        }
+        return result;
+    }
+
+    public static void writeLayerMemory(ArrayList<Integer> layerMemory, ArrayList<Float> tweaks, String fileName) {
+        try {
+
+            int layerCount = layerMemory.size();
+            PrintWriter writer = new PrintWriter(new FileWriter(fileName, true));
+
+            writer.println(System.lineSeparator());
+            writer.println("int layerCount=" + layerCount);
+            writer.println("int layerCommitteeSize[]=");
+
+            layerMemory.forEach(writer::println);
+
+            writer.println("float tweaks[]=");
+
+            tweaks.forEach(writer::println);
+            /*
+            for (int i = 0; i < layerCount; i++) {
+                writer.println(tweaks.get(i));
+            }
+            */
+
+            writer.close();
+
+        } catch (IOException e) {
+            System.err.println("Error : Could Not Write layer Memory or tweaks, aborting");
+            e.printStackTrace();
+            System.exit(1);
+        }
     }
 
     /**

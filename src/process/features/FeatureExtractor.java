@@ -332,7 +332,7 @@ public class FeatureExtractor {
         return count;
     }
 
-    public static void computeFeaturesTimed(String path, String imagesFeatureFilepath, boolean training) {
+    public static void computeFeaturesTimed(String path) {
         System.out.println("Computing features for:");
         System.out.println("  - " + path);
         int count = 0;
