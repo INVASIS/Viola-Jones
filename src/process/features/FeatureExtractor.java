@@ -376,37 +376,48 @@ public class FeatureExtractor {
         }
         if (fileExists(sample)) {
             if (!validSizeOfArray(sample, trainN * featureCount))
-                deleteFile(sample);
+                    deleteFile(sample);
         }
         if (fileExists(feature) && fileExists(sample)) { // Already exist & both good!
             System.out.println("  - Already computed!");
-            return;
         }
+        else {
+            assert examples.size() == trainN;
 
-        assert examples.size() == trainN;
+            for (long featureIndex = 0; featureIndex < featureCount; featureIndex++) {
+                // <exampleIndex, value>
+                ArrayList<Pair<Integer, Integer>> ascendingFeatures = new ArrayList<>();
 
-        for (long featureIndex = 0; featureIndex < featureCount; featureIndex++) {
-            // <exampleIndex, value>
-            ArrayList<Pair<Integer, Integer>> ascendingFeatures = new ArrayList<>();
+                for (int exampleIndex = 0; exampleIndex < trainN; exampleIndex++)
+                    ascendingFeatures.add(new Pair<>(exampleIndex, readIntFromMemory(examples.get(exampleIndex) + Conf.FEATURE_EXTENSION, featureIndex)));
 
-            for (int exampleIndex = 0; exampleIndex < trainN; exampleIndex++)
-                ascendingFeatures.add(new Pair<>(exampleIndex, readIntFromMemory(examples.get(exampleIndex) + Conf.FEATURE_EXTENSION, featureIndex)));
+                Collections.sort(ascendingFeatures, (o1, o2) -> o1.getValue().compareTo(o2.getValue()));
 
-            Collections.sort(ascendingFeatures, (o1, o2) -> o1.getValue().compareTo(o2.getValue()));
+                ArrayList<Integer> permutedSamples = new ArrayList<>(trainN);
+                ArrayList<Integer> permutedFeatures = new ArrayList<>(trainN);
 
-            ArrayList<Integer> permutedSamples = new ArrayList<>(trainN);
-            ArrayList<Integer> permutedFeatures = new ArrayList<>(trainN);
+                for (int k = 0; k < trainN; k++) {
+                    permutedSamples.add(ascendingFeatures.get(k).getKey());
+                    permutedFeatures.add(ascendingFeatures.get(k).getValue());
+                }
 
-            for (int k = 0; k < trainN; k++) {
-                permutedSamples.add(ascendingFeatures.get(k).getKey());
-                permutedFeatures.add(ascendingFeatures.get(k).getValue());
+                appendArrayToDisk(sample, permutedSamples);
+                appendArrayToDisk(feature, permutedFeatures);
             }
+            long elapsedTimeMS = (new Date()).getTime() - startTime;
+            System.out.println("  - Done in " + (elapsedTimeMS/1000) + "s");
 
-            appendArrayToDisk(sample, permutedSamples);
-            appendArrayToDisk(feature, permutedFeatures);
         }
-        long elapsedTimeMS = (new Date()).getTime() - startTime;
-        System.out.println("  - Done in " + (elapsedTimeMS/1000) + "s");
+
+        // trainImagesFeatures is no more useful for training
+        Serializer.clearTrainImagesFeatures();
+
+        if (Serializer.isInMemory()) {
+            // Now load organizeFeatures in memory if possible
+            System.out.print("Loading all organized features and samples to memory...");
+            Serializer.loadOrganizedInMemory(Conf.ORGANIZED_FEATURES, Conf.ORGANIZED_SAMPLE, trainN);
+            System.out.println(" done!");
+        }
     }
 
     /**
@@ -419,7 +430,7 @@ public class FeatureExtractor {
         return getExampleIndex(featureIndex, iterator, trainN, Conf.ORGANIZED_SAMPLE);
     }
     public static int[] getFeatureExamplesIndexes(long featureIndex, int trainN) {
-        return readArrayFromDisk(Conf.ORGANIZED_SAMPLE, featureIndex * trainN, trainN * (featureIndex + 1));
+        return featureExamplesIndexes(Conf.ORGANIZED_SAMPLE, featureIndex, trainN);
     }
 
     /**
@@ -432,6 +443,6 @@ public class FeatureExtractor {
         return getExampleFeature(featureIndex, iterator, trainN, Conf.ORGANIZED_FEATURES);
     }
     public static int[] getFeatureValues(long featureIndex, int trainN) {
-        return readArrayFromDisk(Conf.ORGANIZED_FEATURES, featureIndex * trainN, trainN * (featureIndex + 1));
+        return featureValues(Conf.ORGANIZED_FEATURES, featureIndex, trainN);
     }
 }

@@ -1,7 +1,5 @@
 package process;
 
-import GUI.Display;
-import GUI.ImageHandler;
 import jeigen.DenseMatrix;
 import process.features.Face;
 import utils.Serializer;
@@ -12,6 +10,7 @@ import java.util.HashMap;
 import java.util.concurrent.*;
 
 import static java.lang.Math.log;
+import static process.Test.isFace;
 import static process.features.FeatureExtractor.*;
 import static utils.Serializer.buildImagesFeatures;
 import static utils.Utils.*;
@@ -90,46 +89,6 @@ public class Classifier {
 
         this.featureCount = Serializer.featureCount;
         System.out.println("Feature count for " + width + "x" + height + ": " + featureCount);
-    }
-
-    public static double isFace(ArrayList<StumpRule>[] cascade, ArrayList<Float> tweaks, int[] exampleFeatureValues, int defaultLayerNumber, HashMap<Integer, Integer> neededHaarValues) {
-        // Everything is a face if no layer is involved
-        if (defaultLayerNumber == 0) {
-            System.out.println("Does it really happen? It seems!"); // LoL
-            return 1;
-        }
-        int layerCount = defaultLayerNumber < 0 ? tweaks.size() : defaultLayerNumber;
-        double confidence = 0;
-        for(int layer = 0; layer < layerCount; layer++){
-            double prediction = 0;
-            int committeeSize = cascade[layer].size();
-            for(int ruleIndex = 0; ruleIndex < committeeSize; ruleIndex++){
-                StumpRule rule = cascade[layer].get(ruleIndex);
-                int ftIndex = (int) rule.featureIndex;
-                if (neededHaarValues != null) {
-                    ftIndex = neededHaarValues.get(ftIndex);
-                }
-                double featureValue = (double)exampleFeatureValues[ftIndex];
-                double vote = (featureValue > rule.threshold ? 1 : -1) * rule.toggle + tweaks.get(layer);
-                if (rule.error == 0) {
-                    if (ruleIndex == 0)
-                        return vote;
-                    else {
-                        System.err.println("Find an invalid rule!");
-                        System.exit(1);
-                    }
-                }
-                prediction += vote * log((1.0d/rule.error) - 1);
-            }
-            confidence += prediction;
-            if (prediction < 0)
-                return prediction;
-        }
-        return confidence;
-    }
-
-    public static double isFace(ArrayList<StumpRule>[] cascade, ArrayList<Float> tweaks, int[] exampleFeatureValues, int defaultLayerNumber) {
-        return isFace(cascade, tweaks, exampleFeatureValues, defaultLayerNumber, null);
     }
 
     /**
@@ -219,11 +178,11 @@ public class Classifier {
         }
 
         if (best.error >= 0.5) {
-            System.out.println("      - Failed best stump, error : " + best.error + " >= 0.5 !");
+            System.err.println("    - Failed best stump, error : " + best.error + " >= 0.5 !");
             System.exit(1);
         }
 
-        System.out.println("      - Found best stump in " + ((new Date()).getTime() - startTime)/1000 + "s" +
+        System.out.println("    - Found best stump in " + ((new Date()).getTime() - startTime)/1000 + "s" +
                 " : (featureIdx: " + best.featureIndex +
                 ", threshold: " + best.threshold +
                 ", margin: " + best.margin +
@@ -241,61 +200,63 @@ public class Classifier {
      * Explication: The training aims to find the feature with the threshold that will allows to separate positive & negative examples in the best way possible!
      */
     private void adaboost(int round) {
-        // STATE: OK & CHECKED 16/31/08
-
         StumpRule bestDS = bestStump(); // A new weak classifier
         cascade[round].add(bestDS); // Add this weak classifier to our current strong classifier to get better results
 
-        DenseMatrix predictions = new DenseMatrix(1, trainN);
-        predictLabel(cascade[round], trainN, 0, true, predictions);
-
-        DenseMatrix agree = labelsTrain.mul(predictions);
-        DenseMatrix weightUpdate = DenseMatrix.ones(1, trainN); // new ArrayList<>(trainN);
-
-        boolean werror = false;
-
-        for (int i = 0; i < trainN; i++) {
-            if (!removedFromTrain[i] && agree.get(0, i) < 0) {
-                if (bestDS.error != 0)
-                    weightUpdate.set(0, i, (1 / bestDS.error) - 1); // (1 / bestDS.error) - 1
-                else
-                    weightUpdate.set(0, i, Double.MAX_VALUE - 1);
-                werror = true;
-            }
+        if (bestDS.error == 0) {
+            System.err.println("Strangely find a best stump with error = 0! (" + bestDS.featureIndex + ")");
         }
 
-        //
-        if (werror) {
+        // Compute current cascade predictions
+        DenseMatrix predictions = new DenseMatrix(1, trainN);
+        predictLabel(cascade[round], trainN, 0, true, predictions); // FIXME: 0 should be decisionTweak?
 
-            weightsTrain = weightsTrain.mul(weightUpdate);
-            /*for (int i = 0; i < trainN; i++)
-                weightsTrain.set(i, weightsTrain.get(i) * weightUpdate.get(i));
-*/
-            double sum = 0;
-            for (int i = 0; i < trainN; i++)
-                sum += weightsTrain.get(0, i);
+        // Compute results: agree[i] >= 0 means correct, while agree[i] < 0 means incorrect
+        DenseMatrix agree = labelsTrain.mul(predictions);
 
-            double sumPos = 0;
-
-            minWeight = 1;
-            maxWeight = 0;
-
+        // For each incorrect example, increase its weight so that it has more importance in the next call to bestStump
+        {
+            DenseMatrix weightUpdate = DenseMatrix.ones(1, trainN);
+            boolean werror = false;
             for (int i = 0; i < trainN; i++) {
-                double newVal = weightsTrain.get(0, i) / sum;
-                weightsTrain.set(0, i, newVal);
-                if (i < countTrainPos)
-                    sumPos += newVal;
-                if (minWeight > newVal)
-                    minWeight = newVal;
-                if (maxWeight < newVal)
-                    maxWeight = newVal;
+                if (!removedFromTrain[i] && agree.get(0, i) < 0) {
+                    if (bestDS.error != 0)
+                        weightUpdate.set(0, i, (1 / bestDS.error) - 1);
+                    else
+                        weightUpdate.set(0, i, 99); // <=> bestDS.error = 0.01
+                    werror = true;
+                }
             }
-            totalWeightPos = sumPos;
-            totalWeightNeg = 1 - sumPos;
+            if (werror) {
+                weightsTrain = weightsTrain.mul(weightUpdate);
 
-            assert totalWeightPos + totalWeightNeg == 1;
-            assert totalWeightPos <= 1;
-            assert totalWeightNeg <= 1;
+                // Update Weight related variables
+                double sum = 0;
+                for (int i = 0; i < trainN; i++)
+                    sum += weightsTrain.get(0, i);
+
+                double sumPos = 0;
+
+                minWeight = 1;
+                maxWeight = 0;
+
+                for (int i = 0; i < trainN; i++) {
+                    double newVal = weightsTrain.get(0, i) / sum;
+                    weightsTrain.set(0, i, newVal);
+                    if (i < countTrainPos)
+                        sumPos += newVal;
+                    if (minWeight > newVal)
+                        minWeight = newVal;
+                    if (maxWeight < newVal)
+                        maxWeight = newVal;
+                }
+                totalWeightPos = sumPos;
+                totalWeightNeg = 1 - sumPos;
+
+                assert totalWeightPos + totalWeightNeg == 1;
+                assert totalWeightPos <= 1;
+                assert totalWeightNeg <= 1;
+            }
         }
     }
 
@@ -314,7 +275,7 @@ public class Classifier {
 
             DenseMatrix verdicts = DenseMatrix.ones(1, trainN);
             DenseMatrix predictions = DenseMatrix.zeros(1, trainN);
-            for (int layer = round; layer < round+1; layer++) { // FIXME: layer = 0, not round
+            for (int layer = 0; layer < round+1; layer++) { // FIXME: layer = 0, not round
                 predictLabel(cascade[layer], trainN, tweaks.get(layer), false, predictions);
                 verdicts = verdicts.min(predictions); // Those at -1, remain where you are!
             }
@@ -380,7 +341,6 @@ public class Classifier {
             }
             res[0] = ((double) nFalsePositive) / (double) nNeg;
             res[1] = 1.0d - (((double) nFalseNegative) / (double) nPos);
-
         }
 
         return res;
@@ -389,9 +349,7 @@ public class Classifier {
     /**
      * Algorithm 10 from the original paper
      */
-    private void attentionalCascade(int round, float overallTargetDetectionRate, float overallTargetFalsePositiveRate) {
-        // STATE: OK & CHECKED 16/31/08
-
+    private void attentionalCascade(int round, float targetAccuracy, float targetFPR) {
         // TODO : limit it for the first rounds ?
         int committeeSizeGuide = Math.min(20 + round * 10, 200);
         if (round == 0 && committeeSizeGuide >= 20)
@@ -418,17 +376,18 @@ public class Classifier {
                 tweak = -1;
             float tweakUnit = TWEAK_UNIT;
 
+            boolean tweaking = false;
             while (Math.abs(tweak) < 1.1) {
                 tweaks.set(round, tweak);
 
                 double[] resTrain = calcEmpiricalError(true, round, false);
-                //double[] resTest = calcEmpiricalError(false, round, false);
+                double[] resTest = calcEmpiricalError(false, round, false);
 
-                double worstFalsePositive = Math.max(resTrain[0], resTrain[0]);
-                double worstDetectionRate = Math.min(resTrain[1], resTrain[1]);
+                double worstFPR = Math.max(resTrain[0], resTest[0]);
+                double worstAccuracy = Math.min(resTrain[1], resTest[1]);
 
                 if (finalTweak) {
-                    if (worstDetectionRate >= 0.99) {
+                    if (worstAccuracy >= 0.99) {
                         System.out.println("    - Final tweak settles to " + tweak);
                         break;
                     } else {
@@ -437,22 +396,35 @@ public class Classifier {
                     }
                 }
 
-                if (worstDetectionRate >= overallTargetDetectionRate && worstFalsePositive <= overallTargetFalsePositiveRate) {
+                if (!tweaking) {
+                    System.out.println("      - Rates:");
+                    System.out.println("        - Worst accuracy: " + String.format("%1.4f", worstAccuracy) + " VS Target accuracy: " + String.format("%1.4f", targetAccuracy));
+                    System.out.println("        - Worst FPR     : " + String.format("%1.4f", worstFPR) + " VS Target FPR     : " + String.format("%1.4f", targetFPR));
+                }
+
+                if (worstAccuracy >= targetAccuracy && worstFPR <= targetFPR) {
                     layerMissionAccomplished = true;
-                    System.out.println("    - worstDetectionRate: " + worstDetectionRate + " >= overallTargetDetectionRate: " + overallTargetDetectionRate + " && worstFalsePositive: " + worstFalsePositive + " <= overallTargetFalsePositiveRate: " + overallTargetFalsePositiveRate);
+                    System.out.println("        -> Layer mission accomplished! (worstAccuracy >= targetAccuracy && worstFPR <= targetFPR)");
                     break;
-                } else if (worstDetectionRate >= overallTargetDetectionRate && worstFalsePositive > overallTargetFalsePositiveRate) {
+                } else if (worstAccuracy >= targetAccuracy && worstFPR > targetFPR) {
                     tweak -= tweakUnit;
                     tweakCounter++;
                     oscillationObserver[tweakCounter % 2] = -1;
-                } else if (worstDetectionRate < overallTargetDetectionRate && worstFalsePositive <= overallTargetFalsePositiveRate) {
+                    System.out.println("        - adjusting tweak: " + tweak);
+                    tweaking = true;
+                } else if (worstAccuracy < targetAccuracy && worstFPR <= targetFPR) {
                     tweak += tweakUnit;
                     tweakCounter++;
                     oscillationObserver[tweakCounter % 2] = 1;
+                    System.out.println("        - adjusting tweak: " + tweak);
+                    tweaking = true;
                 } else {
                     finalTweak = true;
-                    System.out.println("    - worstDetectionRate: " + worstDetectionRate + " >= overallTargetDetectionRate: " + overallTargetDetectionRate + " && worstFalsePositive: " + worstFalsePositive + " <= overallTargetFalsePositiveRate: " + overallTargetFalsePositiveRate);
-                    System.out.println("    - No way out at this point. tweak goes from " + tweak);
+                    System.out.println("      - Rates:");
+                    System.out.println("        - Worst accuracy: " + String.format("%1.4f", worstAccuracy) + " VS Target accuracy: " + String.format("%1.4f", targetAccuracy));
+                    System.out.println("        - Worst FPR     : " + String.format("%1.4f", worstFPR) + " VS Target FPR     : " + String.format("%1.4f", targetFPR));
+                    System.out.println("        -> No way out at this point. Tweak = " + tweak);
+                    tweaking = false;
                     continue;
                 }
 
@@ -483,7 +455,7 @@ public class Classifier {
         return examples;
     }
 
-    public void train(String trainDir, String testDir, float initialPositiveWeight, float overallTargetDetectionRate, float overallTargetFalsePositiveRate, float targetFalsePositiveRate, boolean withTweaks) {
+    public void train(String trainDir, String testDir, float initialPositiveWeight, float cascadeTargetAccuracy, float cascadeTargetFPR, float layerTargetFPR, boolean withTweaks) {
         if (computed) {
             System.out.println("Training already done!");
             return;
@@ -492,7 +464,7 @@ public class Classifier {
 
         long startTimeTrain = System.currentTimeMillis();
 
-        // Loading train and test images
+        // Loading train and test images, and create organizedFeatures
         {
             train_dir = trainDir;
             trainFaces = listFiles(train_dir + Conf.FACES, Conf.IMAGES_EXTENSION);
@@ -515,49 +487,54 @@ public class Classifier {
             usedTestNeg = countTestNeg;
             usedTestPos = countTestPos;
             System.out.println("Total number of test images: " + testN + " (pos: " + countTestPos + ", neg: " + countTestNeg + ")");
+
+            // Compute all features for train & test set
+            computeFeaturesTimed(train_dir);
+            computeFeaturesTimed(test_dir);
+            buildImagesFeatures(trainFaces, trainNonFaces, true);
+            buildImagesFeatures(testFaces, testNonFaces, false);
+
+            // Now organize all training features, so that it is easier to make requests on it
+            organizeFeatures(featureCount, orderedExamples(), Conf.ORGANIZED_FEATURES, Conf.ORGANIZED_SAMPLE);
         }
 
-        // Setting up the Blacklist
-        removedFromTrain = new boolean[trainN];
-        removedFromTest = new boolean[testN];
-        for (int i = 0; i < trainN; i++) {
-            removedFromTrain[i] = false;
-            removedFromTest[i] = false;
-        }
-
-        layerMemory = new ArrayList<>();
-
-        // Compute all features for train & test set
-        computeFeaturesTimed(train_dir);
-        computeFeaturesTimed(test_dir);
-        buildImagesFeatures(trainFaces, trainNonFaces, true);
-        buildImagesFeatures(testFaces, testNonFaces, false);
-
-        // Now organize all training features, so that it is easier to make requests on it
-        organizeFeatures(featureCount, orderedExamples(), Conf.ORGANIZED_FEATURES, Conf.ORGANIZED_SAMPLE);
 
         System.out.println("Training classifier:");
+        System.out.println("  - Target rates:");
+        System.out.println("    - FPR     : " + cascadeTargetFPR);
+        System.out.println("    - Accuracy: " + cascadeTargetAccuracy);
 
         // Estimated number of rounds needed
-        int boostingRounds = (int) (Math.ceil(Math.log(overallTargetFalsePositiveRate) / Math.log(targetFalsePositiveRate)) + 20);
-        System.out.println("  - Estimated needed boosting rounds: " + boostingRounds);
-        System.out.println("  - Target: falsePositiveTarget" + targetFalsePositiveRate + " detectionRateTarget " + overallTargetDetectionRate);
+        int boostingRounds = (int) (Math.ceil(Math.log(cascadeTargetFPR) / Math.log(layerTargetFPR)) + 20);
+        System.out.println("  - Estimated number of cascade layers: " + boostingRounds);
 
         // Initialization
-        tweaks = new ArrayList<>(boostingRounds);
-        for (int i = 0; i < boostingRounds; i++)
-            tweaks.add(0f);
-        cascade = new ArrayList[boostingRounds];
+        {
+            tweaks = new ArrayList<>(boostingRounds);
+            for (int i = 0; i < boostingRounds; i++)
+                tweaks.add(0f);
+            cascade = new ArrayList[boostingRounds];
 
-        // Init labels
-        labelsTrain = new DenseMatrix(1, trainN);
-        labelsTest = new DenseMatrix(1, testN);
-        for (int i = 0; i < trainN; i++) {
-            labelsTrain.set(0, i, i < countTrainPos ? 1 : -1); // face == 1 VS non-face == -1
-            labelsTest.set(0, i, i < countTestPos ? 1 : -1); // face == 1 VS non-face == -1
+            // Setting up the Blacklist
+            removedFromTrain = new boolean[trainN];
+            removedFromTest = new boolean[testN];
+            for (int i = 0; i < trainN; i++) {
+                removedFromTrain[i] = false;
+                removedFromTest[i] = false;
+            }
+
+            layerMemory = new ArrayList<>();
+
+            // Init labels
+            labelsTrain = new DenseMatrix(1, trainN);
+            labelsTest = new DenseMatrix(1, testN);
+            for (int i = 0; i < trainN; i++) {
+                labelsTrain.set(0, i, i < countTrainPos ? 1 : -1); // face == 1 VS non-face == -1
+                labelsTest.set(0, i, i < countTestPos ? 1 : -1); // face == 1 VS non-face == -1
+            }
         }
 
-        double accumulatedFalsePositive = 1;
+        double accumulatedFPR = 1;
 
         // Training: run Cascade until we arrive to a certain wanted rate of success
         int round;
@@ -565,7 +542,6 @@ public class Classifier {
         for (round = 0; round < 30; round++) {
             long startTimeFor = System.currentTimeMillis();
             System.out.println("  - Round N." + (round + 1) + ":");
-
 
             // Update weights (needed because adaboost changes weights when running)
             totalWeightPos = initialPositiveWeight;
@@ -577,13 +553,13 @@ public class Classifier {
 
             minWeight = averageWeightPos < averageWeightNeg ? averageWeightPos : averageWeightNeg;
             maxWeight = averageWeightPos > averageWeightNeg ? averageWeightPos : averageWeightNeg;
-            weightsTrain = DenseMatrix.zeros(1, trainN);
+            weightsTrain = DenseMatrix.zeros(1, trainN); // FIXME: do we really need to update this at each round?
             for (int i = 0; i < trainN; i++)
                 weightsTrain.set(0, i, i < countTrainPos ? averageWeightPos : averageWeightNeg);
-            System.out.println("    - Initialized weights:");
-            System.out.println("      - TotW+: " + totalWeightPos + " | TotW-: " + totalWeightNeg);
-            System.out.println("      - AverW+: " + averageWeightPos + " | AverW-: " + averageWeightNeg);
-            System.out.println("      - MinW: " + minWeight + " | MaxW: " + maxWeight);
+//            System.out.println("    - Initialized weights:");
+//            System.out.println("      - TotW+: " + totalWeightPos + " | TotW-: " + totalWeightNeg);
+//            System.out.println("      - AverW+: " + averageWeightPos + " | AverW-: " + averageWeightNeg);
+//            System.out.println("      - MinW: " + minWeight + " | MaxW: " + maxWeight);
 
             if (!withTweaks) {
                 cascade[0] = new ArrayList<>();
@@ -595,35 +571,33 @@ public class Classifier {
                 }
                 System.out.println("    - Number of weak classifier: " + cascade[0].size());
 
-                Serializer.writeRule(cascade[round], round == 0, Conf.TRAIN_FEATURES);
+                Serializer.writeRule(cascade[round], true, Conf.TRAIN_FEATURES);
                 // Attentional cascade is useless, a single round will be enough
                 break;
             }
 
-            attentionalCascade(round, overallTargetDetectionRate, overallTargetFalsePositiveRate);
+            attentionalCascade(round, cascadeTargetAccuracy, cascadeTargetFPR);
             System.out.println("    - Attentional Cascade computed in " + ((new Date()).getTime() - startTimeFor)/1000 + "s!");
-            System.out.println("      - Number of weak classifier: " + cascade[round].size());
-
-            // -- Display results for this round --
+            System.out.println("      -> Number of Weak Classifier: " + cascade[round].size());
 
             layerMemory.add(cascade[round].size());
-
 
             usedTrainNeg = countTrainNeg;
             usedTrainPos = countTrainPos;
 
-             usedTestNeg = countTestNeg;
-             usedTestPos = countTestPos;
+            usedTestNeg = countTestNeg;
+            usedTestPos = countTestPos;
 
             // Compute empirical error and find false negatives & true negatives (blacklists)
             // We reset blacklists if round > 0
             double[] tmp = calcEmpiricalError(true, round, round > 0);
-            System.out.println("    - The current tweak " + tweaks.get(round) + " has falsePositive " + tmp[0] + " and detectionRate " + tmp[1] + " on the training examples.");
+            System.out.println("      -> Current Tweak (" + tweaks.get(round) + ") gives:");
+            System.out.println("        - On the training set  : FPR=" + String.format("%1.4f", tmp[0]) + " and Accuracy=" + tmp[1]);
             if (withTweaks) {
                 tmp = calcEmpiricalError(false, round, round > 0);
-                System.out.println("    - The current tweak " + tweaks.get(round) + " has falsePositive " + tmp[0] + " and detectionRate " + tmp[1] + " on the validation examples.");
-                accumulatedFalsePositive *= tmp[0];
-                System.out.println("    - Accumulated False Positive Rate is around " + accumulatedFalsePositive);
+                System.out.println("        - On the validation set: FPR=" + String.format("%1.4f", tmp[0]) + " and Accuracy=" + tmp[1]);
+                accumulatedFPR *= tmp[0];
+                System.out.println("    - Accumulated FPR=" + accumulatedFPR);
             }
 
             //record the boosted rule into a target file
@@ -674,29 +648,16 @@ public class Classifier {
 
         System.out.println("==== STATISTICS ====");
 
-        System.out.println("True positive rate  TPR (recall/sensibility): " + vraiPositif + " / " + countTestPos + " (" + String.format("%1.3f", ((double)vraiPositif)/(double)countTestPos) + "%)" + " Should be high");
-        System.out.println("False negative rate FNR                     : " + fauxNegatif + " / " + countTestPos + " (" + String.format("%1.3f", ((double)fauxNegatif)/(double)countTestPos) + "%)" + " Should be low");
-        System.out.println("True negative rate TNR (specificity)        : " + vraiNegatif + " / " + countTestNeg + " (" + String.format("%1.3f", ((double)vraiNegatif)/(double)countTestNeg) + "%)" + " Should be high");
-        System.out.println("False positive rate FPR                     : " + fauxPositif + " / " + countTestNeg + " (" + String.format("%1.3f", ((double)fauxPositif)/(double)countTestNeg) + "%)" + " Should be low");
+        System.out.println("True positive rate  TPR (recall/sensibility): " + vraiPositif + " / " + countTestPos + " (" + String.format("%1.4f", ((double)vraiPositif)/(double)countTestPos) + ")" + " Should be high");
+        System.out.println("False negative rate FNR                     : " + fauxNegatif + " / " + countTestPos + " (" + String.format("%1.4f", ((double)fauxNegatif)/(double)countTestPos) + ")" + " Should be low");
+        System.out.println("True negative rate TNR (specificity)        : " + vraiNegatif + " / " + countTestNeg + " (" + String.format("%1.4f", ((double)vraiNegatif)/(double)countTestNeg) + ")" + " Should be high");
+        System.out.println("False positive rate FPR                     : " + fauxPositif + " / " + countTestNeg + " (" + String.format("%1.4f", ((double)fauxPositif)/(double)countTestNeg) + ")" + " Should be low");
 
         System.out.println("Positives: " + (vraiPositif + fauxPositif) + " / " + (countTestPos + countTestNeg) + " (expecting " + (double)(vraiPositif) + "/" + (double)(countTestPos + countTestNeg)+ ")");
         System.out.println("Negatives: " + (vraiNegatif + fauxNegatif) + " / " + (countTestPos + countTestNeg) + " (expecting " + (double)(fauxNegatif) + "/" + (double)(countTestPos + countTestNeg)+ ")");
 
-        System.out.println("Taux de detection (accuracy) : " + String.format("%1.3f", (((double)vraiPositif) + ((double)vraiNegatif))/((double)(countTestPos + countTestNeg))) + "%");
+        System.out.println("Taux de detection (accuracy) : " + String.format("%1.4f", (((double)vraiPositif) + ((double)vraiNegatif))/((double)(countTestPos + countTestNeg))));
 
         System.out.println("Total computing time for HaarDetector: " + imageEvaluator.computingTimeMS + "ms for " + (vraiPositif + fauxPositif + vraiNegatif + fauxNegatif) + " images");
-    }
-
-    public void evaluateImage(String[] images, ImageEvaluator imageEvaluator) {
-        for (String img : images) {
-            imageEvaluator.computingTimeMS = 0;
-            ImageHandler image = new ImageHandler("data/" + img);
-            ArrayList<Face> rectangles = imageEvaluator.getFaces(image, true);
-            System.out.println("Found " + rectangles.size() + " faces rectangle that contains a face");
-            System.out.println("Time spent for this image: " + imageEvaluator.computingTimeMS + "ms");
-            System.out.println("Sliding Windows: " + imageEvaluator.slidingWindows.size());
-            image.drawFaces(rectangles);
-            Display.drawImage(image.getBufferedImage());
-        }
     }
 }

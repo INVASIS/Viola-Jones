@@ -7,19 +7,51 @@ import java.io.*;
 import java.nio.file.FileAlreadyExistsException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static utils.Utils.fileExists;
 
 
 public class Serializer {
+    // Stores feature values for each example: xxxImagesFeatures[i] contains all feature values of example i
     private static int[][] trainImagesFeatures = null;
     private static int[][] testImagesFeatures = null;
+    private static int[][] organizedFeatures = null;
+    private static int[][] organizedSamples = null;
+
+
     private static boolean inMemory = false;
     public static long featureCount;
 
+    // Map a filepath to the index of xxxImagesFeatures
     private static ConcurrentHashMap<String, Integer> fileIndex = new ConcurrentHashMap<>();
+
+    // If String matches a training example, then it returns 1
+    // If String matches a validation example, then it returns 0
     private static ConcurrentHashMap<String, Integer> fileTraining = new ConcurrentHashMap<>();
+
+    public static boolean isInMemory() {
+        return inMemory;
+    }
+
+    public static void clearTrainImagesFeatures() {
+        trainImagesFeatures = null;
+        System.gc();
+    }
+
+    public static void loadOrganizedInMemory(String features, String samples, int trainN) {
+        if (organizedFeatures != null) {
+            System.err.println("Already loaded organizedFeatures in memory...");
+            System.exit(1);
+        }
+        organizedFeatures = new int[(int)featureCount][trainN];
+        organizedSamples = new int[(int)featureCount][trainN];
+        for (int i = 0; i < featureCount; i++) {
+            organizedFeatures[i] = readArrayFromDisk(features, i * trainN, trainN * (i + 1));
+            organizedSamples[i] = readArrayFromDisk(samples, i * trainN, trainN * (i + 1));
+        }
+    }
 
     private static void skipBytesLong(DataInputStream dis, long skip) throws IOException {
         long total = 0;
@@ -99,14 +131,26 @@ public class Serializer {
     }
 
     public static int[] readFeatures(String filePath) {
-        if (inMemory && fileIndex.containsKey(fileIndex)) {
-            if (fileTraining.get(filePath) == 1)
-                return trainImagesFeatures[fileIndex.get(filePath)];
-            else
-                return testImagesFeatures[fileIndex.get(filePath)];
-        }
-
+        if (inMemory && fileIndex.containsKey(filePath)) {
+        if (fileTraining.get(filePath) == 1)
+            return trainImagesFeatures[fileIndex.get(filePath)];
+        else
+            return testImagesFeatures[fileIndex.get(filePath)];
+    }
+//        System.out.println("readFeatures(" + filePath + ") not in memory...");
         return readArrayFromDisk(filePath, featureCount);
+}
+
+    public static int[] featureExamplesIndexes(String filePath, long featureIndex, int trainN) {
+        if (organizedSamples != null)
+            return organizedSamples[(int)featureIndex];
+        return readArrayFromDisk(filePath, featureIndex * trainN, trainN * (featureIndex + 1));
+    }
+
+    public static int[] featureValues(String filePath, long featureIndex, int trainN) {
+        if (organizedFeatures != null)
+            return organizedFeatures[(int)featureIndex];
+        return readArrayFromDisk(filePath, featureIndex * trainN, trainN * (featureIndex + 1));
     }
 
     public static int[] readArrayFromDisk(String filePath, long fromIndex, long toIndex) {
@@ -236,56 +280,6 @@ public class Serializer {
         
         if (trainingSet)
             inMemory = true;
-
-
-// Following commented code is for random file access for lightweight storage
-//        try {
-//            if (fileExists(imagesFeatureFilepath)) {
-//                if (force)
-//                    deleteFile(imagesFeatureFilepath);
-//                else {
-//                    FileChannel fc = new RandomAccessFile(imagesFeatureFilepath, "r").getChannel();
-//                    if (training)
-//                        trainImagesFeatures = fc.map(FileChannel.MapMode.READ_ONLY, 0, fc.size());
-//                    else
-//                        testImagesFeatures = fc.map(FileChannel.MapMode.READ_ONLY, 0, fc.size());
-//                    return;
-//                }
-//            }
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//            System.exit(1);
-//        }
-
-//        ArrayList<Integer> tmp = readArrayFromDisk(faces.get(0) + Conf.FEATURE_EXTENSION);
-//
-//        long length = Integer.BYTES * tmp.size() * (long)(faces.size() + nonfaces.size());
-//        System.out.println("Length: " + length);
-
-//        MappedByteBuffer out;
-//        try {
-//            int c = 0;
-//            out = new RandomAccessFile(imagesFeatureFilepath, "rw").getChannel().map(FileChannel.MapMode.READ_WRITE, 0, length);
-//            for (String face : faces){
-//                tmp = readArrayFromDisk(face + Conf.FEATURE_EXTENSION);
-//                for (long i = 0; i < tmp.size(); i++)
-//                    out.putInt(tmp.get((int) i));
-//                c++;
-//            }
-//            for (String nonface : nonfaces){
-//                tmp = readArrayFromDisk(nonface + Conf.FEATURE_EXTENSION);
-//                for (long i = 0; i < tmp.size();  i++)
-//                    out.putInt(tmp.get((int) i));
-//                c++;
-//            }
-//            if (c != faces.size() + nonfaces.size()) {
-//                System.out.println("Sizes doesn't match! (c=" + c + " while expecting " + (faces.size() + nonfaces.size()) + ")");
-//                System.exit(1);
-//            }
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//            System.exit(1);
-//        }
     }
 
     public static void writeRule(ArrayList<StumpRule> committee, boolean firstRound, String fileName) {

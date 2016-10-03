@@ -14,6 +14,8 @@ import utils.Serializer;
 
 import java.util.*;
 
+import static process.Test.isFace;
+
 public class ImageEvaluator {
 
     private static final float SCALE_COEFF = 1.25f;
@@ -99,7 +101,7 @@ public class ImageEvaluator {
             System.arraycopy(haar, offset, tmpHaar, 0, haarSize);
             offset += haarSize;
 
-            double confidence = Classifier.isFace(cascade, tweaks, tmpHaar, layerCount, neededHaarValues);
+            double confidence = isFace(cascade, tweaks, tmpHaar, layerCount, neededHaarValues);
             if (confidence > 0) {
                 res.add(new Face(rectangle, confidence));
             }

@@ -162,7 +162,7 @@ public class Perfs {
 
     public static void compareDetectFacesTime(int width, int height) {
 
-        String images[] = {"face1.jpg", "got.jpeg", "face5.jpg", "groupe2.jpg", "fusia.jpg", "groupe.jpg", "hardcore.jpg"};
+        String images[] = {"face1.jpg", "got.jpeg", "face5.jpg", "groupe2.jpg", "groupe.jpg", "hardcore.jpg"};
         Conf.USE_CUDA =true;
 
         long timeCuda = 0;

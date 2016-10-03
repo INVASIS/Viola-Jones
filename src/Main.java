@@ -13,10 +13,9 @@ public class Main {
         int height = 19;
 
         // TODO : TO CONSTANTS
-        float overallTargetDetectionRate = 0.985f;
-        float overallTargetFalsePositiveRate = 0.0000005f;
-        float targetDetectionRate = 0.995f;
-        float targetFalsePositiveRate = 0.48f;
+        float cascadeTargetFPR = 0.0000005f;
+        float cascadeTargetAccuracy = 0.985f;
+        float layerTargetFPR = 0.48f;
 
         Serializer.featureCount = countAllFeatures(width, height);
 
@@ -31,8 +30,11 @@ public class Main {
         System.out.println("Total memory: " + Runtime.getRuntime().totalMemory());
         System.out.println("Available Processors (num of max threads) : " + Runtime.getRuntime().availableProcessors());
 
+        Serializer.featureCount = countAllFeatures(width, height);
+
+
         Classifier classifier = new Classifier(width, height);
-        classifier.train("data2/trainset", "data2/testset", 0.5f, overallTargetDetectionRate, overallTargetFalsePositiveRate, targetFalsePositiveRate, true);
+        classifier.train("data/trainset", "data/testset", 0.5f, cascadeTargetAccuracy, cascadeTargetFPR, layerTargetFPR, true);
         classifier.test("data/testset");
 
 //        Perfs.benchmarksTrainFeatures();
