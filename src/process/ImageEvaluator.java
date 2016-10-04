@@ -10,6 +10,7 @@ import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.SimpleGraph;
 import process.features.Face;
 import process.features.Rectangle;
+import utils.CascadeSerializer;
 import utils.Serializer;
 
 import java.util.*;
@@ -48,7 +49,7 @@ public class ImageEvaluator {
 
         this.tweaks = new ArrayList<>();
         int[] tmp = new int[1];
-        this.cascade = Serializer.readLayerMemory(Conf.TRAIN_FEATURES, this.tweaks, tmp);
+        this.cascade = CascadeSerializer.readLayerMemory(Conf.TRAIN_FEATURES, this.tweaks, tmp);
         this.layerCount = tmp[0];
 
         // Define new indexes for wanted haar features

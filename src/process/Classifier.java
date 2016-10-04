@@ -2,11 +2,11 @@ package process;
 
 import jeigen.DenseMatrix;
 import process.features.Face;
+import utils.CascadeSerializer;
 import utils.Serializer;
 
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.concurrent.*;
 
 import static java.lang.Math.log;
@@ -571,13 +571,13 @@ public class Classifier {
                 }
                 System.out.println("    - Number of weak classifier: " + cascade[0].size());
 
-                Serializer.writeRule(cascade[round], true, Conf.TRAIN_FEATURES);
+                CascadeSerializer.writeCascadeLayerToXML(round, cascade[round], this.tweaks.get(round));
                 // Attentional cascade is useless, a single round will be enough
                 break;
             }
 
             attentionalCascade(round, cascadeTargetAccuracy, cascadeTargetFPR);
-            System.out.println("    - Attentional Cascade computed in " + ((new Date()).getTime() - startTimeFor)/1000 + "s!");
+            System.out.println("    - Cascade layer computed in " + ((new Date()).getTime() - startTimeFor)/1000 + "s!");
             System.out.println("      -> Number of Weak Classifier: " + cascade[round].size());
 
             layerMemory.add(cascade[round].size());
@@ -601,11 +601,11 @@ public class Classifier {
             }
 
             //record the boosted rule into a target file
-            Serializer.writeRule(cascade[round], round == 0, Conf.TRAIN_FEATURES);
+            CascadeSerializer.writeCascadeLayerToXML(round, cascade[round], this.tweaks.get(round));
         }
 
         // Serialize training
-        Serializer.writeLayerMemory(this.layerMemory, this.tweaks, Conf.TRAIN_FEATURES);
+//        Serializer.writeLayerMemory(this.layerMemory, this.tweaks, Conf.TRAIN_FEATURES);
 
         computed = true;
 

@@ -7,7 +7,6 @@ import java.io.*;
 import java.nio.file.FileAlreadyExistsException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static utils.Utils.fileExists;
@@ -20,16 +19,16 @@ public class Serializer {
     private static int[][] organizedFeatures = null;
     private static int[][] organizedSamples = null;
 
-
-    private static boolean inMemory = false;
-    public static long featureCount;
-
     // Map a filepath to the index of xxxImagesFeatures
     private static ConcurrentHashMap<String, Integer> fileIndex = new ConcurrentHashMap<>();
 
     // If String matches a training example, then it returns 1
     // If String matches a validation example, then it returns 0
     private static ConcurrentHashMap<String, Integer> fileTraining = new ConcurrentHashMap<>();
+
+    private static boolean inMemory = false;
+    public static long featureCount;
+
 
     public static boolean isInMemory() {
         return inMemory;
@@ -280,162 +279,5 @@ public class Serializer {
         
         if (trainingSet)
             inMemory = true;
-    }
-
-    public static void writeRule(ArrayList<StumpRule> committee, boolean firstRound, String fileName) {
-        try {
-
-            if (firstRound && Utils.fileExists(fileName))
-                Utils.deleteFile(fileName);
-
-            PrintWriter writer = new PrintWriter(new FileWriter(fileName, true));
-
-            if (firstRound)
-                writer.println("double stumps[][4]=");
-
-            for (StumpRule stumpRule : committee) {
-                writer.println(stumpRule.featureIndex + ";" + stumpRule.error + ";"
-                        + stumpRule.threshold + ";" + stumpRule.toggle);
-            }
-
-            writer.flush();
-            writer.close();
-
-        } catch (IOException e) {
-            System.err.println("Error : Could Not Write committee, aborting");
-            e.printStackTrace();
-            System.exit(1);
-        }
-    }
-
-    public static ArrayList<StumpRule> readRule(String fileName) {
-        ArrayList<StumpRule> result = new ArrayList<>();
-
-        try {
-            BufferedReader br = new BufferedReader(new FileReader(fileName));
-            String line = br.readLine();
-
-            while (line != null) {
-                line = br.readLine();
-                if (line == null || line.equals(""))
-                    break;
-
-                String[] parts = line.split(";");
-
-                StumpRule stumpRule = new StumpRule(Long.parseLong(parts[0]),
-                        Double.parseDouble(parts[1]),
-                        Double.parseDouble(parts[2]),
-                        -1,
-                        Integer.parseInt(parts[3]));
-
-                result.add(stumpRule);
-            }
-
-            br.close();
-
-        } catch (IOException e) {
-            System.err.println("Error while reading the list of decisionStumps");
-            //e.printStackTrace();
-            //System.exit(1);
-        }
-        return result;
-    }
-
-    public static void writeLayerMemory(ArrayList<Integer> layerMemory, ArrayList<Float> tweaks, String fileName) {
-        try {
-
-            int layerCount = layerMemory.size();
-            PrintWriter writer = new PrintWriter(new FileWriter(fileName, true));
-
-            writer.println(System.lineSeparator());
-            writer.println("int layerCount=" + layerCount);
-            writer.println("int layerCommitteeSize[]=");
-
-            layerMemory.forEach(writer::println);
-
-            writer.println("float tweaks[]=");
-
-            tweaks.forEach(writer::println);
-            /*
-            for (int i = 0; i < layerCount; i++) {
-                writer.println(tweaks.get(i));
-            }
-            */
-
-            writer.close();
-
-        } catch (IOException e) {
-            System.err.println("Error : Could Not Write layer Memory or tweaks, aborting");
-            e.printStackTrace();
-            System.exit(1);
-        }
-    }
-
-    /**
-     *
-     * @return the layerCount
-     * @param fileName the path to the file with the data needed
-     * @param layerCommitteeSize ArrayList in which the size of each committe will be stored
-     * @param tweaks ArrayList in which the tweaks will be stored
-     */
-    public static int readLayerMemory(String fileName, ArrayList<Integer> layerCommitteeSize, ArrayList<Float> tweaks) {
-
-        int layercount = 0;
-
-        try {
-            BufferedReader br = new BufferedReader(new FileReader(fileName));
-            String line = br.readLine();
-
-            while (line != null) {
-                line = br.readLine();
-                if (line.equals("")) {
-                    line = br.readLine();
-                    break;
-                }
-            }
-
-            line = br.readLine();
-            String[] parts = line.split("=");
-            layercount = Integer.parseInt(parts[1]);
-            line = br.readLine();
-
-            for (int i = 0; i < layercount; i++) {
-                line = br.readLine();
-                layerCommitteeSize.add(Integer.parseInt(line));
-            }
-
-            line = br.readLine();
-
-            for (int i = 0; i < layercount; i++) {
-                line = br.readLine();
-                tweaks.add(Float.parseFloat(line));
-            }
-
-            br.close();
-
-        } catch (IOException e) {
-            System.err.println("Error while reading the layer memory");
-            //e.printStackTrace();
-            //System.exit(1);
-        }
-
-        return layercount;
-    }
-
-
-    public static ArrayList<StumpRule>[] readLayerMemory(String fileName, ArrayList<Float> tweaks, int[] layerCount) {
-        ArrayList<Integer> layerCommitteeSize = new ArrayList<>();
-        ArrayList<StumpRule> rules = Serializer.readRule(fileName);
-        layerCount[0] = readLayerMemory(fileName, layerCommitteeSize, tweaks);
-        ArrayList<StumpRule>[] cascade = new ArrayList[layerCount[0]];
-        int committeeStart = 0;
-        for (int i = 0; i < layerCount[0]; i++) {
-            cascade[i] = new ArrayList<>();
-            for (int committeeIndex = committeeStart; committeeIndex < layerCommitteeSize.get(i) + committeeStart; committeeIndex++) {
-                cascade[i].add(rules.get(committeeIndex));
-            }
-            committeeStart += layerCommitteeSize.get(i);
-        }
-        return cascade;
     }
 }

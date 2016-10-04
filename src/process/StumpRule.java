@@ -1,6 +1,9 @@
 package process;
 
 
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+
 public class StumpRule { // == Weak classifier
     //    (Your feature value > this.threshold?)
     //         | NO                   YES |
@@ -42,5 +45,42 @@ public class StumpRule { // == Weak classifier
                 other.margin,
                 other.toggle
         );
+    }
+
+    public Element toXML(Document document) {
+        Element stump = document.createElement("StumpRule");
+
+        Element fi = document.createElement("FeatureIndex");
+        fi.appendChild(document.createTextNode(String.valueOf(this.featureIndex)));
+        stump.appendChild(fi);
+
+        Element er = document.createElement("Error");
+        er.appendChild(document.createTextNode(String.valueOf(this.error)));
+        stump.appendChild(er);
+
+        Element th = document.createElement("Threshold");
+        th.appendChild(document.createTextNode(String.valueOf(this.threshold)));
+        stump.appendChild(th);
+
+        Element ma = document.createElement("Margin");
+        ma.appendChild(document.createTextNode(String.valueOf(this.margin)));
+        stump.appendChild(ma);
+
+        Element to = document.createElement("Toggle");
+        to.appendChild(document.createTextNode(String.valueOf(this.toggle)));
+        stump.appendChild(to);
+
+        return stump;
+    }
+
+    public static StumpRule fromXML(Element stump) {
+
+        final int fi = Integer.valueOf(stump.getElementsByTagName("FeatureIndex").item(0).getTextContent());
+        final int er = Integer.valueOf(stump.getElementsByTagName("Error").item(0).getTextContent());
+        final int th = Integer.valueOf(stump.getElementsByTagName("Threshold").item(0).getTextContent());
+        final int ma = Integer.valueOf(stump.getElementsByTagName("Margin").item(0).getTextContent());
+        final int to = Integer.valueOf(stump.getElementsByTagName("Toggle").item(0).getTextContent());
+
+        return new StumpRule(fi, er, th, ma, to);
     }
 }

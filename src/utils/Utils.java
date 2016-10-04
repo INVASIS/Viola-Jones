@@ -10,10 +10,10 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.io.BufferedReader;
-import java.util.InputMismatchException;
-import java.util.Scanner;
+import java.util.Date;
 
 public class Utils {
     public static ArrayList<String> scanDir(String dir) { // Already recursive
@@ -129,5 +129,13 @@ public class Utils {
             return a / b;
         else
             return Double.MAX_VALUE;
+    }
+
+    public static String currentDate(String format) {
+        if (format == null)
+            format = "yyyy/MM/dd-HH:mm:ss";
+        DateFormat dateFormat = new SimpleDateFormat(format);
+        Date date = new Date();
+        return dateFormat.format(date);
     }
 }

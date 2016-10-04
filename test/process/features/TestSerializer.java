@@ -4,6 +4,7 @@ import org.junit.Assert;
 import org.junit.Test;
 import process.Conf;
 import process.StumpRule;
+import utils.CascadeSerializer;
 import utils.Serializer;
 
 import java.io.*;
@@ -116,14 +117,14 @@ public class TestSerializer {
         StumpRule stumpRule = new StumpRule(1, 1, 1, 1, 1);
         committee.add(stumpRule);
 
-        Serializer.writeRule(committee, true, tmp_file);
+        CascadeSerializer.writeCascadeLayer(committee, 0, tmp_file);
 
         StumpRule stumpRule2 = new StumpRule(2, 2, 2, 2, -1);
         committee.add(stumpRule2);
 
-        Serializer.writeRule(committee, false, tmp_file);
+        CascadeSerializer.writeCascadeLayer(committee, 1, tmp_file);
 
-        ArrayList<StumpRule> read = Serializer.readRule(tmp_file);
+        ArrayList<StumpRule> read = CascadeSerializer.readRule(tmp_file);
 
         assertEquals(committee.size() + 1, read.size());
 
@@ -160,7 +161,7 @@ public class TestSerializer {
         committee.add(stumpRule4);
         committee.add(stumpRule5);
 
-        Serializer.writeRule(committee, true, tmp_file);
+        CascadeSerializer.writeCascadeLayer(committee, 0, tmp_file);
 
         ArrayList<Integer> layerMemory = new ArrayList<>();
         layerMemory.add(2);
@@ -172,12 +173,12 @@ public class TestSerializer {
         tweaks.add(0.101010f);
         tweaks.add(0.424242f);
 
-        Serializer.writeLayerMemory(layerMemory, tweaks, tmp_file);
+        CascadeSerializer.writeLayerMemory(layerMemory, tweaks, tmp_file);
 
         ArrayList<Integer> layerCommitteSize = new ArrayList<>();
         ArrayList<Float> readTweaks = new ArrayList<>();
 
-        int layerCount = Serializer.readLayerMemory(tmp_file, layerCommitteSize, readTweaks);
+        int layerCount = CascadeSerializer.readLayerMemory(tmp_file, layerCommitteSize, readTweaks);
 
         Assert.assertEquals(3, layerCount);
         Assert.assertEquals(3, layerCommitteSize.size());
