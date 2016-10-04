@@ -27,6 +27,7 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 
 import static utils.Utils.currentDate;
+import static utils.Utils.fileExists;
 
 public class CascadeSerializer {
 
@@ -87,6 +88,11 @@ public class CascadeSerializer {
     }
 
     public static ArrayList<ArrayList<StumpRule>> loadCascadeFromXML(String filePath, ArrayList<Float> tweaks) {
+        if (!fileExists(filePath)) {
+            System.err.println("Could not load Cascade from file " + filePath + ": file does not exists!");
+            System.exit(1);
+        }
+
         ArrayList<ArrayList<StumpRule>> cascade = new ArrayList<>();
 
         try {
@@ -101,16 +107,14 @@ public class CascadeSerializer {
                 if (layers.item(i).getNodeType() == Node.ELEMENT_NODE) {
                     ArrayList<StumpRule> committee = new ArrayList<>();
                     final Element layer = (Element) layers.item(i);
-
-                    final NodeList stumps = layer.getChildNodes();
+                    tweaks.add(Float.valueOf(layer.getElementsByTagName("Tweak").item(0).getTextContent()));
+                    final NodeList stumps = layer.getElementsByTagName("Stumps").item(0).getChildNodes();
                     for (int j = 0; j < stumps.getLength(); j++) {
                         if (stumps.item(j).getNodeType() == Node.ELEMENT_NODE) {
-                            final Element stump = (Element) layers.item(j);
+                            final Element stump = (Element) stumps.item(j);
                             committee.add(StumpRule.fromXML(stump));
                         }
                     }
-                    // FIXME : add tweaks correctly
-                    tweaks.add(0f);
                     cascade.add(committee);
                 }
             }
@@ -122,7 +126,7 @@ public class CascadeSerializer {
 
     public static void writeCascadeLayer(ArrayList<StumpRule> committee, int round, String fileName) {
         try {
-            if (round==0 && Utils.fileExists(fileName))
+            if (round==0 && fileExists(fileName))
                 Utils.deleteFile(fileName);
 
             PrintWriter writer = new PrintWriter(new FileWriter(fileName, true));
