@@ -34,7 +34,7 @@ public class Main {
 
 
         Classifier classifier = new Classifier(width, height);
-        classifier.train("data/trainset", "data/testset", 0.5f, cascadeTargetAccuracy, cascadeTargetFPR, layerTargetFPR, true);
+        //classifier.train("data/trainset", "data/testset", 0.5f, cascadeTargetAccuracy, cascadeTargetFPR, layerTargetFPR, true);
         classifier.test("data/testset");
 
 //        Perfs.benchmarksTrainFeatures();

@@ -410,13 +410,13 @@ public class Classifier {
                     tweak -= tweakUnit;
                     tweakCounter++;
                     oscillationObserver[tweakCounter % 2] = -1;
-                    System.out.println("        - adjusting tweak: " + tweak);
+                    //System.out.println("        - adjusting tweak: " + tweak);
                     tweaking = true;
                 } else if (worstAccuracy < targetAccuracy && worstFPR <= targetFPR) {
                     tweak += tweakUnit;
                     tweakCounter++;
                     oscillationObserver[tweakCounter % 2] = 1;
-                    System.out.println("        - adjusting tweak: " + tweak);
+                    //System.out.println("        - adjusting tweak: " + tweak);
                     tweaking = true;
                 } else {
                     finalTweak = true;
@@ -617,7 +617,7 @@ public class Classifier {
     }
 
     public void test(String dir) {
-        test_dir = dir;
+ /*       test_dir = dir;
         countTestPos = countFiles(test_dir + Conf.FACES, Conf.IMAGES_EXTENSION);
         countTestNeg = countFiles(test_dir + Conf.NONFACES, Conf.IMAGES_EXTENSION);
         testN = countTestPos + countTestNeg;
@@ -659,5 +659,8 @@ public class Classifier {
         System.out.println("Taux de detection (accuracy) : " + String.format("%1.4f", (((double)vraiPositif) + ((double)vraiNegatif))/((double)(countTestPos + countTestNeg))));
 
         System.out.println("Total computing time for HaarDetector: " + imageEvaluator.computingTimeMS + "ms for " + (vraiPositif + fauxPositif + vraiNegatif + fauxNegatif) + " images");
+
+*/
+        Test.soutenance(19, 19);
     }
 }

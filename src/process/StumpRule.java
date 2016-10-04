@@ -75,10 +75,10 @@ public class StumpRule { // == Weak classifier
 
     public static StumpRule fromXML(Element stump) {
 
-        final int fi = Integer.valueOf(stump.getElementsByTagName("FeatureIndex").item(0).getTextContent());
-        final int er = Integer.valueOf(stump.getElementsByTagName("Error").item(0).getTextContent());
-        final int th = Integer.valueOf(stump.getElementsByTagName("Threshold").item(0).getTextContent());
-        final int ma = Integer.valueOf(stump.getElementsByTagName("Margin").item(0).getTextContent());
+        final long fi = Long.valueOf(stump.getElementsByTagName("FeatureIndex").item(0).getTextContent());
+        final double er = Double.valueOf(stump.getElementsByTagName("Error").item(0).getTextContent());
+        final double th = Double.valueOf(stump.getElementsByTagName("Threshold").item(0).getTextContent());
+        final double ma = Double.valueOf(stump.getElementsByTagName("Margin").item(0).getTextContent());
         final int to = Integer.valueOf(stump.getElementsByTagName("Toggle").item(0).getTextContent());
 
         return new StumpRule(fi, er, th, ma, to);

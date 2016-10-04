@@ -27,7 +27,7 @@ public class ImageEvaluator {
     private ArrayList<Float> tweaks;
     private int layerCount;
 
-    private ArrayList<StumpRule>[] cascade;
+    private ArrayList<ArrayList<StumpRule>> cascade;
 
     private HashMap<Integer, Integer> neededHaarValues;
     public HaarDetector haarDetector;
@@ -48,16 +48,17 @@ public class ImageEvaluator {
         this.computingTimeMS = 0;
 
         this.tweaks = new ArrayList<>();
-        int[] tmp = new int[1];
-        this.cascade = CascadeSerializer.readLayerMemory(Conf.TRAIN_FEATURES, this.tweaks, tmp);
-        this.layerCount = tmp[0];
+        //this.cascade = CascadeSerializer.readLayerMemory(Conf.TRAIN_FEATURES, this.tweaks, tmp);
+        this.cascade = CascadeSerializer.loadCascadeFromXML(Conf.TRAIN_DIR + "/cascade-2016-10-04-18-04-10.data", this.tweaks);
+        this.layerCount = cascade.size();
+
 
         // Define new indexes for wanted haar features
         {
             this.neededHaarValues = new HashMap<>();
             int i = 0;
             for (int layer = 0; layer < layerCount; layer++) {
-                for (StumpRule rule : cascade[layer]) {
+                for (StumpRule rule : cascade.get(layer)) {
                     if (!neededHaarValues.containsKey((int) rule.featureIndex)) {
                         neededHaarValues.put((int) rule.featureIndex, i);
                         i++;

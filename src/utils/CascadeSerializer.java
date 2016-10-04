@@ -86,7 +86,7 @@ public class CascadeSerializer {
         updateFile();
     }
 
-    public static ArrayList<ArrayList<StumpRule>> loadCascadeFromXML(String filePath) {
+    public static ArrayList<ArrayList<StumpRule>> loadCascadeFromXML(String filePath, ArrayList<Float> tweaks) {
         ArrayList<ArrayList<StumpRule>> cascade = new ArrayList<>();
 
         try {
@@ -109,6 +109,8 @@ public class CascadeSerializer {
                             committee.add(StumpRule.fromXML(stump));
                         }
                     }
+                    // FIXME : add tweaks correctly
+                    tweaks.add(0f);
                     cascade.add(committee);
                 }
             }

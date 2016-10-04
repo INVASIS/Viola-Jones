@@ -133,7 +133,7 @@ public class Utils {
 
     public static String currentDate(String format) {
         if (format == null)
-            format = "yyyy/MM/dd-HH:mm:ss";
+            format = "yyyy-MM-dd-HH-mm-ss";
         DateFormat dateFormat = new SimpleDateFormat(format);
         Date date = new Date();
         return dateFormat.format(date);
