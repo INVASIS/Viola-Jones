@@ -26,6 +26,8 @@ public class ImageEvaluator {
 
     private int layerCount;
 
+    private int confidenceThreshold = 0;
+
     private ArrayList<ArrayList<StumpRule>> cascade;
     private ArrayList<Float> tweaks;
 
@@ -36,20 +38,24 @@ public class ImageEvaluator {
     public long computingTimeMS;
 
     public ImageEvaluator(int trainWidth, int trainHeight, int imgWidth, int imgHeight,
-                          int xDisplacer, int yDisplacer, int minSlidingSize, int maxSlidingSize, ArrayList<ArrayList<StumpRule>> cascade, ArrayList<Float> tweaks) {
-        this(trainWidth, trainHeight, imgWidth, imgHeight, xDisplacer, yDisplacer, minSlidingSize, maxSlidingSize, SCALE_COEFF, cascade, tweaks);
+                          int xDisplacer, int yDisplacer, int minSlidingSize, int maxSlidingSize, int confidenceThreshold, ArrayList<ArrayList<StumpRule>> cascade, ArrayList<Float> tweaks) {
+        this(trainWidth, trainHeight, imgWidth, imgHeight, xDisplacer, yDisplacer, minSlidingSize, maxSlidingSize, SCALE_COEFF, confidenceThreshold, cascade, tweaks);
     }
 
     public ImageEvaluator(int trainWidth, int trainHeight, int imgWidth, int imgHeight,
-                          int xDisplacer, int yDisplacer, int minSlidingSize, int maxSlidingSize, float coeff, ArrayList<ArrayList<StumpRule>> cascade, ArrayList<Float> tweaks) {
+                          int xDisplacer, int yDisplacer, int minSlidingSize, int maxSlidingSize, float coeff, int confidenceThreshold, ArrayList<ArrayList<StumpRule>> cascade, ArrayList<Float> tweaks) {
+
         this.trainHeight = trainHeight;
         this.trainWidth = trainWidth;
 
+        this.confidenceThreshold = confidenceThreshold;
         this.computingTimeMS = 0;
 
         this.tweaks = tweaks;
-        //this.cascade = CascadeSerializer.readLayerMemory(Conf.TRAIN_FEATURES, this.tweaks, tmp);
+
         this.cascade = cascade;
+        //this.cascade = CascadeSerializer.loadCascadeFromXML(Conf.TRAIN_DIR + "/cascade-2016-10-05-14-39-01.data", this.tweaks);
+        //this.cascade = CascadeSerializer.readLayerMemory(Conf.TRAIN_FEATURES, this.tweaks, tmp);
         this.layerCount = cascade.size();
 
 
@@ -104,7 +110,7 @@ public class ImageEvaluator {
             offset += haarSize;
 
             double confidence = isFace(cascade, tweaks, tmpHaar, layerCount, neededHaarValues);
-            if (confidence > 0) {
+            if (confidence > confidenceThreshold) {
                 res.add(new Face(rectangle, confidence));
             }
         }
@@ -250,7 +256,8 @@ public class ImageEvaluator {
                         face = candidate;
                 }
             }
-            if (lap >= 3 && cumulatedConfidence > 18 && face.getConfidence() > 0)
+            // FIXME : improve it ??
+            if (lap >= 3 && cumulatedConfidence > confidenceThreshold * 3.2 && face.getConfidence() > confidenceThreshold * 1.04)
                 result.add(face);
         }
 

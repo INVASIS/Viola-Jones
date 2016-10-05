@@ -635,12 +635,13 @@ public class Classifier {
     }
 
     public void statsTests(ArrayList<ArrayList<StumpRule>> cascade, ArrayList<Float> tweaks) {
+
         long vraiPositif = 0; // a good face
         long fauxNegatif = 0; // a face classified as negative
         long vraiNegatif = 0; // a non-face
         long fauxPositif = 0; // a non-face classified as positive
 
-        ImageEvaluator imageEvaluator = new ImageEvaluator(width, height, 19, 19, 1, 1, 19, 19, cascade, tweaks);
+        ImageEvaluator imageEvaluator = new ImageEvaluator(width, height, 19, 19, 1, 1, 19, 19, 0, cascade, tweaks);
 
         for (String img : streamFiles(test_dir + Conf.FACES, Conf.IMAGES_EXTENSION)) {
             ArrayList<Face> faces = imageEvaluator.getFaces(img, false);
