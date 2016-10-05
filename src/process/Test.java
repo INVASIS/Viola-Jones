@@ -100,14 +100,14 @@ public class Test {
         Display.drawImage(image.getBufferedImage());
     }
 
-    public static void soutenance(int w, int h) {
-        ImageEvaluator evaluatorGOT = new ImageEvaluator(w, h, 200, 200, 1, 1, 16, 30, 1.21f);
-//        ImageEvaluator evaluatorBE = new ImageEvaluator(w, h, 200, 200, 2, 2, 40, 41, 1.25f);
-//        ImageEvaluator evaluatorGOT2 = new ImageEvaluator(w, h, 600, 600, 10, 10, 85, 86, 1.25f);
-        ImageEvaluator evaluator100 = new ImageEvaluator(w, h, 100, 100, 1, 1, 30, 60, 1.25f);
-        ImageEvaluator evaluator300 = new ImageEvaluator(w, h, 300, 300, 4, 4, 120, 121, 1.25f);
-        ImageEvaluator evaluator640 = new ImageEvaluator(w, h, 640, 436, 3, 3, 28, 35, 1.25f);
-        ImageEvaluator evaluator500 = new ImageEvaluator(w, h, 500, 281, 4, 4, 65, 78, 1.25f);
+    public static void soutenance(int w, int h, ArrayList<ArrayList<StumpRule>> cascade, ArrayList<Float> tweaks) {
+        ImageEvaluator evaluatorGOT = new ImageEvaluator(w, h, 200, 200, 1, 1, 16, 30, 1.21f, cascade, tweaks);
+//        ImageEvaluator evaluatorBE = new ImageEvaluator(w, h, 200, 200, 2, 2, 40, 41, 1.25f, cascade, tweaks);
+//        ImageEvaluator evaluatorGOT2 = new ImageEvaluator(w, h, 600, 600, 10, 10, 85, 86, 1.25f, cascade, tweaks);
+        ImageEvaluator evaluator100 = new ImageEvaluator(w, h, 100, 100, 1, 1, 30, 60, 1.25f, cascade, tweaks);
+        ImageEvaluator evaluator300 = new ImageEvaluator(w, h, 300, 300, 4, 4, 120, 121, 1.25f, cascade, tweaks);
+        ImageEvaluator evaluator640 = new ImageEvaluator(w, h, 640, 436, 3, 3, 28, 35, 1.25f, cascade, tweaks);
+        ImageEvaluator evaluator500 = new ImageEvaluator(w, h, 500, 281, 4, 4, 65, 78, 1.25f, cascade, tweaks);
 
         evaluateImage("data/got.jpeg", evaluatorGOT, true);
 //        evaluateImage("data/serie.jpg", evaluatorGOT, true);

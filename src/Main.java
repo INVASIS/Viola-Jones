@@ -1,7 +1,12 @@
 import Statistics.Perfs;
 import process.Classifier;
 import process.Conf;
+import process.StumpRule;
+import process.Test;
+import utils.CascadeSerializer;
 import utils.Serializer;
+
+import java.util.ArrayList;
 
 import static process.features.FeatureExtractor.countAllFeatures;
 
@@ -15,7 +20,7 @@ public class Main {
         // TODO : TO CONSTANTS
         float cascadeTargetFPR = 0.0000005f;
         float cascadeTargetAccuracy = 0.985f;
-        float layerTargetFPR = 0.48f;
+        float layerTargetFPR = 0.50f;
 
         Serializer.featureCount = countAllFeatures(width, height);
 
@@ -34,11 +39,16 @@ public class Main {
 
 
         Classifier classifier = new Classifier(width, height);
-        //classifier.train("data/trainset", "data/testset", 0.5f, cascadeTargetAccuracy, cascadeTargetFPR, layerTargetFPR, true);
-        classifier.test("data/testset");
+        classifier.train("data/trainset", "data/testset", 0.5f, cascadeTargetAccuracy, cascadeTargetFPR, layerTargetFPR, true);
+
+
+//        ArrayList<Float> tweaks = new ArrayList<>();
+//        ArrayList<ArrayList<StumpRule>> cascade = CascadeSerializer.loadCascadeFromXML(Conf.TRAIN_DIR + "/cascade-2016-10-05-14-39-01.data", tweaks);
+//        classifier.test("data/testset", cascade, tweaks);
+//        Test.soutenance(19, 19, cascade, tweaks);
 
 //        Perfs.benchmarksTrainFeatures();
-//        Perfs.benchmarkDetect();
+//        Perfs.benchmarkDetect(cascade, tweaks);
 //        Perfs.compareDetectFacesTime(width, height);
     }
 }

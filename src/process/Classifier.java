@@ -61,6 +61,7 @@ public class Classifier {
 
     private boolean[] removedFromTrain;
     private boolean[] removedFromTest;
+    private boolean[] stumpBlacklist;
     private int usedTrainPos;
     private int usedTrainNeg;
     private int usedTestPos;
@@ -83,6 +84,7 @@ public class Classifier {
 
     private final ExecutorService executor = Executors.newFixedThreadPool(Conf.TRAIN_MAX_CONCURENT_PROCESSES);
 
+
     public Classifier(int width, int height) {
         this.width = width;
         this.height = height;
@@ -104,7 +106,6 @@ public class Classifier {
         onlyMostRecent = committeeSize == 1 || onlyMostRecent;
 
         int startingFrom = onlyMostRecent ? committeeSize - 1 : 0;
-
 
         // We compute results for the layer by comparing each StumpRule's threshold and each example.
         for (int member = startingFrom; member < committeeSize; member++) {
@@ -162,25 +163,28 @@ public class Classifier {
 //        System.out.println("      - Calling bestStump with totalWeightsPos: " + totalWeightPos + " totalWeightNeg: " + totalWeightNeg + " minWeight: " + minWeight);
         ArrayList<Future<StumpRule>> futureResults = new ArrayList<>(trainN);
         for (int i = 0; i < featureCount; i++)
-                futureResults.add(executor.submit(new DecisionStump(labelsTrain, weightsTrain, i, trainN, totalWeightPos, totalWeightNeg, minWeight, removedFromTrain)));
+            futureResults.add(executor.submit(new DecisionStump(labelsTrain, weightsTrain, i, trainN, totalWeightPos, totalWeightNeg, minWeight, removedFromTrain)));
 
         StumpRule best = null;
         for (int i = 0; i < featureCount; i++) {
-            try {
-                    StumpRule current = futureResults.get(i).get();
-                    if (best == null)
-                        best = current;
-                    else if (current.compare(best))
-                        best = current;
-            } catch (InterruptedException | ExecutionException e) {
-                e.printStackTrace();
-            }
+            if (!stumpBlacklist[i])
+                try {
+                        StumpRule current = futureResults.get(i).get();
+                        if (best == null)
+                            best = current;
+                        else if (current.compare(best))
+                            best = current;
+                } catch (InterruptedException | ExecutionException e) {
+                    e.printStackTrace();
+                }
         }
 
         if (best.error >= 0.5) {
             System.err.println("    - Failed best stump, error : " + best.error + " >= 0.5 !");
             System.exit(1);
         }
+
+        stumpBlacklist[(int)best.featureIndex] = true;
 
         System.out.println("    - Found best stump in " + ((new Date()).getTime() - startTime)/1000 + "s" +
                 " : (featureIdx: " + best.featureIndex +
@@ -214,23 +218,32 @@ public class Classifier {
         // Compute results: agree[i] >= 0 means correct, while agree[i] < 0 means incorrect
         DenseMatrix agree = labelsTrain.mul(predictions);
 
+        // FIXME: instead decrease TP & TN examples weights
         // For each incorrect example, increase its weight so that it has more importance in the next call to bestStump
         {
             DenseMatrix weightUpdate = DenseMatrix.ones(1, trainN);
-            boolean werror = false;
             for (int i = 0; i < trainN; i++) {
-                if (!removedFromTrain[i] && agree.get(0, i) < 0) {
-                    if (bestDS.error != 0)
-                        weightUpdate.set(0, i, (1 / bestDS.error) - 1);
-                    else
-                        weightUpdate.set(0, i, 99); // <=> bestDS.error = 0.01
-                    werror = true;
+                // Do not use removed example
+                if (removedFromTrain[i])
+                    weightUpdate.set(0, i, 0);
+                else if (agree.get(0, i) > 0) {
+                    if (predictions.get(0, i) > 0) // TP
+                        weightUpdate.set(0, i, bestDS.error/2);
+                    else // TN
+                        weightUpdate.set(0, i, bestDS.error/10);
                 }
+//                else if (agree.get(0, i) < 0) {
+//                    if (bestDS.error != 0)
+//                        weightUpdate.set(0, i, (1 / bestDS.error) - 1);
+//                    else
+//                        weightUpdate.set(0, i, 15); // <=> bestDS.error = 0.066
+//                    werror = true;
+//                }
             }
-            if (werror) {
+//            if (werror) {
                 weightsTrain = weightsTrain.mul(weightUpdate);
 
-                // Update Weight related variables
+                // Update Weight-related variables
                 double sum = 0;
                 for (int i = 0; i < trainN; i++)
                     sum += weightsTrain.get(0, i);
@@ -241,14 +254,14 @@ public class Classifier {
                 maxWeight = 0;
 
                 for (int i = 0; i < trainN; i++) {
+                    if (removedFromTrain[i])
+                        continue;
                     double newVal = weightsTrain.get(0, i) / sum;
                     weightsTrain.set(0, i, newVal);
                     if (i < countTrainPos)
                         sumPos += newVal;
-                    if (minWeight > newVal)
-                        minWeight = newVal;
-                    if (maxWeight < newVal)
-                        maxWeight = newVal;
+                    minWeight = Math.min(minWeight, newVal);
+                    maxWeight = Math.max(maxWeight, newVal);
                 }
                 totalWeightPos = sumPos;
                 totalWeightNeg = 1 - sumPos;
@@ -256,7 +269,7 @@ public class Classifier {
                 assert totalWeightPos + totalWeightNeg == 1;
                 assert totalWeightPos <= 1;
                 assert totalWeightNeg <= 1;
-            }
+//            }
         }
     }
 
@@ -380,8 +393,8 @@ public class Classifier {
             while (Math.abs(tweak) < 1.1) {
                 tweaks.set(round, tweak);
 
-                double[] resTrain = calcEmpiricalError(true, round, false);
-                double[] resTest = calcEmpiricalError(false, round, false);
+                double[] resTrain = calcEmpiricalError(true, round, true);
+                double[] resTest = calcEmpiricalError(false, round, true);
 
                 double worstFPR = Math.max(resTrain[0], resTest[0]);
                 double worstAccuracy = Math.min(resTrain[1], resTest[1]);
@@ -517,11 +530,14 @@ public class Classifier {
 
             // Setting up the Blacklist
             removedFromTrain = new boolean[trainN];
+            stumpBlacklist = new boolean[(int)featureCount];
             removedFromTest = new boolean[testN];
-            for (int i = 0; i < trainN; i++) {
+            for (int i = 0; i < trainN; i++)
                 removedFromTrain[i] = false;
+            for (int i = 0; i < featureCount; i++)
+                stumpBlacklist[i] = false;
+            for (int i = 0; i < testN; i++)
                 removedFromTest[i] = false;
-            }
 
             layerMemory = new ArrayList<>();
 
@@ -563,7 +579,7 @@ public class Classifier {
 
             if (!withTweaks) {
                 cascade[0] = new ArrayList<>();
-                int expectedSize = Math.min(20 + boostingRounds * 10, 200);
+                int expectedSize = Math.min(20 + boostingRounds * 10, 100);
                 System.out.println("    - Expected number of weak classifiers: " + expectedSize);
                 for (int i = 0; i < expectedSize; i++) {
                     System.out.println("    - Adaboost N." + (i+1) + "/" + expectedSize + ":");
@@ -602,6 +618,8 @@ public class Classifier {
 
             //record the boosted rule into a target file
             CascadeSerializer.writeCascadeLayerToXML(round, cascade[round], this.tweaks.get(round));
+
+            statsTests(round);
         }
 
         // Serialize training
@@ -616,18 +634,13 @@ public class Classifier {
             System.out.println("    - Round " + (i + 1) + ": " + cascade[i].size());
     }
 
-    public void test(String dir) {
- /*       test_dir = dir;
-        countTestPos = countFiles(test_dir + Conf.FACES, Conf.IMAGES_EXTENSION);
-        countTestNeg = countFiles(test_dir + Conf.NONFACES, Conf.IMAGES_EXTENSION);
-        testN = countTestPos + countTestNeg;
-
+    public void statsTests(ArrayList<ArrayList<StumpRule>> cascade, ArrayList<Float> tweaks) {
         long vraiPositif = 0; // a good face
         long fauxNegatif = 0; // a face classified as negative
         long vraiNegatif = 0; // a non-face
         long fauxPositif = 0; // a non-face classified as positive
 
-        ImageEvaluator imageEvaluator = new ImageEvaluator(width, height, 19, 19, 1, 1, 19, 19);
+        ImageEvaluator imageEvaluator = new ImageEvaluator(width, height, 19, 19, 1, 1, 19, 19, cascade, tweaks);
 
         for (String img : streamFiles(test_dir + Conf.FACES, Conf.IMAGES_EXTENSION)) {
             ArrayList<Face> faces = imageEvaluator.getFaces(img, false);
@@ -653,14 +666,26 @@ public class Classifier {
         System.out.println("True negative rate TNR (specificity)        : " + vraiNegatif + " / " + countTestNeg + " (" + String.format("%1.4f", ((double)vraiNegatif)/(double)countTestNeg) + ")" + " Should be high");
         System.out.println("False positive rate FPR                     : " + fauxPositif + " / " + countTestNeg + " (" + String.format("%1.4f", ((double)fauxPositif)/(double)countTestNeg) + ")" + " Should be low");
 
-        System.out.println("Positives: " + (vraiPositif + fauxPositif) + " / " + (countTestPos + countTestNeg) + " (expecting " + (double)(vraiPositif) + "/" + (double)(countTestPos + countTestNeg)+ ")");
-        System.out.println("Negatives: " + (vraiNegatif + fauxNegatif) + " / " + (countTestPos + countTestNeg) + " (expecting " + (double)(fauxNegatif) + "/" + (double)(countTestPos + countTestNeg)+ ")");
+        System.out.println("Positives: " + (vraiPositif + fauxPositif) + " / " + (countTestPos + countTestNeg) + " (expecting " + (double)(countTestPos) + "/" + (double)(countTestPos + countTestNeg)+ ")");
+        System.out.println("Negatives: " + (vraiNegatif + fauxNegatif) + " / " + (countTestPos + countTestNeg) + " (expecting " + (double)(countTestNeg) + "/" + (double)(countTestPos + countTestNeg)+ ")");
 
         System.out.println("Taux de detection (accuracy) : " + String.format("%1.4f", (((double)vraiPositif) + ((double)vraiNegatif))/((double)(countTestPos + countTestNeg))));
 
         System.out.println("Total computing time for HaarDetector: " + imageEvaluator.computingTimeMS + "ms for " + (vraiPositif + fauxPositif + vraiNegatif + fauxNegatif) + " images");
+    }
 
-*/
-        Test.soutenance(19, 19);
+    public void statsTests(int round) {
+        ArrayList<ArrayList<StumpRule>> c = new ArrayList<>();
+        for (int i = 0; i <= round; i++)
+            c.add(cascade[i]);
+        statsTests(c, tweaks);
+    }
+
+    public void test(String dir, ArrayList<ArrayList<StumpRule>> cascade, ArrayList<Float> tweaks) {
+        test_dir = dir;
+        countTestPos = countFiles(test_dir + Conf.FACES, Conf.IMAGES_EXTENSION);
+        countTestNeg = countFiles(test_dir + Conf.NONFACES, Conf.IMAGES_EXTENSION);
+        testN = countTestPos + countTestNeg;
+        statsTests(cascade, tweaks);
     }
 }

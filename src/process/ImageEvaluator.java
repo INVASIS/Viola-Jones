@@ -24,10 +24,10 @@ public class ImageEvaluator {
     private int trainWidth;
     private int trainHeight;
 
-    private ArrayList<Float> tweaks;
     private int layerCount;
 
     private ArrayList<ArrayList<StumpRule>> cascade;
+    private ArrayList<Float> tweaks;
 
     private HashMap<Integer, Integer> neededHaarValues;
     public HaarDetector haarDetector;
@@ -36,20 +36,20 @@ public class ImageEvaluator {
     public long computingTimeMS;
 
     public ImageEvaluator(int trainWidth, int trainHeight, int imgWidth, int imgHeight,
-                          int xDisplacer, int yDisplacer, int minSlidingSize, int maxSlidingSize) {
-        this(trainWidth, trainHeight, imgWidth, imgHeight, xDisplacer, yDisplacer, minSlidingSize, maxSlidingSize, SCALE_COEFF);
+                          int xDisplacer, int yDisplacer, int minSlidingSize, int maxSlidingSize, ArrayList<ArrayList<StumpRule>> cascade, ArrayList<Float> tweaks) {
+        this(trainWidth, trainHeight, imgWidth, imgHeight, xDisplacer, yDisplacer, minSlidingSize, maxSlidingSize, SCALE_COEFF, cascade, tweaks);
     }
 
     public ImageEvaluator(int trainWidth, int trainHeight, int imgWidth, int imgHeight,
-                          int xDisplacer, int yDisplacer, int minSlidingSize, int maxSlidingSize, float coeff) {
+                          int xDisplacer, int yDisplacer, int minSlidingSize, int maxSlidingSize, float coeff, ArrayList<ArrayList<StumpRule>> cascade, ArrayList<Float> tweaks) {
         this.trainHeight = trainHeight;
         this.trainWidth = trainWidth;
 
         this.computingTimeMS = 0;
 
-        this.tweaks = new ArrayList<>();
+        this.tweaks = tweaks;
         //this.cascade = CascadeSerializer.readLayerMemory(Conf.TRAIN_FEATURES, this.tweaks, tmp);
-        this.cascade = CascadeSerializer.loadCascadeFromXML(Conf.TRAIN_DIR + "/cascade-2016-10-04-18-04-10.data", this.tweaks);
+        this.cascade = cascade;
         this.layerCount = cascade.size();
 
 

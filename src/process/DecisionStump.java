@@ -86,7 +86,13 @@ public class DecisionStump implements Callable<StumpRule> {
                 current.toggle = -1;
             }
 
-            current.error = Epsilon_hat < minWeight * 0.9 ? 0 : Epsilon_hat;
+            if (Epsilon_hat < minWeight * 0.9) {
+                current.error = minWeight * 0.9;
+//                System.out.println("Epsilon_hat: " + Epsilon_hat + " minWeight:" + minWeight);
+            }
+            else
+                current.error = Epsilon_hat;
+//            current.error = Epsilon_hat < minWeight * 0.9 ? 0 : Epsilon_hat;
 
             if (current.compare(best))
                 best = StumpRule.deepCopy(current);
