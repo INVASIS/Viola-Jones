@@ -51,6 +51,11 @@ If you use CUDA under windows, you will also need Visual Studio 2013 so that nvc
 4. [5KK73 GPU Assignment 2012](https://sites.google.com/site/5kk73gpu2012/assignment/viola-jones-face-detection)
 5. [Object detection using cascades of boosted classifiers](http://www.die.uchile.cl/ieee-cis/files/RuizdelSolar_T9.pdf)
 
+## Examples
+
+[![alt tag](stats/test1.png)](https://raw.githubusercontent.com/INVASIS/Viola-Jones/master/stats/test1.png)
+
+[![alt tag](stats/test2.png)](https://raw.githubusercontent.com/INVASIS/Viola-Jones/master/stats/test2.png)
 
 # Statistics
 
